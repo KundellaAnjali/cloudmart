@@ -14,6 +14,7 @@ Resources:
       SubnetIds:
         - Fn::ImportValue: CloudMart-Private-Subnet-ID
 
+
   # ==========================
   # RDS MYSQL
   # ==========================
@@ -46,6 +47,7 @@ Resources:
 
       BackupRetentionPeriod: 7
 
+
   # ==========================
   # REPORTS BUCKET
   # ==========================
@@ -55,6 +57,7 @@ Resources:
     Properties:
       BucketName: cloudmart-reports
 
+
   # ==========================
   # SSM PARAMETERS
   # ==========================
@@ -63,21 +66,21 @@ Resources:
     Type: AWS::SSM::Parameter
     Properties:
       Name: /cloudmart/dev/auth/token
-      Type: SecureString
+      Type: String
       Value: cloudmart123
 
   DBUsernameParameter:
     Type: AWS::SSM::Parameter
     Properties:
       Name: /cloudmart/dev/db/username
-      Type: SecureString
+      Type: String
       Value: admin
 
   DBPasswordParameter:
     Type: AWS::SSM::Parameter
     Properties:
       Name: /cloudmart/dev/db/password
-      Type: SecureString
+      Type: String
       Value: CloudMart@123
 
   DBHostParameter:
@@ -109,7 +112,9 @@ Resources:
       Value: !Ref ReportsBucket
 
 
+# ==========================
 # OUTPUTS
+# ==========================
 
 Outputs:
 
