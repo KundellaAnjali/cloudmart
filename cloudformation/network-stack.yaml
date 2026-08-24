@@ -3,10 +3,6 @@ Description: CloudMart Network Stack
 
 Resources:
 
-  # ==========================
-  # VPC
-  # ==========================
-
   CloudMartVPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -17,10 +13,6 @@ Resources:
         - Key: Name
           Value: CloudMart-VPC
 
-  # ==========================
-  # INTERNET GATEWAY
-  # ==========================
-
   InternetGateway:
     Type: AWS::EC2::InternetGateway
 
@@ -30,31 +22,23 @@ Resources:
       VpcId: !Ref CloudMartVPC
       InternetGatewayId: !Ref InternetGateway
 
-  # ==========================
-  # PUBLIC SUBNET
-  # ==========================
-
   PublicSubnet:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref CloudMartVPC
       CidrBlock: 10.0.1.0/24
       MapPublicIpOnLaunch: true
-      AvailabilityZone: !Select [0, !GetAZs ""]
+      AvailabilityZone: !Select [0, !GetAZs '']
       Tags:
         - Key: Name
           Value: CloudMart-Public-Subnet
-
-  # ==========================
-  # PRIVATE SUBNET
-  # ==========================
 
   PrivateSubnetA:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref CloudMartVPC
       CidrBlock: 10.0.2.0/24
-      AvailabilityZone: !Select [0, !GetAZs ""]
+      AvailabilityZone: !Select [0, !GetAZs '']
       Tags:
         - Key: Name
           Value: CloudMart-Private-Subnet-A
@@ -64,14 +48,10 @@ Resources:
     Properties:
       VpcId: !Ref CloudMartVPC
       CidrBlock: 10.0.3.0/24
-      AvailabilityZone: !Select [1, !GetAZs ""]
+      AvailabilityZone: !Select [1, !GetAZs '']
       Tags:
         - Key: Name
           Value: CloudMart-Private-Subnet-B
-
-  # ==========================
-  # PUBLIC ROUTE TABLE
-  # ==========================
 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
@@ -92,10 +72,6 @@ Resources:
       RouteTableId: !Ref PublicRouteTable
       SubnetId: !Ref PublicSubnet
 
-  # ==========================
-  # PRIVATE ROUTE TABLE
-  # ==========================
-
   PrivateRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -113,18 +89,12 @@ Resources:
       RouteTableId: !Ref PrivateRouteTable
       SubnetId: !Ref PrivateSubnetB
 
-  # ==========================
-  # EC2 SECURITY GROUP
-  # ==========================
-
   EC2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: EC2 Dashboard Security Group
       VpcId: !Ref CloudMartVPC
-
       SecurityGroupIngress:
-
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
@@ -144,10 +114,6 @@ Resources:
         - Key: Name
           Value: CloudMart-EC2-SG
 
-  # ==========================
-  # LAMBDA SECURITY GROUP
-  # ==========================
-
   LambdaSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -161,10 +127,6 @@ Resources:
       Tags:
         - Key: Name
           Value: CloudMart-Lambda-SG
-
-  # ==========================
-  # RDS SECURITY GROUP
-  # ==========================
 
   RDSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -182,10 +144,6 @@ Resources:
         - Key: Name
           Value: CloudMart-RDS-SG
 
-  # ==========================
-  # S3 ENDPOINT
-  # ==========================
-
   S3VPCEndpoint:
     Type: AWS::EC2::VPCEndpoint
     Properties:
@@ -195,10 +153,6 @@ Resources:
       RouteTableIds:
         - !Ref PrivateRouteTable
 
-  # ==========================
-  # SSM ENDPOINT
-  # ==========================
-
   SSMVPCEndpoint:
     Type: AWS::EC2::VPCEndpoint
     Properties:
@@ -206,16 +160,10 @@ Resources:
       ServiceName: !Sub com.amazonaws.${AWS::Region}.ssm
       VpcEndpointType: Interface
       PrivateDnsEnabled: true
-
       SubnetIds:
         - !Ref PrivateSubnetA
-
       SecurityGroupIds:
         - !Ref LambdaSecurityGroup
-
-  # ==========================
-  # SNS ENDPOINT
-  # ==========================
 
   SNSVPCEndpoint:
     Type: AWS::EC2::VPCEndpoint
@@ -224,16 +172,10 @@ Resources:
       ServiceName: !Sub com.amazonaws.${AWS::Region}.sns
       VpcEndpointType: Interface
       PrivateDnsEnabled: true
-
       SubnetIds:
         - !Ref PrivateSubnetA
-
       SecurityGroupIds:
         - !Ref LambdaSecurityGroup
-
-  # ==========================
-  # CLOUDWATCH LOGS ENDPOINT
-  # ==========================
 
   LogsVPCEndpoint:
     Type: AWS::EC2::VPCEndpoint
@@ -242,16 +184,10 @@ Resources:
       ServiceName: !Sub com.amazonaws.${AWS::Region}.logs
       VpcEndpointType: Interface
       PrivateDnsEnabled: true
-
       SubnetIds:
         - !Ref PrivateSubnetA
-
       SecurityGroupIds:
         - !Ref LambdaSecurityGroup
-
-# ==========================
-# OUTPUTS
-# ==========================
 
 Outputs:
 
@@ -289,23 +225,3 @@ Outputs:
     Value: !Ref RDSSecurityGroup
     Export:
       Name: CloudMart-RDS-SG
-
-  S3VPCEndpointId:
-    Value: !Ref S3VPCEndpoint
-    Export:
-      Name: CloudMart-S3-VPCEndpoint
-
-  SSMVPCEndpointId:
-    Value: !Ref SSMVPCEndpoint
-    Export:
-      Name: CloudMart-SSM-VPCEndpoint
-
-  SNSVPCEndpointId:
-    Value: !Ref SNSVPCEndpoint
-    Export:
-      Name: CloudMart-SNS-VPCEndpoint
-
-  LogsVPCEndpointId:
-    Value: !Ref LogsVPCEndpoint
-    Export:
-      Name: CloudMart-Logs-VPCEndpoint
