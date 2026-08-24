@@ -1,0 +1,290 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudMart Network Stack
+
+Resources:
+
+  # ==========================
+  # VPC
+  # ==========================
+
+  CloudMartVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: CloudMart-VPC
+
+  # ==========================
+  # INTERNET GATEWAY
+  # ==========================
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  AttachInternetGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref CloudMartVPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # ==========================
+  # PUBLIC SUBNET
+  # ==========================
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref CloudMartVPC
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: CloudMart-Public-Subnet
+
+  # ==========================
+  # PRIVATE SUBNET
+  # ==========================
+
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref CloudMartVPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: CloudMart-Private-Subnet
+
+  # ==========================
+  # PUBLIC ROUTE TABLE
+  # ==========================
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref CloudMartVPC
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachInternetGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet
+
+  # ==========================
+  # PRIVATE ROUTE TABLE
+  # ==========================
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref CloudMartVPC
+
+  PrivateSubnetRouteAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnet
+
+  # ==========================
+  # EC2 SECURITY GROUP
+  # ==========================
+
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: EC2 Dashboard Security Group
+      VpcId: !Ref CloudMartVPC
+
+      SecurityGroupIngress:
+
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+      Tags:
+        - Key: Name
+          Value: CloudMart-EC2-SG
+
+  # ==========================
+  # LAMBDA SECURITY GROUP
+  # ==========================
+
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Lambda Security Group
+      VpcId: !Ref CloudMartVPC
+
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+      Tags:
+        - Key: Name
+          Value: CloudMart-Lambda-SG
+
+  # ==========================
+  # RDS SECURITY GROUP
+  # ==========================
+
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: RDS Security Group
+      VpcId: !Ref CloudMartVPC
+
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref LambdaSecurityGroup
+
+      Tags:
+        - Key: Name
+          Value: CloudMart-RDS-SG
+
+  # ==========================
+  # S3 ENDPOINT
+  # ==========================
+
+  S3VPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref CloudMartVPC
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref PrivateRouteTable
+
+  # ==========================
+  # SSM ENDPOINT
+  # ==========================
+
+  SSMVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref CloudMartVPC
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ssm
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+
+      SubnetIds:
+        - !Ref PrivateSubnet
+
+      SecurityGroupIds:
+        - !Ref LambdaSecurityGroup
+
+  # ==========================
+  # SNS ENDPOINT
+  # ==========================
+
+  SNSVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref CloudMartVPC
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.sns
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+
+      SubnetIds:
+        - !Ref PrivateSubnet
+
+      SecurityGroupIds:
+        - !Ref LambdaSecurityGroup
+
+  # ==========================
+  # CLOUDWATCH LOGS ENDPOINT
+  # ==========================
+
+  LogsVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref CloudMartVPC
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.logs
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+
+      SubnetIds:
+        - !Ref PrivateSubnet
+
+      SecurityGroupIds:
+        - !Ref LambdaSecurityGroup
+
+# ==========================
+# OUTPUTS
+# ==========================
+
+Outputs:
+
+  VpcId:
+    Value: !Ref CloudMartVPC
+    Export:
+      Name: CloudMart-VPC-ID
+
+  PublicSubnetId:
+    Value: !Ref PublicSubnet
+    Export:
+      Name: CloudMart-Public-Subnet-ID
+
+  PrivateSubnetId:
+    Value: !Ref PrivateSubnet
+    Export:
+      Name: CloudMart-Private-Subnet-ID
+
+  EC2SecurityGroupId:
+    Value: !Ref EC2SecurityGroup
+    Export:
+      Name: CloudMart-EC2-SG
+
+  LambdaSecurityGroupId:
+    Value: !Ref LambdaSecurityGroup
+    Export:
+      Name: CloudMart-Lambda-SG
+
+  RDSSecurityGroupId:
+    Value: !Ref RDSSecurityGroup
+    Export:
+      Name: CloudMart-RDS-SG
+
+  S3VPCEndpointId:
+    Value: !Ref S3VPCEndpoint
+    Export:
+      Name: CloudMart-S3-VPCEndpoint
+
+  SSMVPCEndpointId:
+    Value: !Ref SSMVPCEndpoint
+    Export:
+      Name: CloudMart-SSM-VPCEndpoint
+
+  SNSVPCEndpointId:
+    Value: !Ref SNSVPCEndpoint
+    Export:
+      Name: CloudMart-SNS-VPCEndpoint
+
+  LogsVPCEndpointId:
+    Value: !Ref LogsVPCEndpoint
+    Export:
+      Name: CloudMart-Logs-VPCEndpoint
