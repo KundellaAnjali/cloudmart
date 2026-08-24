@@ -49,7 +49,7 @@ Resources:
   # PRIVATE SUBNET
   # ==========================
 
-  PrivateSubnet:
+  PrivateSubnetA:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref CloudMartVPC
@@ -57,7 +57,17 @@ Resources:
       AvailabilityZone: !Select [0, !GetAZs ""]
       Tags:
         - Key: Name
-          Value: CloudMart-Private-Subnet
+          Value: CloudMart-Private-Subnet-A
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref CloudMartVPC
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: CloudMart-Private-Subnet-B
 
   # ==========================
   # PUBLIC ROUTE TABLE
@@ -91,11 +101,17 @@ Resources:
     Properties:
       VpcId: !Ref CloudMartVPC
 
-  PrivateSubnetRouteAssociation:
+  PrivateSubnetARouteAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref PrivateRouteTable
-      SubnetId: !Ref PrivateSubnet
+      SubnetId: !Ref PrivateSubnetA
+
+  PrivateSubnetBRouteAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnetB
 
   # ==========================
   # EC2 SECURITY GROUP
@@ -249,10 +265,15 @@ Outputs:
     Export:
       Name: CloudMart-Public-Subnet-ID
 
-  PrivateSubnetId:
-    Value: !Ref PrivateSubnet
+  PrivateSubnetAId:
+    Value: !Ref PrivateSubnetA
     Export:
-      Name: CloudMart-Private-Subnet-ID
+      Name: CloudMart-Private-Subnet-A-ID
+
+  PrivateSubnetBId:
+    Value: !Ref PrivateSubnetB
+    Export:
+      Name: CloudMart-Private-Subnet-B-ID
 
   EC2SecurityGroupId:
     Value: !Ref EC2SecurityGroup

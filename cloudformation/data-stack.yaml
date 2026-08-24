@@ -12,7 +12,9 @@ Resources:
     Properties:
       DBSubnetGroupDescription: CloudMart Database Subnet Group
       SubnetIds:
-        - Fn::ImportValue: CloudMart-Private-Subnet-ID
+        SubnetIds:
+          - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
+          - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
 
 
   # ==========================
