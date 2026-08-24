@@ -1,0 +1,127 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudMart Data Stack
+
+Resources:
+
+  # ==========================
+  # RDS DB SUBNET GROUP
+  # ==========================
+
+  CloudMartDBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: CloudMart Database Subnet Group
+      SubnetIds:
+        - Fn::ImportValue: CloudMart-Private-Subnet-ID
+
+  # ==========================
+  # RDS MYSQL
+  # ==========================
+
+  CloudMartRDS:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: cloudmart-db
+
+      Engine: mysql
+      EngineVersion: "8.0"
+
+      DBInstanceClass: db.t3.micro
+
+      AllocatedStorage: 20
+
+      DBName: cloudmart
+
+      MasterUsername: admin
+      MasterUserPassword: CloudMart@123
+
+      PubliclyAccessible: false
+
+      MultiAZ: false
+
+      VPCSecurityGroups:
+        - Fn::ImportValue: CloudMart-RDS-SG
+
+      DBSubnetGroupName: !Ref CloudMartDBSubnetGroup
+
+      BackupRetentionPeriod: 7
+
+  # ==========================
+  # REPORTS BUCKET
+  # ==========================
+
+  ReportsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: cloudmart-reports
+
+  # ==========================
+  # SSM PARAMETERS
+  # ==========================
+
+  AuthTokenParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /cloudmart/dev/auth/token
+      Type: SecureString
+      Value: cloudmart123
+
+  DBUsernameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /cloudmart/dev/db/username
+      Type: SecureString
+      Value: admin
+
+  DBPasswordParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /cloudmart/dev/db/password
+      Type: SecureString
+      Value: CloudMart@123
+
+  DBHostParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /cloudmart/dev/db/host
+      Type: String
+      Value: !GetAtt CloudMartRDS.Endpoint.Address
+
+  DBNameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /cloudmart/dev/db/name
+      Type: String
+      Value: cloudmart
+
+  StockThresholdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /cloudmart/dev/inventory/stock-threshold
+      Type: String
+      Value: "10"
+
+  ReportsBucketParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /cloudmart/dev/s3/reports-bucket
+      Type: String
+      Value: !Ref ReportsBucket
+
+# ==========================
+# OUTPUTS
+# ==========================
+
+Outputs:
+
+  RDSEndpoint:
+    Description: RDS Endpoint
+    Value: !GetAtt CloudMartRDS.Endpoint.Address
+    Export:
+      Name: CloudMart-RDS-Endpoint
+
+  ReportsBucketName:
+    Description: Reports Bucket
+    Value: !Ref ReportsBucket
+    Export:
+      Name: CloudMart-Reports-Bucket

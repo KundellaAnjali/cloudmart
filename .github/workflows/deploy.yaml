@@ -44,3 +44,21 @@ jobs:
           aws cloudformation describe-stacks \
             --stack-name cloudmart-network-stack \
             --query "Stacks[0].StackStatus"
+
+      - name: Validate Data Stack
+        run: |
+          aws cloudformation validate-template \
+            --template-body file://cloudformation/data-stack.yaml
+
+      - name: Deploy Data Stack
+        run: |
+          aws cloudformation deploy \
+            --template-file cloudformation/data-stack.yaml \
+            --stack-name cloudmart-data-stack \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changeset
+
+      - name: Check Stack Status
+        run: |
+          aws cloudformation describe-stacks \
+            --stack-name cloudmart-data-stack
