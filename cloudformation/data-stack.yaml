@@ -108,9 +108,8 @@ Resources:
       Type: String
       Value: !Ref ReportsBucket
 
-# ==========================
+
 # OUTPUTS
-# ==========================
 
 Outputs:
 
