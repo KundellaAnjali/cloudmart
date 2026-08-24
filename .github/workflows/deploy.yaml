@@ -29,7 +29,7 @@ jobs:
       - name: Validate Network Stack
         run: |
           aws cloudformation validate-template \
-          --template-body file://network-stack.yaml
+          --template-body file://cloudformation/network-stack.yaml
 
       - name: Deploy Network Stack
         run: |
