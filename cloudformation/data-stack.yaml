@@ -40,21 +40,21 @@ Resources:
     Type: AWS::SSM::Parameter
     Properties:
       Name: /cloudmart/dev/auth/token
-      Type: SecureString
+      Type: String
       Value: cloudmart123
 
   DBUsernameParameter:
     Type: AWS::SSM::Parameter
     Properties:
       Name: /cloudmart/dev/db/username
-      Type: SecureString
+      Type: String
       Value: admin
 
   DBPasswordParameter:
     Type: AWS::SSM::Parameter
     Properties:
       Name: /cloudmart/dev/db/password
-      Type: SecureString
+      Type: String
       Value: CloudMart1234!
 
   DBHostParameter:
