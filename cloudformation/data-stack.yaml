@@ -46,7 +46,7 @@ Resources:
 
       DBSubnetGroupName: !Ref CloudMartDBSubnetGroup
 
-      BackupRetentionPeriod: 7
+      BackupRetentionPeriod: 0
 
 
   # ==========================
