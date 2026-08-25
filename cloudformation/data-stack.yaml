@@ -3,6 +3,17 @@ Description: CloudMart Data Stack
 
 Resources:
 
+  CloudMartDBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: CloudMart Database Subnet Group
+      SubnetIds:
+        - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
+        - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
+      Tags:
+        - Key: Name
+          Value: CloudMartDBSubnetGroup
+
   CloudMartRDS:
     Type: AWS::RDS::DBInstance
     Properties:
@@ -24,12 +35,12 @@ Resources:
 
       MultiAZ: false
 
+      BackupRetentionPeriod: 0
+
+      DBSubnetGroupName: !Ref CloudMartDBSubnetGroup
+
       VPCSecurityGroups:
         - Fn::ImportValue: CloudMart-RDS-SG
-
-      DBSubnetGroupName: cloudmartdbsubnetgroup
-
-      BackupRetentionPeriod: 0
 
   ReportsBucket:
     Type: AWS::S3::Bucket
@@ -40,21 +51,21 @@ Resources:
     Type: AWS::SSM::Parameter
     Properties:
       Name: /cloudmart/dev/auth/token
-      Type: String
+      Type: SecureString
       Value: cloudmart123
 
   DBUsernameParameter:
     Type: AWS::SSM::Parameter
     Properties:
       Name: /cloudmart/dev/db/username
-      Type: String
+      Type: SecureString
       Value: admin
 
   DBPasswordParameter:
     Type: AWS::SSM::Parameter
     Properties:
       Name: /cloudmart/dev/db/password
-      Type: String
+      Type: SecureString
       Value: CloudMart1234!
 
   DBHostParameter:
@@ -87,6 +98,12 @@ Resources:
 
 Outputs:
 
+  DBSubnetGroupName:
+    Description: DB Subnet Group Name
+    Value: !Ref CloudMartDBSubnetGroup
+    Export:
+      Name: CloudMart-DBSubnetGroup
+
   RDSEndpoint:
     Description: RDS Endpoint
     Value: !GetAtt CloudMartRDS.Endpoint.Address
@@ -94,7 +111,7 @@ Outputs:
       Name: CloudMart-RDS-Endpoint
 
   ReportsBucketName:
-    Description: Reports Bucket
+    Description: Reports Bucket Name
     Value: !Ref ReportsBucket
     Export:
       Name: CloudMart-Reports-Bucket
