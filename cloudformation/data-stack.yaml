@@ -3,30 +3,12 @@ Description: CloudMart Data Stack
 
 Resources:
 
-  # ==========================
-  # RDS DB SUBNET GROUP
-  # ==========================
-
-  CloudMartDBSubnetGroup:
-    Type: AWS::RDS::DBSubnetGroup
-    Properties:
-      DBSubnetGroupDescription: CloudMart Database Subnet Group
-      SubnetIds:
-          - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
-          - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
-
-
-  # ==========================
-  # RDS MYSQL
-  # ==========================
-
   CloudMartRDS:
     Type: AWS::RDS::DBInstance
     Properties:
       DBInstanceIdentifier: cloudmart-db
 
       Engine: mysql
-      EngineVersion: "8.0"
 
       DBInstanceClass: db.t3.micro
 
@@ -35,7 +17,8 @@ Resources:
       DBName: cloudmart
 
       MasterUsername: admin
-      MasterUserPassword: CloudMart@123
+
+      MasterUserPassword: CloudMart1234!
 
       PubliclyAccessible: false
 
@@ -44,45 +27,35 @@ Resources:
       VPCSecurityGroups:
         - Fn::ImportValue: CloudMart-RDS-SG
 
-      DBSubnetGroupName: !Ref CloudMartDBSubnetGroup
+      DBSubnetGroupName: cloudmartdbsubnetgroup
 
       BackupRetentionPeriod: 0
-
-
-  # ==========================
-  # REPORTS BUCKET
-  # ==========================
 
   ReportsBucket:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub cloudmart-reports-${AWS::AccountId}
 
-
-  # ==========================
-  # SSM PARAMETERS
-  # ==========================
-
   AuthTokenParameter:
     Type: AWS::SSM::Parameter
     Properties:
       Name: /cloudmart/dev/auth/token
-      Type: String
+      Type: SecureString
       Value: cloudmart123
 
   DBUsernameParameter:
     Type: AWS::SSM::Parameter
     Properties:
       Name: /cloudmart/dev/db/username
-      Type: String
+      Type: SecureString
       Value: admin
 
   DBPasswordParameter:
     Type: AWS::SSM::Parameter
     Properties:
       Name: /cloudmart/dev/db/password
-      Type: String
-      Value: CloudMart@123
+      Type: SecureString
+      Value: CloudMart1234!
 
   DBHostParameter:
     Type: AWS::SSM::Parameter
@@ -111,11 +84,6 @@ Resources:
       Name: /cloudmart/dev/s3/reports-bucket
       Type: String
       Value: !Ref ReportsBucket
-
-
-# ==========================
-# OUTPUTS
-# ==========================
 
 Outputs:
 
