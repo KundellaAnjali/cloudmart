@@ -1,5 +1,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: CloudMart Data Stack
+Parameters:
+  DBPassword:
+    Type: String
+    NoEcho: true
 
 Resources:
 
@@ -29,7 +33,7 @@ Resources:
 
       MasterUsername: admin
 
-      MasterUserPassword: CloudMart1234!
+      MasterUserPassword: !Ref DBPassword
 
       PubliclyAccessible: false
 
