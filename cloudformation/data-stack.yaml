@@ -5,6 +5,7 @@ Parameters:
   DBPassword:
     Type: String
     NoEcho: true
+    Value: CloudMart123!
 
 Resources:
 
