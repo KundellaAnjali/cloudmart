@@ -56,7 +56,7 @@ Resources:
   ReportsBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub cloudmart-reports-${AWS::735381631157}
+      BucketName: !Sub cloudmart-reports-${AWS::AccountId}
 
 
   # ==========================
