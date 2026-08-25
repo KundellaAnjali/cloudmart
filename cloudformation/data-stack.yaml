@@ -1,5 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: CloudMart Data Stack
+
 Parameters:
   DBPassword:
     Type: String
@@ -55,21 +56,21 @@ Resources:
     Type: AWS::SSM::Parameter
     Properties:
       Name: /cloudmart/dev/auth/token
-      Type: String
+      Type: SecureString
       Value: cloudmart123
 
   DBUsernameParameter:
     Type: AWS::SSM::Parameter
     Properties:
       Name: /cloudmart/dev/db/username
-      Type: String
+      Type: SecureString
       Value: admin
 
   DBPasswordParameter:
     Type: AWS::SSM::Parameter
     Properties:
       Name: /cloudmart/dev/db/password
-      Type: String
+      Type: SecureString
       Value: CloudMart1234!
 
   DBHostParameter:
