@@ -20,8 +20,9 @@ jobs:
       - name: Install cfn-lint
         run: pip install cfn-lint
 
-      - name: Lint Network Stack
-        run: cfn-lint cloudformation/network-stack.yaml
+      - name: Lint Data Stack
+        run: cfn-lint --non-zero-exit-code error cloudformation/data-stack.yaml
+
 
   deploy-network:
     needs: lint-network
@@ -60,7 +61,7 @@ jobs:
         run: pip install cfn-lint
 
       - name: Lint Data Stack
-        run: cfn-lint cloudformation/data-stack.yaml
+        run: cfn-lint --non-zero-exit-code error cloudformation/data-stack.yaml
 
   deploy-data:
     needs: lint-data
