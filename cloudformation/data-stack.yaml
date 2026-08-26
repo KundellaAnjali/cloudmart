@@ -72,7 +72,7 @@ Resources:
     Properties:
       Name: /cloudmart/dev/db/password
       Type: String
-      Value: CloudMart1234!
+      Value: CloudMart123!
 
   DBHostParameter:
     Type: AWS::SSM::Parameter
