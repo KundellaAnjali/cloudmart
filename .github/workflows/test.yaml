@@ -21,9 +21,14 @@ jobs:
       - name: Install cfn-lint
         run: pip install cfn-lint
 
+      - name: Debug Repository
+        run: |
+          pwd
+          find .
+
       - name: Lint Application Stack
         run: |
-          cfn-lint --non-zero-exit-code error cloudformation/application-stack.yaml
+          cfn-lint --non-zero-exit-code error ./cloudformation/application-stack.yaml
 
   deploy-application:
     needs: lint-application
