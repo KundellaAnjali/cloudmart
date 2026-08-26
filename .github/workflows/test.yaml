@@ -3,7 +3,7 @@ name: Test Application Stack
 on:
   push:
     branches:
-      - application-stack
+      - application
 
 permissions:
   id-token: write
