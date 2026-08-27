@@ -166,7 +166,6 @@ jobs:
             --stack-name cloudmart-iam-stack
 # auth-stack
 
-jobs:
 
   lint-auth:
     runs-on: ubuntu-latest
