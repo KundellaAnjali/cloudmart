@@ -1,29 +1,34 @@
-ProductLambda:
-  Type: AWS::Lambda::Function
-  Properties:
-    FunctionName: cloudmart-product-lambda
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudMart Application Stack
 
-    Runtime: python3.12
-    Handler: index.handler
+Resources:
 
-    Role:
-      Fn::ImportValue: ProductLambdaRoleArn
+  ProductLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: cloudmart-product-lambda
 
-    Timeout: 30
+      Runtime: python3.12
+      Handler: index.handler
 
-    Code:
-      ZipFile: |
-        import json
+      Role:
+        Fn::ImportValue: ProductLambdaRoleArn
 
-        def handler(event, context):
-            return {
-                "statusCode": 200,
-                "body": json.dumps({
-                    "message": "Product Lambda Working"
-                })
-            }
+      Timeout: 30
+
+      Code:
+        ZipFile: |
+          import json
+
+          def handler(event, context):
+              return {
+                  "statusCode": 200,
+                  "body": json.dumps({
+                      "message": "Product Lambda Working"
+                  })
+              }
+
 Outputs:
 
   ProductLambdaArn:
-    Description: Product Lambda ARN
     Value: !GetAtt ProductLambda.Arn
