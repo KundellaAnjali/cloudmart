@@ -64,8 +64,12 @@ Resources:
       IdentitySource: method.request.header.Authorization
       AuthorizerResultTtlInSeconds: 300
 
-      AuthorizerUri: !Sub >
-        arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AuthorizerArn}/invocations
+      AuthorizerUri:
+        Fn::Sub:
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AuthorizerArn}/invocations
+          - AuthorizerArn:
+              Fn::ImportValue: LambdaAuthorizerArn
+
 
   GetProductsMethod:
     Type: AWS::ApiGateway::Method
