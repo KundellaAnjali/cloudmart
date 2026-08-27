@@ -11,6 +11,10 @@ permissions:
 
 jobs:
 
+  # ---------------------------
+  # NETWORK STACK
+  # ---------------------------
+
   lint-network:
     runs-on: ubuntu-latest
 
@@ -20,9 +24,9 @@ jobs:
       - name: Install cfn-lint
         run: pip install cfn-lint
 
-      - name: Lint Data Stack
-        run: cfn-lint --non-zero-exit-code error cloudformation/data-stack.yaml
-
+      - name: Lint Network Stack
+        run: |
+          cfn-lint --non-zero-exit-code error cloudformation/network-stack.yaml
 
   deploy-network:
     needs: lint-network
@@ -40,7 +44,7 @@ jobs:
       - name: Validate Network Stack
         run: |
           aws cloudformation validate-template \
-          --template-body file://cloudformation/network-stack.yaml
+            --template-body file://cloudformation/network-stack.yaml
 
       - name: Deploy Network Stack
         run: |
@@ -49,6 +53,10 @@ jobs:
             --stack-name cloudmart-network-stack \
             --capabilities CAPABILITY_NAMED_IAM \
             --no-fail-on-empty-changeset
+
+  # ---------------------------
+  # DATA STACK
+  # ---------------------------
 
   lint-data:
     needs: deploy-network
@@ -61,7 +69,8 @@ jobs:
         run: pip install cfn-lint
 
       - name: Lint Data Stack
-        run: cfn-lint --non-zero-exit-code error cloudformation/data-stack.yaml
+        run: |
+          cfn-lint --non-zero-exit-code error cloudformation/data-stack.yaml
 
   deploy-data:
     needs: lint-data
@@ -79,7 +88,7 @@ jobs:
       - name: Validate Data Stack
         run: |
           aws cloudformation validate-template \
-          --template-body file://cloudformation/data-stack.yaml
+            --template-body file://cloudformation/data-stack.yaml
 
       - name: Deploy Data Stack
         run: |
@@ -89,79 +98,71 @@ jobs:
             --capabilities CAPABILITY_NAMED_IAM \
             --no-fail-on-empty-changeset
 
-      - name: Show Stack Events on Failure
-        if: failure()
-        run: |
-          aws cloudformation describe-stack-events \
-            --stack-name cloudmart-data-stack
-
       - name: Check Data Stack Status
         run: |
           aws cloudformation describe-stacks \
             --stack-name cloudmart-data-stack
 
+      - name: Show Data Stack Events On Failure
+        if: failure()
+        run: |
+          aws cloudformation describe-stack-events \
+            --stack-name cloudmart-data-stack
 
+  # ---------------------------
+  # IAM STACK
+  # ---------------------------
 
-
-jobs:
-
-    lint-iam:
+  lint-iam:
     needs: deploy-data
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Install cfn-lint
         run: pip install cfn-lint
 
-      - name: Debug Repository
-        run: |
-          pwd
-          find .
-
       - name: Lint IAM Stack
         run: |
-          cfn-lint --non-zero-exit-code error ./cloudformation/iam-stack.yaml
+          cfn-lint --non-zero-exit-code error cloudformation/iam-stack.yaml
 
-    deploy-iam:
-      needs: lint-iam
-      runs-on: ubuntu-latest
+  deploy-iam:
+    needs: lint-iam
+    runs-on: ubuntu-latest
 
-      steps:
-        - name: Checkout Repository
-          uses: actions/checkout@v4
+    steps:
+      - uses: actions/checkout@v4
 
-        - name: Configure AWS Credentials
-          uses: aws-actions/configure-aws-credentials@v4
-          with:
-            role-to-assume: ${{ secrets.ARN_ROLE }}
-            aws-region: ap-south-1
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.ARN_ROLE }}
+          aws-region: ap-south-1
 
-        - name: Verify AWS Connection
-          run: aws sts get-caller-identity
+      - name: Verify AWS Connection
+        run: aws sts get-caller-identity
 
-        - name: Validate IAM Stack
-          run: |
-            aws cloudformation validate-template \
-              --template-body file://cloudformation/iam-stack.yaml
+      - name: Validate IAM Stack
+        run: |
+          aws cloudformation validate-template \
+            --template-body file://cloudformation/iam-stack.yaml
 
-        - name: Deploy IAM Stack
-          run: |
-            aws cloudformation deploy \
-              --template-file cloudformation/iam-stack.yaml \
-              --stack-name cloudmart-iam-stack \
-              --capabilities CAPABILITY_NAMED_IAM \
-              --no-fail-on-empty-changeset
+      - name: Deploy IAM Stack
+        run: |
+          aws cloudformation deploy \
+            --template-file cloudformation/iam-stack.yaml \
+            --stack-name cloudmart-iam-stack \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changeset
 
-        - name: Check IAM Stack Status
-          run: |
-            aws cloudformation describe-stacks \
-              --stack-name cloudmart-iam-stack
+      - name: Check IAM Stack Status
+        run: |
+          aws cloudformation describe-stacks \
+            --stack-name cloudmart-iam-stack
 
-        - name: Show Stack Events On Failure
-          if: failure()
-          run: |
-            aws cloudformation describe-stack-events \
-              --stack-name cloudmart-iam-stack
+      - name: Show IAM Stack Events On Failure
+        if: failure()
+        run: |
+          aws cloudformation describe-stack-events \
+            --stack-name cloudmart-iam-stack
