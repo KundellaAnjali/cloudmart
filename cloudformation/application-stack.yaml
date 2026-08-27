@@ -51,7 +51,8 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref LambdaAuthorizerFunction
+      FunctionName:
+        Fn::ImportValue: LambdaAuthorizerArn
       Principal: apigateway.amazonaws.com
 
   ProductAuthorizer:
@@ -64,7 +65,7 @@ Resources:
       AuthorizerResultTtlInSeconds: 300
 
       AuthorizerUri: !Sub >
-        arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaAuthorizerFunction.Arn}/invocations
+        arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AuthorizerArn}/invocations
 
   GetProductsMethod:
     Type: AWS::ApiGateway::Method
