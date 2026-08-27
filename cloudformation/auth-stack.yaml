@@ -1,0 +1,42 @@
+LambdaAuthorizerFunction:
+  Type: AWS::Lambda::Function
+  Properties:
+    FunctionName: cloudmart-authorizer
+
+    Runtime: python3.12
+    Handler: index.handler
+
+    Role:
+      Fn::ImportValue: LambdaAuthorizerRoleArn
+
+    Code:
+      ZipFile: |
+        import boto3
+
+        ssm = boto3.client('ssm')
+
+        def handler(event, context):
+
+            token = event.get("authorizationToken","")
+
+            response = ssm.get_parameter(
+                Name="/cloudmart/dev/auth/token",
+                WithDecryption=True
+            )
+
+            valid_token = response["Parameter"]["Value"]
+
+            if token == f"Bearer {valid_token}":
+                return {
+                    "principalId":"cloudmart",
+                    "policyDocument":{
+                        "Version":"2012-10-17",
+                        "Statement":[{
+                            "Action":"execute-api:Invoke",
+                            "Effect":"Allow",
+                            "Resource":"*"
+                        }]
+                    }
+          *     }
+
+            raise Exceptio*("Unauthorized")
