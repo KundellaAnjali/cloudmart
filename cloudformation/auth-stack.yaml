@@ -1,42 +1,55 @@
-LambdaAuthorizerFunction:
-  Type: AWS::Lambda::Function
-  Properties:
-    FunctionName: cloudmart-authorizer
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudMart Application Stack
 
-    Runtime: python3.12
-    Handler: index.handler
+Resources:
 
-    Role:
-      Fn::ImportValue: LambdaAuthorizerRoleArn
+  LambdaAuthorizerFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: cloudmart-authorizer
+      Runtime: python3.12
+      Handler: index.handler
 
-    Code:
-      ZipFile: |
-        import boto3
+      Role:
+        Fn::ImportValue: LambdaAuthorizerRoleArn
 
-        ssm = boto3.client('ssm')
+      Timeout: 30
 
-        def handler(event, context):
+      Code:
+        ZipFile: |
+          import boto3
 
-            token = event.get("authorizationToken","")
+          ssm = boto3.client('ssm')
 
-            response = ssm.get_parameter(
-                Name="/cloudmart/dev/auth/token",
-                WithDecryption=True
-            )
+          def handler(event, context):
 
-            valid_token = response["Parameter"]["Value"]
+              token = event.get("authorizationToken", "")
 
-            if token == f"Bearer {valid_token}":
-                return {
-                    "principalId":"cloudmart",
-                    "policyDocument":{
-                        "Version":"2012-10-17",
-                        "Statement":[{
-                            "Action":"execute-api:Invoke",
-                            "Effect":"Allow",
-                            "Resource":"*"
-                        }]
-                    }
-          *     }
+              response = ssm.get_parameter(
+                  Name="/cloudmart/dev/auth/token",
+                  WithDecryption=True
+              )
 
-            raise Exceptio*("Unauthorized")
+              valid_token = response["Parameter"]["Value"]
+
+              if token == f"Bearer {valid_token}":
+                  return {
+                      "principalId": "cloudmart",
+                      "policyDocument": {
+                          "Version": "2012-10-17",
+                          "Statement": [
+                              {
+                                  "Action": "execute-api:Invoke",
+                                  "Effect": "Allow",
+                                  "Resource": "*"
+                              }
+                          ]
+                      }
+                  }
+
+              raise Exception("Unauthorized")
+
+Outputs:
+
+  LambdaAuthorizerArn:
+    Value: !GetAtt LambdaAuthorizerFunction.Arn
