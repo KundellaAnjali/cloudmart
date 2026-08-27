@@ -15,6 +15,13 @@ Resources:
             Principal:
               Federated: arn:aws:iam::735381631157:oidc-provider/token.actions.githubusercontent.com
             Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringLike:
+                token.actions.githubusercontent.com:sub:
+                  - repo:KundellaAnjali/cloudmart:ref:refs/heads/main
+                  - repo:KundellaAnjali/cloudmart:ref:refs/heads/application
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
 
       Policies:
         - PolicyName: GitHubActionsDeploymentPolicy
@@ -176,23 +183,35 @@ Outputs:
   GitHubActionsRoleArn:
     Description: GitHub Actions Role ARN
     Value: !GetAtt GitHubActionsRole.Arn
+    Export:
+      Name: GitHubActionsRoleArn
 
   LambdaAuthorizerRoleArn:
     Description: Lambda Authorizer Role ARN
     Value: !GetAtt LambdaAuthorizerRole.Arn
+    Export:
+      Name: LambdaAuthorizerRoleArn
 
   ProductLambdaRoleArn:
     Description: Product Lambda Role ARN
     Value: !GetAtt ProductLambdaRole.Arn
+    Export:
+      Name: ProductLambdaRoleArn
 
   OrderProcessorRoleArn:
     Description: Order Processor Role ARN
     Value: !GetAtt OrderProcessorRole.Arn
+    Export:
+      Name: OrderProcessorRoleArn
 
   ReportLambdaRoleArn:
     Description: Report Lambda Role ARN
     Value: !GetAtt ReportLambdaRole.Arn
+    Export:
+      Name: ReportLambdaRoleArn
 
   EC2DashboardRoleArn:
     Description: EC2 Dashboard Role ARN
     Value: !GetAtt EC2DashboardRole.Arn
+    Export:
+      Name: EC2DashboardRoleArn
