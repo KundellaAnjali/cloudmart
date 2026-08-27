@@ -28,7 +28,31 @@ Resources:
                   })
               }
 
+  ProductApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: CloudMartProductApi
+
+  ProductsResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ProductApi
+      ParentId: !GetAtt ProductApi.RootResourceId
+      PathPart: products
+
+  ProductLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ProductLambda
+      Principal: apigateway.amazonaws.com
+
 Outputs:
 
   ProductLambdaArn:
+    Description: Product Lambda ARN
     Value: !GetAtt ProductLambda.Arn
+
+  ApiId:
+    Description: API Gateway ID
+    Value: !Ref ProductApi

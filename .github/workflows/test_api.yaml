@@ -19,8 +19,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install cfn-lint
-        run: |
-          pip install cfn-lint
+        run: pip install cfn-lint
 
       - name: Lint Application Stack
         run: |
@@ -41,8 +40,7 @@ jobs:
           aws-region: ap-south-1
 
       - name: Verify AWS Connection
-        run: |
-          aws sts get-caller-identity
+        run: aws sts get-caller-identity
 
       - name: Validate Application Stack
         run: |
@@ -61,6 +59,12 @@ jobs:
         run: |
           aws cloudformation describe-stacks \
             --stack-name cloudmart-application-stack
+
+      - name: Show Stack Outputs
+        run: |
+          aws cloudformation describe-stacks \
+            --stack-name cloudmart-application-stack \
+            --query "Stacks[0].Outputs"
 
       - name: Show Stack Events On Failure
         if: failure()
