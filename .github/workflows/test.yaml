@@ -3,7 +3,7 @@ name: Authorization Stack
 on:
   push:
     branches:
-      - application
+      - auth
 
 permissions:
   id-token: write
