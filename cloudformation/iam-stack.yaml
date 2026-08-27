@@ -3,46 +3,6 @@ Description: CloudMart IAM Stack
 
 Resources:
 
-  GitHubActionsRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: CloudMart-GitHubActions-Role
-
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Federated: arn:aws:iam::735381631157:oidc-provider/token.actions.githubusercontent.com
-            Action: sts:AssumeRoleWithWebIdentity
-            Condition:
-              StringLike:
-                token.actions.githubusercontent.com:sub:
-                  - repo:KundellaAnjali/cloudmart:ref:refs/heads/main
-                  - repo:KundellaAnjali/cloudmart:ref:refs/heads/application
-              StringEquals:
-                token.actions.githubusercontent.com:aud: sts.amazonaws.com
-
-      Policies:
-        - PolicyName: GitHubActionsDeploymentPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - cloudformation:*
-                  - iam:*
-                  - lambda:*
-                  - ec2:*
-                  - rds:*
-                  - s3:*
-                  - sns:*
-                  - ssm:*
-                  - events:*
-                  - cloudwatch:*
-                  - logs:*
-                Resource: "*"
-
   LambdaAuthorizerRole:
     Type: AWS::IAM::Role
     Properties:
@@ -177,14 +137,11 @@ Resources:
                   - cloudwatch:GetMetricData
                   - cloudwatch:ListMetrics
                 Resource: "*"
+  
 
 Outputs:
 
-  GitHubActionsRoleArn:
-    Description: GitHub Actions Role ARN
-    Value: !GetAtt GitHubActionsRole.Arn
-    Export:
-      Name: GitHubActionsRoleArn
+
 
   LambdaAuthorizerRoleArn:
     Description: Lambda Authorizer Role ARN
