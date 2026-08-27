@@ -1,5 +1,7 @@
 import boto3
+
 ssm = boto3.client('ssm')
+
 def handler(event, context):
 
     token = event.get("authorizationToken", "")
@@ -10,6 +12,9 @@ def handler(event, context):
     )
 
     valid_token = response["Parameter"]["Value"]
+
+    print("Received Token:", token)
+    print("SSM Token:", valid_token)
 
     if token == f"Bearer {valid_token}":
         return {
