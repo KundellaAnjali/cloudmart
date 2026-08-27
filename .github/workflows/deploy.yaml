@@ -99,3 +99,69 @@ jobs:
         run: |
           aws cloudformation describe-stacks \
             --stack-name cloudmart-data-stack
+
+
+
+
+jobs:
+
+    lint-iam:
+    needs: deploy-data
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install cfn-lint
+        run: pip install cfn-lint
+
+      - name: Debug Repository
+        run: |
+          pwd
+          find .
+
+      - name: Lint IAM Stack
+        run: |
+          cfn-lint --non-zero-exit-code error ./cloudformation/iam-stack.yaml
+
+  deploy-iam:
+    needs: lint-iam
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.ARN_ROLE }}
+          aws-region: ap-south-1
+
+      - name: Verify AWS Connection
+        run: aws sts get-caller-identity
+
+      - name: Validate IAM Stack
+        run: |
+          aws cloudformation validate-template \
+            --template-body file://cloudformation/iam-stack.yaml
+
+      - name: Deploy IAM Stack
+        run: |
+          aws cloudformation deploy \
+            --template-file cloudformation/iam-stack.yaml \
+            --stack-name cloudmart-iam-stack \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changeset
+
+      - name: Check IAM Stack Status
+        run: |
+          aws cloudformation describe-stacks \
+            --stack-name cloudmart-iam-stack
+
+      - name: Show Stack Events On Failure
+        if: failure()
+        run: |
+          aws cloudformation describe-stack-events \
+            --stack-name cloudmart-iam-stack
