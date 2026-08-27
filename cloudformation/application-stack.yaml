@@ -47,6 +47,60 @@ Resources:
       FunctionName: !Ref ProductLambda
       Principal: apigateway.amazonaws.com
 
+  AuthorizerLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref LambdaAuthorizerFunction
+      Principal: apigateway.amazonaws.com
+
+  ProductAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: CloudMartAuthorizer
+      RestApiId: !Ref ProductApi
+      Type: TOKEN
+      IdentitySource: method.request.header.Authorization
+      AuthorizerResultTtlInSeconds: 300
+
+      AuthorizerUri: !Sub >
+        arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaAuthorizerFunction.Arn}/invocations
+
+  GetProductsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ProductApi
+
+      ResourceId: !Ref ProductsResource
+
+      HttpMethod: GET
+
+      AuthorizationType: CUSTOM
+
+      AuthorizerId: !Ref ProductAuthorizer
+
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+
+        Uri: !Sub >
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ProductLambda.Arn}/invocations
+
+  ApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - GetProductsMethod
+
+    Properties:
+      RestApiId: !Ref ProductApi
+
+  ApiStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId: !Ref ProductApi
+      DeploymentId: !Ref ApiDeployment
+      StageName: dev
+
 Outputs:
 
   ProductLambdaArn:
@@ -56,3 +110,9 @@ Outputs:
   ApiId:
     Description: API Gateway ID
     Value: !Ref ProductApi
+
+  ProductsApiUrl:
+    Description: Products API URL
+    Value: !Sub
+      - https://${Api}.execute-api.${AWS::Region}.amazonaws.com/dev/products
+      - Api: !Ref ProductApi
