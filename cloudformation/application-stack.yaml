@@ -54,7 +54,7 @@ Resources:
       FunctionName: cloudmart-authorizer
       Principal: apigateway.amazonaws.com
 
-    ProductAuthorizer:
+  ProductAuthorizer:
     Type: AWS::ApiGateway::Authorizer
     Properties:
       Name: CloudMartAuthorizer
@@ -62,31 +62,23 @@ Resources:
       Type: TOKEN
       IdentitySource: method.request.header.Authorization
       AuthorizerResultTtlInSeconds: 300
-
       AuthorizerUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:cloudmart-authorizer/invocations"
-
-
-
 
   GetProductsMethod:
     Type: AWS::ApiGateway::Method
     Properties:
       RestApiId: !Ref ProductApi
-
       ResourceId: !Ref ProductsResource
-
       HttpMethod: GET
 
       AuthorizationType: CUSTOM
-
       AuthorizerId: !Ref ProductAuthorizer
 
       Integration:
         Type: AWS_PROXY
         IntegrationHttpMethod: POST
-
         Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ProductLambda.Arn}/invocations"
-  
+
   ApiDeployment:
     Type: AWS::ApiGateway::Deployment
     DependsOn:
