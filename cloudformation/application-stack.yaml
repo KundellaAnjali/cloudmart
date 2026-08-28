@@ -15,6 +15,13 @@ Resources:
 
       Timeout: 30
 
+      VpcConfig:
+        SecurityGroupIds:
+          - Fn::ImportValue: CloudMart-Lambda-SG
+        SubnetIds:
+          - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
+          - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
+
       Environment:
         Variables:
           DB_HOST: "{{resolve:ssm:/cloudmart/dev/db/host}}"
@@ -33,7 +40,16 @@ Resources:
           DB_PASSWORD = os.environ['DB_PASSWORD']
           DB_NAME = os.environ['DB_NAME']
 
-          def create_table(connection):
+          def get_connection():
+              return pymysql.connect(
+                  host=DB_HOST,
+                  user=DB_USER,
+                  password=DB_PASSWORD,
+                  database=DB_NAME,
+                  connect_timeout=10
+              )
+
+          def create_schema(connection):
               with connection.cursor() as cursor:
 
                   cursor.execute("""
@@ -53,12 +69,7 @@ Resources:
 
                   cursor.execute("""
                   INSERT IGNORE INTO products
-                  (product_id,
-                  product_name,
-                  description,
-                  category,
-                  price,
-                  stock_count)
+                  (product_id, product_name, description, category, price, stock_count)
                   VALUES
                   (1,'Laptop','Dell Inspiron Laptop','Electronics',65000.00,20),
                   (2,'Mouse','Wireless Mouse','Accessories',799.00,50),
@@ -70,14 +81,9 @@ Resources:
 
           def handler(event, context):
 
-              connection = pymysql.connect(
-                  host=DB_HOST,
-                  user=DB_USER,
-                  password=DB_PASSWORD,
-                  database=DB_NAME
-              )
+              connection = get_connection()
 
-              create_table(connection)
+              create_schema(connection)
 
               with connection.cursor(pymysql.cursors.DictCursor) as cursor:
                   cursor.execute("SELECT * FROM products")
