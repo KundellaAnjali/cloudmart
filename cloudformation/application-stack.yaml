@@ -54,17 +54,17 @@ Resources:
       FunctionName: cloudmart-authorizer
       Principal: apigateway.amazonaws.com
 
-  ProductAuthorizer:
-  Type: AWS::ApiGateway::Authorizer
-  Properties:
-    Name: CloudMartAuthorizer
-    RestApiId: !Ref ProductApi
-    Type: TOKEN
-    IdentitySource: method.request.header.Authorization
-    AuthorizerResultTtlInSeconds: 300
+    ProductAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: CloudMartAuthorizer
+      RestApiId: !Ref ProductApi
+      Type: TOKEN
+      IdentitySource: method.request.header.Authorization
+      AuthorizerResultTtlInSeconds: 300
 
-    AuthorizerUri: !Sub
-      arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:cloudmart-authorizer/invocations
+      AuthorizerUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:cloudmart-authorizer/invocations"
+
 
 
 
@@ -85,8 +85,7 @@ Resources:
         Type: AWS_PROXY
         IntegrationHttpMethod: POST
 
-        Uri: !Sub
-          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ProductLambda.Arn}/invocations
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ProductLambda.Arn}/invocations"
   
   ApiDeployment:
     Type: AWS::ApiGateway::Deployment
@@ -115,5 +114,4 @@ Outputs:
 
   ProductsApiUrl:
     Description: Products API URL
-    Value: !Sub
-      https://${ProductApi}.execute-api.${AWS::Region}.amazonaws.com/dev/products
+    Value: !Sub "https://${ProductApi}.execute-api.${AWS::Region}.amazonaws.com/dev/products"
