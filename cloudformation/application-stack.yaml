@@ -182,6 +182,16 @@ Resources:
                   10
               )
               """)
+              ,
+              (
+                  3,
+                  'Mouse',
+                  'Wired Mouse',
+                  'Electronics',
+                  300.00,
+                  10
+              )
+              """)
 
               connection.commit()
 
