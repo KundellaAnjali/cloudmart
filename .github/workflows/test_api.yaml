@@ -23,7 +23,7 @@ jobs:
 
       - name: Lint Application Stack
         run: |
-          cfn-lint --non-zero-exit-code error cloudformation/application-stack.yaml
+          cfn-lint --non-zero-exit-code error cloudformation/app-stack.yaml
 
   deploy-application:
     needs: lint-application
@@ -45,29 +45,29 @@ jobs:
       - name: Validate Application Stack
         run: |
           aws cloudformation validate-template \
-            --template-body file://cloudformation/application-stack.yaml
+            --template-body file://cloudformation/app-stack.yaml
 
       - name: Deploy Application Stack
         run: |
           aws cloudformation deploy \
-            --template-file cloudformation/application-stack.yaml \
-            --stack-name cloudmart-application-stack \
+            --template-file cloudformation/app-stack.yaml \
+            --stack-name cloudmart-app-stack \
             --capabilities CAPABILITY_NAMED_IAM \
             --no-fail-on-empty-changeset
 
       - name: Check Application Stack Status
         run: |
           aws cloudformation describe-stacks \
-            --stack-name cloudmart-application-stack
+            --stack-name cloudmart-app-stack
 
       - name: Show Stack Outputs
         run: |
           aws cloudformation describe-stacks \
-            --stack-name cloudmart-application-stack \
+            --stack-name cloudmart-app-stack \
             --query "Stacks[0].Outputs"
 
       - name: Show Stack Events On Failure
         if: failure()
         run: |
           aws cloudformation describe-stack-events \
-            --stack-name cloudmart-application-stack
+            --stack-name cloudmart-app-stack
