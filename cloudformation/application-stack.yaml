@@ -51,24 +51,21 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName:
-        Fn::ImportValue: LambdaAuthorizerArn
+      FunctionName: cloudmart-authorizer
       Principal: apigateway.amazonaws.com
 
   ProductAuthorizer:
-    Type: AWS::ApiGateway::Authorizer
-    Properties:
-      Name: CloudMartAuthorizer
-      RestApiId: !Ref ProductApi
-      Type: TOKEN
-      IdentitySource: method.request.header.Authorization
-      AuthorizerResultTtlInSeconds: 300
+  Type: AWS::ApiGateway::Authorizer
+  Properties:
+    Name: CloudMartAuthorizer
+    RestApiId: !Ref ProductApi
+    Type: TOKEN
+    IdentitySource: method.request.header.Authorization
+    AuthorizerResultTtlInSeconds: 300
 
-      AuthorizerUri:
-        Fn::Sub:
-          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AuthorizerArn}/invocations
-          - AuthorizerArn:
-              Fn::ImportValue: LambdaAuthorizerArn
+    AuthorizerUri: !Sub
+      arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:cloudmart-authorizer/invocations
+
 
 
   GetProductsMethod:
@@ -88,9 +85,9 @@ Resources:
         Type: AWS_PROXY
         IntegrationHttpMethod: POST
 
-        Uri: !Sub >
+        Uri: !Sub
           arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ProductLambda.Arn}/invocations
-
+  
   ApiDeployment:
     Type: AWS::ApiGateway::Deployment
     DependsOn:
