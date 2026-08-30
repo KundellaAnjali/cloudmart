@@ -5,6 +5,27 @@ Description: CloudMart Product Stack
 
 Resources:
 
+  ProductApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: cloudmart-product-api
+      StageName: dev
+
+      Auth:
+        DefaultAuthorizer: CloudMartAuthorizer
+
+        Authorizers:
+          CloudMartAuthorizer:
+            FunctionArn:
+              Fn::ImportValue: LambdaAuthorizerArn
+
+            FunctionPayloadType: TOKEN
+
+            Identity:
+              Header: Authorization
+
+            AuthorizerResultTtlInSeconds: 300
+
   ProductLambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -31,6 +52,15 @@ Resources:
           - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
           - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
 
+      Events:
+
+        GetProducts:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /products
+            Method: GET
+
 Outputs:
 
   ProductLambdaArn:
@@ -38,3 +68,11 @@ Outputs:
     Value: !GetAtt ProductLambdaFunction.Arn
     Export:
       Name: ProductLambdaArn
+
+  ProductApiUrl:
+    Description: API Gateway URL
+    Value: !Sub "https://${ProductApi}.execute-api.${AWS::Region}.amazonaws.com/dev"
+
+  ProductApiId:
+    Description: API Gateway ID
+    Value: !Ref ProductApi
