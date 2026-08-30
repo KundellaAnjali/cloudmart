@@ -89,7 +89,7 @@ Resources:
             Path: /products/{id}
             Method: DELETE
 
-    LowStockTopic:
+  LowStockTopic:
     Type: AWS::SNS::Topic
     Properties:
       TopicName: cloudmart-low-stock
