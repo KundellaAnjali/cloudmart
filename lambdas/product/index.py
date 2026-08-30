@@ -52,7 +52,136 @@ def get_connection():
         cursorclass=pymysql.cursors.DictCursor
     )
 
+def get_all_products(connection):
 
+    with connection.cursor() as cursor:
+
+        cursor.execute("""
+            SELECT
+                product_id,
+                product_name,
+                description,
+                category,
+                price,
+                stock_count,
+                created_at,
+                updated_at,
+                is_active
+            FROM product
+        """)
+
+        products = cursor.fetchall()
+
+    return {
+        "statusCode": 200,
+        "body": json.dumps(products, default=str)
+    }
+
+
+def get_product_by_id(connection, product_id):
+
+    with connection.cursor() as cursor:
+
+        cursor.execute("""
+            SELECT *
+            FROM product
+            WHERE product_id = %s
+        """, (product_id,))
+
+        product = cursor.fetchone()
+
+    return {
+        "statusCode": 200,
+        "body": json.dumps(product, default=str)
+    }
+
+
+def create_product(connection, event):
+
+    body = json.loads(event["body"])
+
+    with connection.cursor() as cursor:
+
+        cursor.execute("""
+            INSERT INTO product (
+                product_name,
+                description,
+                category,
+                price,
+                stock_count,
+                is_active
+            )
+            VALUES (%s,%s,%s,%s,%s,%s)
+        """, (
+            body["product_name"],
+            body["description"],
+            body["category"],
+            body["price"],
+            body["stock_count"],
+            True
+        ))
+
+    connection.commit()
+
+    return {
+        "statusCode": 201,
+        "body": json.dumps({
+            "message": "Product created successfully"
+        })
+    }
+
+
+def update_product(connection, product_id, event):
+
+    body = json.loads(event["body"])
+
+    with connection.cursor() as cursor:
+
+        cursor.execute("""
+            UPDATE product
+            SET
+                product_name=%s,
+                description=%s,
+                category=%s,
+                price=%s,
+                stock_count=%s
+            WHERE product_id=%s
+        """, (
+            body["product_name"],
+            body["description"],
+            body["category"],
+            body["price"],
+            body["stock_count"],
+            product_id
+        ))
+
+    connection.commit()
+
+    return {
+        "statusCode": 200,
+        "body": json.dumps({
+            "message": "Product updated successfully"
+        })
+    }
+
+
+def delete_product(connection, product_id):
+
+    with connection.cursor() as cursor:
+
+        cursor.execute("""
+            DELETE FROM product
+            WHERE product_id=%s
+        """, (product_id,))
+
+    connection.commit()
+
+    return {
+        "statusCode": 200,
+        "body": json.dumps({
+            "message": "Product deleted successfully"
+        })
+    }
 def handler(event, context):
 
     try:
@@ -77,7 +206,6 @@ def handler(event, context):
             )
             """)
 
-            # Insert sample records only once
             cursor.execute(
                 "SELECT COUNT(*) AS total FROM product"
             )
@@ -125,28 +253,48 @@ def handler(event, context):
 
             connection.commit()
 
-            cursor.execute("""
-            SELECT
-                product_id,
-                product_name,
-                description,
-                category,
-                price,
-                stock_count,
-                created_at,
-                updated_at,
-                is_active
-            FROM product
-            """)
+        http_method = event.get("httpMethod")
+        path_parameters = event.get("pathParameters") or {}
 
-            products = cursor.fetchall()
+        if http_method == "GET" and path_parameters.get("id"):
+            response = get_product_by_id(
+                connection,
+                path_parameters["id"]
+            )
+
+        elif http_method == "GET":
+            response = get_all_products(connection)
+
+        elif http_method == "POST":
+            response = create_product(
+                connection,
+                event
+            )
+
+        elif http_method == "PUT":
+            response = update_product(
+                connection,
+                path_parameters["id"],
+                event
+            )
+
+        elif http_method == "DELETE":
+            response = delete_product(
+                connection,
+                path_parameters["id"]
+            )
+
+        else:
+            response = {
+                "statusCode": 405,
+                "body": json.dumps({
+                    "message": "Method not allowed"
+                })
+            }
 
         connection.close()
 
-        return {
-            "statusCode": 200,
-            "body": json.dumps(products, default=str)
-        }
+        return response
 
     except Exception as e:
 

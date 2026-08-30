@@ -61,6 +61,34 @@ Resources:
             Path: /products
             Method: GET
 
+        GetProductById:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /products/{id}
+            Method: GET
+
+        CreateProduct:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /products
+            Method: POST
+
+        UpdateProduct:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /products/{id}
+            Method: PUT
+
+        DeleteProduct:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /products/{id}
+            Method: DELETE
+
 Outputs:
 
   ProductLambdaArn:
