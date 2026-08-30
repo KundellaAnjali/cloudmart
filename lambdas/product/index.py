@@ -151,8 +151,10 @@ def update_product(connection, product_id, event):
         ))
 
     connection.commit()
+
     print("Before eventbridge")
-    events.put_events(
+
+    response = events.put_events(
         Entries=[
             {
                 "Source": "cloudmart.inventory",
@@ -165,6 +167,8 @@ def update_product(connection, product_id, event):
             }
         ]
     )
+
+    print(response)
     print("After eventbridge")
 
     with connection.cursor() as cursor:
@@ -181,18 +185,33 @@ def update_product(connection, product_id, event):
 
         product = cursor.fetchone()
 
+        print(product)
+
+        if product is None:
+            return {
+                "statusCode": 404,
+                "body": json.dumps({
+                    "message": "Product not found"
+                })
+            }
+
         if product["stock_count"] < threshold:
-            print("before sns")
+
+            print("Before SNS")
+
             sns.publish(
-                TopicArn=get_parameter("/cloudmart/dev/sns/topic-arn"),
-                Subject="Low Stock Alert",
+                TopicArn=get_parameter(
+                    "/cloudmart/dev/sns/topic-arn"
+                ),
+                Subject="CloudMart Low Stock Alert",
                 Message=f"""
-            print("after sns")
 Product: {product['product_name']}
 Current Stock: {product['stock_count']}
 Threshold: {threshold}
 """
             )
+
+            print("After SNS")
 
     return {
         "statusCode": 200,
