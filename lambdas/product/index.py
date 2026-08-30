@@ -4,6 +4,7 @@ import pymysql
 
 ssm = boto3.client("ssm")
 sns = boto3.client("sns")
+events = boto3.client("events")
 
 def get_parameter(name, decrypt=False):
     response = ssm.get_parameter(
@@ -44,13 +45,7 @@ def get_connection():
 
     print("Connected to database")
 
-    return pymysql.connect(
-        host=db_host,
-        user=db_user,
-        password=db_password,
-        database=db_name,
-        cursorclass=pymysql.cursors.DictCursor
-    )
+    return connection
 
 def get_all_products(connection):
 
@@ -130,7 +125,6 @@ def create_product(connection, event):
         })
     }
 
-
 def update_product(connection, product_id, event):
 
     body = json.loads(event["body"])
@@ -156,29 +150,46 @@ def update_product(connection, product_id, event):
         ))
 
     connection.commit()
-    threshold = int(
-    get_parameter("/cloudmart/dev/inventory/stock-threshold")
+
+    events.put_events(
+        Entries=[
+            {
+                "Source": "cloudmart.inventory",
+                "DetailType": "InventoryUpdated",
+                "Detail": json.dumps({
+                    "product_id": product_id,
+                    "product_name": body["product_name"],
+                    "stock_count": body["stock_count"]
+                })
+            }
+        ]
     )
 
-    cursor.execute("""
-        SELECT product_name, stock_count
-        FROM product
-        WHERE product_id = %s
-    """, (product_id,))
+    with connection.cursor() as cursor:
 
-    product = cursor.fetchone()
-
-    if product["stock_count"] < threshold:
-
-        sns.publish(
-            TopicArn=get_parameter("/cloudmart/dev/sns/topic-arn"),
-            Subject="Low Stock Alert",
-            Message=f"""
-    Product: {product['product_name']}
-    Current Stock: {product['stock_count']}
-    Threshold: {threshold}
-    """
+        threshold = int(
+            get_parameter("/cloudmart/dev/inventory/stock-threshold")
         )
+
+        cursor.execute("""
+            SELECT product_name, stock_count
+            FROM product
+            WHERE product_id = %s
+        """, (product_id,))
+
+        product = cursor.fetchone()
+
+        if product["stock_count"] < threshold:
+
+            sns.publish(
+                TopicArn=get_parameter("/cloudmart/dev/sns/topic-arn"),
+                Subject="Low Stock Alert",
+                Message=f"""
+Product: {product['product_name']}
+Current Stock: {product['stock_count']}
+Threshold: {threshold}
+"""
+            )
 
     return {
         "statusCode": 200,
@@ -186,7 +197,6 @@ def update_product(connection, product_id, event):
             "message": "Product updated successfully"
         })
     }
-
 
 def delete_product(connection, product_id):
 

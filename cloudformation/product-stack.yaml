@@ -107,6 +107,17 @@ Resources:
       Name: /cloudmart/dev/sns/topic-arn
       Type: String
       Value: !Ref LowStockTopic
+    
+  InventoryChangeRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: cloudmart-inventory-change-rule
+      EventPattern:
+        source:
+          - cloudmart.inventory
+        detail-type:
+          - InventoryUpdated
+      State: ENABLED
 
 Outputs:
 
