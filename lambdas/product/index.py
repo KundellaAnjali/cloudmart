@@ -15,13 +15,34 @@ def get_parameter(name, decrypt=False):
 
 def get_connection():
 
+    print("Lambda started")
+
     db_host = get_parameter("/cloudmart/dev/db/host")
+    print("Got DB Host")
+
     db_name = get_parameter("/cloudmart/dev/db/name")
+    print("Got DB Name")
+
     db_user = get_parameter("/cloudmart/dev/db/username")
+    print("Got DB User")
+
     db_password = get_parameter(
         "/cloudmart/dev/db/password",
-        decrypt=True
+        decrypt=False
     )
+    print("Got DB Password")
+
+    print("Connecting to database...")
+
+    connection = pymysql.connect(
+        host=db_host,
+        user=db_user,
+        password=db_password,
+        database=db_name,
+        connect_timeout=10
+    )
+
+    print("Connected to database")
 
     return pymysql.connect(
         host=db_host,
