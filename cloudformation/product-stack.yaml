@@ -1,0 +1,142 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: CloudMart Product Stack
+
+Resources:
+
+  ProductApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: cloudmart-product-api
+      StageName: dev
+
+      Auth:
+        DefaultAuthorizer: CloudMartAuthorizer
+
+        Authorizers:
+          CloudMartAuthorizer:
+            FunctionArn:
+              Fn::ImportValue: LambdaAuthorizerArn
+
+            FunctionPayloadType: TOKEN
+
+            Identity:
+              Header: Authorization
+
+            AuthorizerResultTtlInSeconds: 300
+
+  ProductLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: cloudmart-product-function
+
+      Runtime: python3.12
+
+      Handler: index.handler
+
+      CodeUri: ../lambdas/product/
+
+      Role:
+        Fn::ImportValue: ProductLambdaRoleArn
+
+      Timeout: 30
+
+      MemorySize: 256
+
+      VpcConfig:
+        SecurityGroupIds:
+          - Fn::ImportValue: CloudMart-Lambda-SG
+
+        SubnetIds:
+          - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
+          - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
+
+      Events:
+
+        GetProducts:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /products
+            Method: GET
+
+        GetProductById:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /products/{id}
+            Method: GET
+
+        CreateProduct:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /products
+            Method: POST
+
+        UpdateProduct:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /products/{id}
+            Method: PUT
+
+        DeleteProduct:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /products/{id}
+            Method: DELETE
+
+  LowStockTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: cloudmart-low-stock
+
+  LowStockSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      Endpoint: kundelakomala@gmail.com
+      TopicArn: !Ref LowStockTopic
+
+  LowStockTopicArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /cloudmart/dev/sns/topic-arn
+      Type: String
+      Value: !Ref LowStockTopic
+    
+  InventoryChangeRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: cloudmart-inventory-change-rule
+      EventPattern:
+        source:
+          - cloudmart.inventory
+        detail-type:
+          - InventoryUpdated
+      State: ENABLED
+
+Outputs:
+
+  ProductLambdaArn:
+    Description: Product Lambda ARN
+    Value: !GetAtt ProductLambdaFunction.Arn
+    Export:
+      Name: ProductLambdaArn
+
+  ProductApiUrl:
+    Description: API Gateway URL
+    Value: !Sub "https://${ProductApi}.execute-api.${AWS::Region}.amazonaws.com/dev"
+
+  ProductApiId:
+    Description: API Gateway ID
+    Value: !Ref ProductApi
+  
+  LowStockTopicArn:
+    Description: SNS Topic ARN
+    Value: !Ref LowStockTopic
+    Export:
+      Name: CloudMart-LowStock-Topic-Arn
