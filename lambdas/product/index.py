@@ -40,7 +40,7 @@ def get_connection():
         user=db_user,
         password=db_password,
         database=db_name,
-        connect_timeout=10
+        connect_timeout=10,
         cursorclass=pymysql.cursors.DictCursor
     )
 
