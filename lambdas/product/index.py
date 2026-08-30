@@ -151,7 +151,7 @@ def update_product(connection, product_id, event):
         ))
 
     connection.commit()
-
+    print("Before eventbridge")
     events.put_events(
         Entries=[
             {
@@ -165,6 +165,7 @@ def update_product(connection, product_id, event):
             }
         ]
     )
+    print("After eventbridge")
 
     with connection.cursor() as cursor:
 
@@ -181,11 +182,12 @@ def update_product(connection, product_id, event):
         product = cursor.fetchone()
 
         if product["stock_count"] < threshold:
-
+            print("before sns")
             sns.publish(
                 TopicArn=get_parameter("/cloudmart/dev/sns/topic-arn"),
                 Subject="Low Stock Alert",
                 Message=f"""
+            print("after sns")
 Product: {product['product_name']}
 Current Stock: {product['stock_count']}
 Threshold: {threshold}
