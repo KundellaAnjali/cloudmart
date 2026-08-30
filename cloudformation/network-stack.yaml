@@ -162,6 +162,7 @@ Resources:
       PrivateDnsEnabled: true
       SubnetIds:
         - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
       SecurityGroupIds:
         - !Ref LambdaSecurityGroup
 
