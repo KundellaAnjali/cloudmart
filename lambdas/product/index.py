@@ -44,7 +44,11 @@ def get_connection():
         cursorclass=pymysql.cursors.DictCursor
     )
 
-    print("Connected to database")
+    #print("Connected to database")
+    print(json.dumps({
+    "level": "INFO",
+    "message": "Connected to database"
+}))
 
     return connection
 
