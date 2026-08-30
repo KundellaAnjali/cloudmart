@@ -13,9 +13,6 @@ def handler(event, context):
 
     valid_token = response["Parameter"]["Value"]
 
-    print("Received Token:", token)
-    print("SSM Token:", valid_token)
-
     if token == f"Bearer {valid_token}":
         return {
             "principalId": "cloudmart",
@@ -28,7 +25,7 @@ def handler(event, context):
                         "Resource": "*"
                     }
                 ]
-            }
+           }
         }
 
     raise Exception("Unauthorized")

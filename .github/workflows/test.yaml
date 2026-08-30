@@ -21,7 +21,7 @@ jobs:
       - name: Install cfn-lint
         run: pip install cfn-lint
 
-      - name: Lint Auth Stack
+      - name: Lint SAM Template
         run: |
           cfn-lint --non-zero-exit-code error cloudformation/auth-stack.yaml
 
@@ -42,18 +42,26 @@ jobs:
       - name: Verify AWS Connection
         run: aws sts get-caller-identity
 
-      - name: Validate Auth Stack
+      - name: Setup SAM CLI
+        uses: aws-actions/setup-sam@v2
+
+      - name: Validate SAM Template
+        run: sam validate --template-file cloudformation/auth-stack.yaml
+
+      - name: Build SAM Application
         run: |
-          aws cloudformation validate-template \
-            --template-body file://cloudformation/auth-stack.yaml
+          sam build \
+            --template-file cloudformation/auth-stack.yaml
 
       - name: Deploy Auth Stack
         run: |
-          aws cloudformation deploy \
-            --template-file cloudformation/auth-stack.yaml \
+          sam deploy \
+            --template-file .aws-sam/build/template.yaml \
             --stack-name cloudmart-auth-stack \
             --capabilities CAPABILITY_NAMED_IAM \
-            --no-fail-on-empty-changeset
+            --resolve-s3 \
+            --no-fail-on-empty-changeset \
+            --region ap-south-1
 
       - name: Check Auth Stack Status
         run: |

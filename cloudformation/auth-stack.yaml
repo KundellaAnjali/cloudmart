@@ -1,53 +1,23 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: CloudMart Application Stack
+Transform: AWS::Serverless-2016-10-31
+
+Description: CloudMart Authorizer Stack
 
 Resources:
 
   LambdaAuthorizerFunction:
-    Type: AWS::Lambda::Function
+    Type: AWS::Serverless::Function
     Properties:
       FunctionName: cloudmart-authorizer
       Runtime: python3.12
       Handler: index.handler
 
+      CodeUri: ../lambdas/authorizer/
+
       Role:
         Fn::ImportValue: LambdaAuthorizerRoleArn
 
       Timeout: 30
-
-      Code:
-        ZipFile: |
-          import boto3
-
-          ssm = boto3.client('ssm')
-
-          def handler(event, context):
-
-              token = event.get("authorizationToken", "")
-
-              response = ssm.get_parameter(
-                  Name="/cloudmart/dev/auth/token",
-                  WithDecryption=True
-              )
-
-              valid_token = response["Parameter"]["Value"]
-
-              if token == f"Bearer {valid_token}":
-                  return {
-                      "principalId": "cloudmart",
-                      "policyDocument": {
-                          "Version": "2012-10-17",
-                          "Statement": [
-                              {
-                                  "Action": "execute-api:Invoke",
-                                  "Effect": "Allow",
-                                  "Resource": "*"
-                              }
-                          ]
-                      }
-                  }
-
-              raise Exception("Unauthorized")
 
 Outputs:
 
