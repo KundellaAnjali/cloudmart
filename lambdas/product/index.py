@@ -3,7 +3,7 @@ import boto3
 import pymysql
 
 ssm = boto3.client("ssm")
-
+sns = boto3.client("sns")
 
 def get_parameter(name, decrypt=False):
     response = ssm.get_parameter(
@@ -156,6 +156,29 @@ def update_product(connection, product_id, event):
         ))
 
     connection.commit()
+    threshold = int(
+    get_parameter("/cloudmart/dev/inventory/stock-threshold")
+    )
+
+    cursor.execute("""
+        SELECT product_name, stock_count
+        FROM product
+        WHERE product_id = %s
+    """, (product_id,))
+
+    product = cursor.fetchone()
+
+    if product["stock_count"] < threshold:
+
+        sns.publish(
+            TopicArn=get_parameter("/cloudmart/dev/sns/topic-arn"),
+            Subject="Low Stock Alert",
+            Message=f"""
+    Product: {product['product_name']}
+    Current Stock: {product['stock_count']}
+    Threshold: {threshold}
+    """
+        )
 
     return {
         "statusCode": 200,
