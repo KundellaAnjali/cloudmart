@@ -24,9 +24,4 @@ Outputs:
   LambdaAuthorizerArn:
     Value: !GetAtt LambdaAuthorizerFunction.Arn
     Export:
-<<<<<<< HEAD
       Name: LambdaAuthorizerArn
-=======
-      Name: LambdaAuthorizerArn
-            
->>>>>>> api
