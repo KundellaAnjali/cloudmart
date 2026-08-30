@@ -89,6 +89,25 @@ Resources:
             Path: /products/{id}
             Method: DELETE
 
+    LowStockTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: cloudmart-low-stock
+
+  LowStockSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      Endpoint: kundelakomala@gmail.com
+      TopicArn: !Ref LowStockTopic
+
+  LowStockTopicArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /cloudmart/dev/sns/topic-arn
+      Type: String
+      Value: !Ref LowStockTopic
+
 Outputs:
 
   ProductLambdaArn:
@@ -104,3 +123,9 @@ Outputs:
   ProductApiId:
     Description: API Gateway ID
     Value: !Ref ProductApi
+  
+  LowStockTopicArn:
+    Description: SNS Topic ARN
+    Value: !Ref LowStockTopic
+    Export:
+      Name: CloudMart-LowStock-Topic-Arn
