@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: CloudMart Product Stack
+
+Resources:
+
+  ProductLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: cloudmart-product-function
+
+      Runtime: python3.12
+
+      Handler: index.handler
+
+      CodeUri: ../lambdas/product/
+
+      Role:
+        Fn::ImportValue: ProductLambdaRoleArn
+
+      Timeout: 30
+
+      MemorySize: 256
+
+      VpcConfig:
+        SecurityGroupIds:
+          - Fn::ImportValue: CloudMart-Lambda-SG
+
+        SubnetIds:
+          - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
+          - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
+
+Outputs:
+
+  ProductLambdaArn:
+    Description: Product Lambda ARN
+    Value: !GetAtt ProductLambdaFunction.Arn
+    Export:
+      Name: ProductLambdaArn

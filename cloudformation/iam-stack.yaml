@@ -53,7 +53,9 @@ Resources:
               - Effect: Allow
                 Action:
                   - ssm:GetParameter
+                  - ssm:GetParameters
                   - sns:Publish
+                  - kms:Decrypt
                 Resource: "*"
 
   OrderProcessorRole:
