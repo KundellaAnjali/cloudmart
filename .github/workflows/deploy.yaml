@@ -167,12 +167,16 @@ jobs:
 # auth-stack
 
 
+  # ---------------------------
+# AUTH STACK (SAM)
+# ---------------------------
+
   lint-auth:
+    needs: deploy-iam
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Install cfn-lint
         run: pip install cfn-lint
@@ -186,8 +190,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -198,18 +201,28 @@ jobs:
       - name: Verify AWS Connection
         run: aws sts get-caller-identity
 
-      - name: Validate Auth Stack
+      - name: Setup SAM CLI
+        uses: aws-actions/setup-sam@v2
+
+      - name: Validate SAM Template
         run: |
-          aws cloudformation validate-template \
-            --template-body file://cloudformation/auth-stack.yaml
+          sam validate \
+            --template-file cloudformation/auth-stack.yaml
+
+      - name: Build SAM Application
+        run: |
+          sam build \
+            --template-file cloudformation/auth-stack.yaml
 
       - name: Deploy Auth Stack
         run: |
-          aws cloudformation deploy \
-            --template-file cloudformation/auth-stack.yaml \
+          sam deploy \
+            --template-file .aws-sam/build/template.yaml \
             --stack-name cloudmart-auth-stack \
             --capabilities CAPABILITY_NAMED_IAM \
-            --no-fail-on-empty-changeset
+            --resolve-s3 \
+            --no-fail-on-empty-changeset \
+            --region ap-south-1
 
       - name: Check Auth Stack Status
         run: |
