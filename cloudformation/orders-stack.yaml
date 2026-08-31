@@ -5,56 +5,6 @@ Description: CloudMart Orders Stack
 
 Resources:
 
-  OrderLambdaFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: cloudmart-order-function
-
-      Runtime: python3.12
-      Handler: index.handler
-
-      CodeUri: ../lambdas/order/
-
-      Role:
-        Fn::ImportValue: OrderProcessorRoleArn
-
-      Timeout: 30
-      MemorySize: 256
-
-      VpcConfig:
-        SecurityGroupIds:
-          - Fn::ImportValue: CloudMart-Lambda-SG
-
-        SubnetIds:
-          - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
-          - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
-
-      Events:
-
-        CreateOrder:
-          Type: Api
-          Properties:
-            RestApiId:
-              Fn::ImportValue: ProductApiId
-            Path: /orders
-            Method: POST
-
-        GetOrders:
-          Type: Api
-          Properties:
-            RestApiId:
-              Fn::ImportValue: ProductApiId
-            Path: /orders
-            Method: GET
-
-        GetOrderById:
-          Type: Api
-          Properties:
-            RestApiId:
-              Fn::ImportValue: ProductApiId
-            Path: /orders/{id}
-            Method: GET
-
   OrderNotificationsTopic:
     Type: AWS::SNS::Topic
     Properties:
@@ -117,12 +67,6 @@ Resources:
       Value: !Ref OrderNotificationsTopic
 
 Outputs:
-
-  OrderLambdaArn:
-    Description: Order Lambda ARN
-    Value: !GetAtt OrderLambdaFunction.Arn
-    Export:
-      Name: CloudMart-Order-Lambda-Arn
 
   OrderTopicArn:
     Description: Order Notification Topic ARN

@@ -1,4 +1,4 @@
-name: Order Stack
+name: Orders Deployment
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
 
-  lint-order:
+  lint:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,12 +21,16 @@ jobs:
       - name: Install cfn-lint
         run: pip install cfn-lint
 
-      - name: Lint Order Stack
+      - name: Lint Product Stack
+        run: |
+          cfn-lint --non-zero-exit-code error cloudformation/product-stack.yaml
+
+      - name: Lint Orders Stack
         run: |
           cfn-lint --non-zero-exit-code error cloudformation/orders-stack.yaml
 
-  deploy-order:
-    needs: lint-order
+  deploy:
+    needs: lint
     runs-on: ubuntu-latest
 
     steps:
@@ -45,17 +49,37 @@ jobs:
       - name: Setup SAM CLI
         uses: aws-actions/setup-sam@v2
 
-      - name: Validate Order Stack
+      - name: Validate Product Stack
+        run: |
+          sam validate \
+            --template-file cloudformation/product-stack.yaml
+
+      - name: Build Product Stack
+        run: |
+          sam build \
+            --template-file cloudformation/product-stack.yaml
+
+      - name: Deploy Product Stack
+        run: |
+          sam deploy \
+            --template-file .aws-sam/build/template.yaml \
+            --stack-name cloudmart-product-stack \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --resolve-s3 \
+            --no-fail-on-empty-changeset \
+            --region ap-south-1
+
+      - name: Validate Orders Stack
         run: |
           sam validate \
             --template-file cloudformation/orders-stack.yaml
 
-      - name: Build Order Stack
+      - name: Build Orders Stack
         run: |
           sam build \
             --template-file cloudformation/orders-stack.yaml
 
-      - name: Deploy Order Stack
+      - name: Deploy Orders Stack
         run: |
           sam deploy \
             --template-file .aws-sam/build/template.yaml \
@@ -65,13 +89,21 @@ jobs:
             --no-fail-on-empty-changeset \
             --region ap-south-1
 
-      - name: Check Order Stack Status
+      - name: Check Product Stack Status
+        run: |
+          aws cloudformation describe-stacks \
+            --stack-name cloudmart-product-stack
+
+      - name: Check Orders Stack Status
         run: |
           aws cloudformation describe-stacks \
             --stack-name cloudmart-orders-stack
 
-      - name: Show Order Stack Events On Failure
+      - name: Show Stack Events On Failure
         if: failure()
         run: |
           aws cloudformation describe-stack-events \
-            --stack-name cloudmart-orders-stack
+            --stack-name cloudmart-product-stack || true
+
+          aws cloudformation describe-stack-events \
+            --stack-name cloudmart-orders-stack || true
