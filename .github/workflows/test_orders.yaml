@@ -1,60 +1,77 @@
-name: Deploy Orders Stack
+name: Order Stack
 
 on:
   push:
     branches:
       - orders
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
-  deploy-orders:
+
+  lint-order:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      - name: Install cfn-lint
+        run: pip install cfn-lint
 
-      - name: Setup SAM
-        uses: aws-actions/setup-sam@v2
-
-      - name: Install Lint Tools
+      - name: Lint Order Stack
         run: |
-          pip install flake8
+          cfn-lint --non-zero-exit-code error cloudformation/orders-stack.yaml
 
-      - name: Lint Order Lambda
-        run: |
-          flake8 lambdas/order \
-            --count \
-            --show-source \
-            --statistics
+  deploy-order:
+    needs: lint-order
+    runs-on: ubuntu-latest
 
-      - name: Validate SAM Template
-        run: |
-          sam validate \
-            --template-file cloudformation/orders-stack.yaml
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.ARN_ROLE }}
           aws-region: ap-south-1
 
-      - name: Build Orders Stack
+      - name: Verify AWS Connection
+        run: aws sts get-caller-identity
+
+      - name: Setup SAM CLI
+        uses: aws-actions/setup-sam@v2
+
+      - name: Validate Order Stack
+        run: |
+          sam validate \
+            --template-file cloudformation/orders-stack.yaml
+
+      - name: Build Order Stack
         run: |
           sam build \
             --template-file cloudformation/orders-stack.yaml
 
-      - name: Deploy Orders Stack
+      - name: Deploy Order Stack
         run: |
           sam deploy \
             --template-file .aws-sam/build/template.yaml \
-            --stack-name cloudmart-orders \
+            --stack-name cloudmart-orders-stack \
             --capabilities CAPABILITY_NAMED_IAM \
-            --no-confirm-changeset \
+            --resolve-s3 \
             --no-fail-on-empty-changeset \
-            --resolve-s3
+            --region ap-south-1
+
+      - name: Check Order Stack Status
+        run: |
+          aws cloudformation describe-stacks \
+            --stack-name cloudmart-orders-stack
+
+      - name: Show Order Stack Events On Failure
+        if: failure()
+        run: |
+          aws cloudformation describe-stack-events \
+            --stack-name cloudmart-orders-stack
