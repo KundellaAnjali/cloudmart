@@ -130,11 +130,13 @@ Outputs:
   ProductApiUrl:
     Description: API Gateway URL
     Value: !Sub "https://${ProductApi}.execute-api.${AWS::Region}.amazonaws.com/dev"
-
+    
   ProductApiId:
     Description: API Gateway ID
     Value: !Ref ProductApi
-  
+    Export:
+      Name: ProductApiId
+    
   LowStockTopicArn:
     Description: SNS Topic ARN
     Value: !Ref LowStockTopic
