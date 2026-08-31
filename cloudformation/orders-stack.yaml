@@ -5,34 +5,12 @@ Description: CloudMart Orders Stack
 
 Resources:
 
-  OrderApi:
-    Type: AWS::Serverless::Api
-    Properties:
-      Name: cloudmart-order-api
-      StageName: dev
-
-      Auth:
-        DefaultAuthorizer: CloudMartAuthorizer
-
-        Authorizers:
-          CloudMartAuthorizer:
-            FunctionArn:
-              Fn::ImportValue: LambdaAuthorizerArn
-
-            FunctionPayloadType: TOKEN
-
-            Identity:
-              Header: Authorization
-
-            AuthorizerResultTtlInSeconds: 300
-
   OrderLambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: cloudmart-order-function
 
       Runtime: python3.12
-
       Handler: index.handler
 
       CodeUri: ../lambdas/order/
@@ -41,7 +19,6 @@ Resources:
         Fn::ImportValue: OrderProcessorRoleArn
 
       Timeout: 30
-
       MemorySize: 256
 
       VpcConfig:
@@ -57,21 +34,24 @@ Resources:
         CreateOrder:
           Type: Api
           Properties:
-            RestApiId: !Ref OrderApi
+            RestApiId:
+              Fn::ImportValue: ProductApiId
             Path: /orders
             Method: POST
 
         GetOrders:
           Type: Api
           Properties:
-            RestApiId: !Ref OrderApi
+            RestApiId:
+              Fn::ImportValue: ProductApiId
             Path: /orders
             Method: GET
 
         GetOrderById:
           Type: Api
           Properties:
-            RestApiId: !Ref OrderApi
+            RestApiId:
+              Fn::ImportValue: ProductApiId
             Path: /orders/{id}
             Method: GET
 
@@ -144,17 +124,8 @@ Outputs:
     Export:
       Name: CloudMart-Order-Lambda-Arn
 
-  OrderApiUrl:
-    Description: Order API URL
-    Value: !Sub "https://${OrderApi}.execute-api.${AWS::Region}.amazonaws.com/dev"
-
-  OrderApiId:
-    Description: Order API ID
-    Value: !Ref OrderApi
-
   OrderTopicArn:
     Description: Order Notification Topic ARN
     Value: !Ref OrderNotificationsTopic
     Export:
       Name: CloudMart-Order-Topic-Arn
-      
