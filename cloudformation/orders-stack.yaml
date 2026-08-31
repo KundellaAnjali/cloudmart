@@ -1,0 +1,159 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: CloudMart Orders Stack
+
+Resources:
+
+  OrderApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: cloudmart-order-api
+      StageName: dev
+
+      Auth:
+        DefaultAuthorizer: CloudMartAuthorizer
+
+        Authorizers:
+          CloudMartAuthorizer:
+            FunctionArn:
+              Fn::ImportValue: LambdaAuthorizerArn
+
+            FunctionPayloadType: TOKEN
+
+            Identity:
+              Header: Authorization
+
+            AuthorizerResultTtlInSeconds: 300
+
+  OrderLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: cloudmart-order-function
+
+      Runtime: python3.12
+
+      Handler: index.handler
+
+      CodeUri: ../lambdas/order/
+
+      Role:
+        Fn::ImportValue: OrderProcessorRoleArn
+
+      Timeout: 30
+
+      MemorySize: 256
+
+      VpcConfig:
+        SecurityGroupIds:
+          - Fn::ImportValue: CloudMart-Lambda-SG
+
+        SubnetIds:
+          - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
+          - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
+
+      Events:
+
+        CreateOrder:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OrderApi
+            Path: /orders
+            Method: POST
+
+        GetOrders:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OrderApi
+            Path: /orders
+            Method: GET
+
+        GetOrderById:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OrderApi
+            Path: /orders/{id}
+            Method: GET
+
+  OrderNotificationsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: cloudmart-order-notifications
+
+  OrderEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      Endpoint: kundelakomala@gmail.com
+      TopicArn: !Ref OrderNotificationsTopic
+
+  OrderEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: cloudmart-order-events
+
+      EventPattern:
+        source:
+          - cloudmart.orders
+
+        detail-type:
+          - OrderPlaced
+          - OrderConfirmed
+          - OrderFailed
+
+      State: ENABLED
+
+      Targets:
+        - Arn: !Ref OrderNotificationsTopic
+          Id: OrderNotificationsTarget
+
+  OrderTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref OrderNotificationsTopic
+
+      PolicyDocument:
+        Version: '2012-10-17'
+
+        Statement:
+          - Sid: AllowEventBridgeToPublish
+
+            Effect: Allow
+
+            Principal:
+              Service: events.amazonaws.com
+
+            Action:
+              - sns:Publish
+
+            Resource: !Ref OrderNotificationsTopic
+
+  OrderTopicArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /cloudmart/dev/orders/topic-arn
+      Type: String
+      Value: !Ref OrderNotificationsTopic
+
+Outputs:
+
+  OrderLambdaArn:
+    Description: Order Lambda ARN
+    Value: !GetAtt OrderLambdaFunction.Arn
+    Export:
+      Name: CloudMart-Order-Lambda-Arn
+
+  OrderApiUrl:
+    Description: Order API URL
+    Value: !Sub "https://${OrderApi}.execute-api.${AWS::Region}.amazonaws.com/dev"
+
+  OrderApiId:
+    Description: Order API ID
+    Value: !Ref OrderApi
+
+  OrderTopicArn:
+    Description: Order Notification Topic ARN
+    Value: !Ref OrderNotificationsTopic
+    Export:
+      Name: CloudMart-Order-Topic-Arn

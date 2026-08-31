@@ -119,6 +119,7 @@ Resources:
     Properties:
       GroupDescription: Lambda Security Group
       VpcId: !Ref CloudMartVPC
+      
 
       SecurityGroupEgress:
         - IpProtocol: -1

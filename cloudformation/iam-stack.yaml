@@ -83,6 +83,9 @@ Resources:
               - Effect: Allow
                 Action:
                   - ssm:GetParameter
+                  - events:PutEvents
+                  - ssm:GetParameters
+                  - kms:Decrypt
                   - sns:Publish
                 Resource: "*"
 

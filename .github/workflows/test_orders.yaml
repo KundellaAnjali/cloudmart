@@ -1,0 +1,60 @@
+name: Deploy Orders Stack
+
+on:
+  push:
+    branches:
+      - orders
+
+jobs:
+  deploy-orders:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Setup SAM
+        uses: aws-actions/setup-sam@v2
+
+      - name: Install Lint Tools
+        run: |
+          pip install flake8
+
+      - name: Lint Order Lambda
+        run: |
+          flake8 lambdas/order \
+            --count \
+            --show-source \
+            --statistics
+
+      - name: Validate SAM Template
+        run: |
+          sam validate \
+            --template-file cloudformation/orders-stack.yaml
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Build Orders Stack
+        run: |
+          sam build \
+            --template-file cloudformation/orders-stack.yaml
+
+      - name: Deploy Orders Stack
+        run: |
+          sam deploy \
+            --template-file .aws-sam/build/template.yaml \
+            --stack-name cloudmart-orders \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --resolve-s3
