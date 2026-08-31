@@ -118,6 +118,10 @@ Resources:
         detail-type:
           - InventoryUpdated
       State: ENABLED
+
+  
+
+  
   OrderLambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -164,6 +168,19 @@ Resources:
             RestApiId: !Ref ProductApi
             Path: /orders/{id}
             Method: GET
+  CreateCustomer:
+    Type: Api
+    Properties:
+      RestApiId: !Ref ProductApi
+      Path: /customers
+      Method: POST
+
+  GetCustomers:
+    Type: Api
+    Properties:
+      RestApiId: !Ref ProductApi
+      Path: /customers
+      Method: GET
 
 Outputs:
 

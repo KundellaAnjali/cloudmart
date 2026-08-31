@@ -54,7 +54,105 @@ def publish_event(detail_type, detail):
             }
         ]
     )
+def create_customer(event):
 
+    body = json.loads(event.get("body", "{}"))
+
+    customer_name = body.get("customerName")
+    customer_email = body.get("customerEmail")
+
+    if not customer_name:
+        return response(
+            400,
+            {"message": "customerName is required"}
+        )
+
+    if not customer_email:
+        return response(
+            400,
+            {"message": "customerEmail is required"}
+        )
+
+    conn = get_connection()
+
+    try:
+
+        with conn.cursor() as cursor:
+
+            cursor.execute(
+                """
+                INSERT INTO customers
+                (
+                    customer_name,
+                    customer_email
+                )
+                VALUES
+                (%s,%s)
+                """,
+                (
+                    customer_name,
+                    customer_email
+                )
+            )
+
+            customer_id = cursor.lastrowid
+
+            conn.commit()
+
+            return response(
+                201,
+                {
+                    "customerId": customer_id,
+                    "customerName": customer_name,
+                    "customerEmail": customer_email
+                }
+            )
+
+    except Exception as e:
+
+        conn.rollback()
+
+        return response(
+            500,
+            {
+                "message": str(e)
+            }
+        )
+
+    finally:
+        conn.close()
+
+def get_customers():
+
+    conn = get_connection()
+
+    try:
+
+        with conn.cursor() as cursor:
+
+            cursor.execute(
+                """
+                SELECT *
+                FROM customers
+                ORDER BY customer_id
+                """
+            )
+
+            customers = cursor.fetchall()
+
+            return response(200, customers)
+
+    except Exception as e:
+
+        return response(
+            500,
+            {
+                "message": str(e)
+            }
+        )
+
+    finally:
+        conn.close()
 
 def create_order(event):
 
@@ -411,9 +509,14 @@ def handler(event, context):
     method = event["httpMethod"]
     path = event["path"]
 
+    if method == "POST" and path.endswith("/customers"):
+        return create_customer(event)
+
+    if method == "GET" and path.endswith("/customers"):
+        return get_customers()
+
     if method == "POST" and path.endswith("/orders"):
         return create_order(event)
-
     if method == "GET":
 
         query = event.get("queryStringParameters") or {}
@@ -435,4 +538,3 @@ def handler(event, context):
         }
     )
 
-    
