@@ -458,20 +458,13 @@ def create_order(event):
     except Exception as e:
 
         conn.rollback()
-        except Exception as e:
-
-    conn.rollback()
-
-    publish_event(
-        "OrderFailed",
-        {
-            "customerId": customer_id,
-            "reason": str(e)
-        }
-    )
-
-    print("ERROR:", str(e))
-
+        publish_event(
+            "OrderFailed",
+            {
+                "customerId": customer_id,
+                "reason": str(e)
+            }
+        )
         print("ERROR:", str(e))
 
         return response(
