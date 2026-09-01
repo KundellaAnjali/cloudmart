@@ -4,7 +4,6 @@ import pymysql
 import boto3
 import os
 
-
 ssm = boto3.client("ssm")
 events = boto3.client("events")
 
@@ -64,7 +63,6 @@ def get_connection():
         cursorclass=pymysql.cursors.DictCursor
     )
 
-
 def response(status, body):
     return {
         "statusCode": status,
@@ -73,7 +71,6 @@ def response(status, body):
         },
         "body": json.dumps(body, default=str)
     }
-
 
 def publish_event(detail_type, detail):
     events.put_events(
@@ -259,21 +256,6 @@ def create_order(event):
                     )
 
                 if quantity > product["stock_count"]:
-
-                    publish_event(
-                        "OrderFailed",
-                        {
-                            "customerId": customer_id,
-                            "productId": product_id,
-                            "productName": product["product_name"],
-
-                            "requestedQuantity": quantity,
-
-                            "availableStock": product["stock_count"],
-                            "reason": "Insufficient stock"
-                        }
-                    )
-
                     return response(
                         400,
                         {
@@ -354,38 +336,6 @@ def create_order(event):
                     )
                 )
 
-                cursor.execute(
-                    """
-                    SELECT stock_count
-                    FROM product
-                    WHERE product_id = %s
-                    """,
-                    (
-                        product["product_id"],
-                    )
-                )
-
-                remaining_stock = cursor.fetchone()
-
-                if remaining_stock["stock_count"] < 5:
-
-                    events.put_events(
-                        Entries=[
-                            {
-                                "Source": "cloudmart.inventory",
-                                "DetailType": "LowStock",
-                                "Detail": json.dumps(
-                                    {
-                                        "productId": product["product_id"],
-                                        "productName": product["product_name"],
-                                        "remainingStock":
-                                            remaining_stock["stock_count"]
-                                        "alert": "Low stock threshold reached"
-                                    }
-                                )
-                            }
-                        ]
-                    )
             cursor.execute(
                 """
                 INSERT INTO order_status_history
@@ -435,39 +385,6 @@ def create_order(event):
             )
 
             conn.commit()
-            publish_event(
-                "OrderPlaced",
-                {
-                    "orderId": order_id,
-                    "customerId": customer_id,
-                    "product": [
-                        {
-                            "productId": p["product"]["product_id"],
-                            "productName": p["product"]["product_name"],
-                            "quantity": p["quantity"]
-                        }
-                        for p in product_details
-                    ],
-                    "totalAmount": total_amount
-                }
-            )
-            publish_event(
-                "OrderConfirmed",
-                {
-                    "orderId": order_id,
-                    "customerId": customer_id,
-                    "status": "CONFIRMED",
-                    "product": [
-                        {
-                            "productId": p["product"]["product_id"],
-                            "productName": p["product"]["product_name"],
-                            "quantity": p["quantity"]
-                        }
-                        for p in product_details
-                    ],
-                    "totalAmount": total_amount
-                }
-            )
 
             return response(
                 201,
@@ -481,14 +398,7 @@ def create_order(event):
     except Exception as e:
 
         conn.rollback()
-        publish_event(
-            "OrderFailed",
-            {
-                "customerId": customer_id,
-                "reason": str(e),
-                "status": "FAILED"
-            }
-        )
+
         print("ERROR:", str(e))
 
         return response(
@@ -558,7 +468,6 @@ def get_order(order_id):
     finally:
         conn.close()
 
-
 def get_customer_orders(customer_id):
 
     conn = get_connection()
@@ -593,7 +502,6 @@ def get_customer_orders(customer_id):
     finally:
         conn.close()
 
-
 def handler(event, context):
     initialize_schema()
     method = event["httpMethod"]
@@ -627,4 +535,6 @@ def handler(event, context):
             "message": "Route not found"
         }
     )
+
+
 
