@@ -259,6 +259,16 @@ def create_order(event):
                     )
 
                 if quantity > product["stock_count"]:
+
+                    publish_event(
+                        "OrderFailed",
+                        {
+                            "customerId": customer_id,
+                            "productId": product_id,
+                            "reason": "Insufficient stock"
+                        }
+                    )
+
                     return response(
                         400,
                         {
@@ -329,7 +339,7 @@ def create_order(event):
 
                 cursor.execute(
                     """
-                    UPDATE product
+                    UPDATE products
                     SET stock_count = stock_count - %s
                     WHERE product_id = %s
                     """,
@@ -339,6 +349,37 @@ def create_order(event):
                     )
                 )
 
+                cursor.execute(
+                    """
+                    SELECT stock_count
+                    FROM products
+                    WHERE product_id = %s
+                    """,
+                    (
+                        product["product_id"],
+                    )
+                )
+
+                remaining_stock = cursor.fetchone()
+
+                if remaining_stock["stock_count"] < 5:
+
+                    events.put_events(
+                        Entries=[
+                            {
+                                "Source": "cloudmart.inventory",
+                                "DetailType": "LowStock",
+                                "Detail": json.dumps(
+                                    {
+                                        "productId": product["product_id"],
+                                        "productName": product["product_name"],
+                                        "remainingStock":
+                                            remaining_stock["stock_count"]
+                                    }
+                                )
+                            }
+                        ]
+                    )
             cursor.execute(
                 """
                 INSERT INTO order_status_history
@@ -388,6 +429,22 @@ def create_order(event):
             )
 
             conn.commit()
+            publish_event(
+                "OrderPlaced",
+                {
+                    "orderId": order_id,
+                    "customerId": customer_id,
+                    "totalAmount": total_amount
+                }
+            )
+            publish_event(
+                "OrderConfirmed",
+                {
+                    "orderId": order_id,
+                    "customerId": customer_id,
+                    "status": "CONFIRMED"
+                }
+            )
 
             return response(
                 201,
@@ -401,6 +458,19 @@ def create_order(event):
     except Exception as e:
 
         conn.rollback()
+        except Exception as e:
+
+    conn.rollback()
+
+    publish_event(
+        "OrderFailed",
+        {
+            "customerId": customer_id,
+            "reason": str(e)
+        }
+    )
+
+    print("ERROR:", str(e))
 
         print("ERROR:", str(e))
 
