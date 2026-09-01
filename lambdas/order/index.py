@@ -70,7 +70,7 @@ def response(status, body):
         "headers": {
             "Content-Type": "application/json"
         },
-        "body": json.dumps(body)
+        "body": json.dumps(body, default=str)
     }
 
 
