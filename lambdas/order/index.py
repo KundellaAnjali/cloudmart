@@ -25,7 +25,7 @@ DB_PASSWORD = ssm.get_parameter(
     WithDecryption=True
 )["Parameter"]["Value"]
 
-"""def initialize_schema():
+def initialize_schema():
 
     conn = get_connection()
 
@@ -51,9 +51,10 @@ DB_PASSWORD = ssm.get_parameter(
         conn.commit()
 
     finally:
-        conn.close()"""
+        conn.close()
 
-
+print("DB_HOST:", DB_HOST)
+print("DB_NAME:", DB_NAME)
 def get_connection():
     return pymysql.connect(
         host=DB_HOST,
@@ -203,6 +204,12 @@ def create_order(event):
 
         with conn.cursor() as cursor:
 
+            cursor.execute("SELECT DATABASE() AS db")
+            print("DATABASE:", cursor.fetchone())
+
+            cursor.execute("SHOW TABLES")
+            print("TABLES:", cursor.fetchall())
+
             cursor.execute(
                 """
                 SELECT *
@@ -234,7 +241,7 @@ def create_order(event):
                            product_name,
                            price,
                            stock_count
-                    FROM products
+                    FROM product
                     WHERE product_id = %s
                     """,
                     (product_id,)
@@ -252,16 +259,6 @@ def create_order(event):
                     )
 
                 if quantity > product["stock_count"]:
-
-                    publish_event(
-                        "OrderFailed",
-                        {
-                            "customerId": customer_id,
-                            "productId": product_id,
-                            "reason": "Insufficient stock"
-                        }
-                    )
-
                     return response(
                         400,
                         {
@@ -332,7 +329,7 @@ def create_order(event):
 
                 cursor.execute(
                     """
-                    UPDATE products
+                    UPDATE product
                     SET stock_count = stock_count - %s
                     WHERE product_id = %s
                     """,
@@ -392,23 +389,6 @@ def create_order(event):
 
             conn.commit()
 
-            publish_event(
-                "OrderPlaced",
-                {
-                    "orderId": order_id,
-                    "customerId": customer_id,
-                    "totalAmount": total_amount
-                }
-            )
-
-            publish_event(
-                "OrderConfirmed",
-                {
-                    "orderId": order_id,
-                    "status": "CONFIRMED"
-                }
-            )
-
             return response(
                 201,
                 {
@@ -422,13 +402,7 @@ def create_order(event):
 
         conn.rollback()
 
-        publish_event(
-            "OrderFailed",
-            {
-                "customerId": customer_id,
-                "reason": str(e)
-            }
-        )
+        print("ERROR:", str(e))
 
         return response(
             500,
@@ -439,7 +413,6 @@ def create_order(event):
 
     finally:
         conn.close()
-
 
 def get_order(order_id):
 
@@ -535,7 +508,7 @@ def get_customer_orders(customer_id):
 
 
 def handler(event, context):
-    #initialize_schema()
+    initialize_schema()
     method = event["httpMethod"]
     path = event["path"]
 
