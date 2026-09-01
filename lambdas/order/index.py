@@ -339,7 +339,7 @@ def create_order(event):
 
                 cursor.execute(
                     """
-                    UPDATE products
+                    UPDATE product
                     SET stock_count = stock_count - %s
                     WHERE product_id = %s
                     """,
@@ -352,7 +352,7 @@ def create_order(event):
                 cursor.execute(
                     """
                     SELECT stock_count
-                    FROM products
+                    FROM product
                     WHERE product_id = %s
                     """,
                     (
