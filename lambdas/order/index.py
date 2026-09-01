@@ -2,6 +2,8 @@ import json
 import uuid
 import pymysql
 import boto3
+import os
+
 
 ssm = boto3.client("ssm")
 events = boto3.client("events")
@@ -22,6 +24,34 @@ DB_PASSWORD = ssm.get_parameter(
     Name="/cloudmart/dev/db/password",
     WithDecryption=True
 )["Parameter"]["Value"]
+
+def initialize_schema():
+
+    conn = get_connection()
+
+    try:
+
+        schema_file = os.path.join(
+            os.path.dirname(__file__),
+            "schema.sql"
+        )
+
+        with open(schema_file, "r") as f:
+            sql_script = f.read()
+
+        with conn.cursor() as cursor:
+
+            for statement in sql_script.split(";"):
+
+                statement = statement.strip()
+
+                if statement:
+                    cursor.execute(statement)
+
+        conn.commit()
+
+    finally:
+        conn.close()
 
 
 def get_connection():
@@ -505,7 +535,7 @@ def get_customer_orders(customer_id):
 
 
 def handler(event, context):
-
+    initialize_schema()
     method = event["httpMethod"]
     path = event["path"]
 

@@ -1,4 +1,4 @@
-CREATE TABLE customers (
+CREATE TABLE IF NOT EXISTS customers (
     customer_id INT AUTO_INCREMENT PRIMARY KEY,
     customer_name VARCHAR(100) NOT NULL,
     customer_email VARCHAR(255) NOT NULL UNIQUE,
@@ -7,7 +7,7 @@ CREATE TABLE customers (
         ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE TABLE orders (
+CREATE TABLE IF NOT EXISTS orders (
     order_id VARCHAR(50) PRIMARY KEY,
     customer_id INT NOT NULL,
     order_status VARCHAR(30) DEFAULT 'PENDING',
@@ -18,7 +18,7 @@ CREATE TABLE orders (
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
 );
 
-CREATE TABLE order_items (
+CREATE TABLE IF NOT EXISTS order_items (
     order_item_id INT AUTO_INCREMENT PRIMARY KEY,
     order_id VARCHAR(50) NOT NULL,
     product_id INT NOT NULL,
@@ -29,7 +29,7 @@ CREATE TABLE order_items (
     FOREIGN KEY (product_id) REFERENCES products(product_id)
 );
 
-CREATE TABLE order_status_history (
+CREATE TABLE IF NOT EXISTS order_status_history (
     status_history_id INT AUTO_INCREMENT PRIMARY KEY,
     order_id VARCHAR(50) NOT NULL,
     order_status VARCHAR(30) NOT NULL,
