@@ -25,7 +25,7 @@ DB_PASSWORD = ssm.get_parameter(
     WithDecryption=True
 )["Parameter"]["Value"]
 
-def initialize_schema():
+"""def initialize_schema():
 
     conn = get_connection()
 
@@ -51,7 +51,7 @@ def initialize_schema():
         conn.commit()
 
     finally:
-        conn.close()
+        conn.close()"""
 
 
 def get_connection():
@@ -535,7 +535,7 @@ def get_customer_orders(customer_id):
 
 
 def handler(event, context):
-    initialize_schema()
+    #initialize_schema()
     method = event["httpMethod"]
     path = event["path"]
 
