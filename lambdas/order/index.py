@@ -265,6 +265,11 @@ def create_order(event):
                         {
                             "customerId": customer_id,
                             "productId": product_id,
+                            "productName": product["product_name"],
+
+                            "requestedQuantity": quantity,
+
+                            "availableStock": product["stock_count"],
                             "reason": "Insufficient stock"
                         }
                     )
@@ -375,6 +380,7 @@ def create_order(event):
                                         "productName": product["product_name"],
                                         "remainingStock":
                                             remaining_stock["stock_count"]
+                                        "alert": "Low stock threshold reached"
                                     }
                                 )
                             }
@@ -434,6 +440,14 @@ def create_order(event):
                 {
                     "orderId": order_id,
                     "customerId": customer_id,
+                    "product": [
+                        {
+                            "productId": p["product"]["product_id"],
+                            "productName": p["product"]["product_name"],
+                            "quantity": p["quantity"]
+                        }
+                        for p in product_details
+                    ],
                     "totalAmount": total_amount
                 }
             )
@@ -442,7 +456,16 @@ def create_order(event):
                 {
                     "orderId": order_id,
                     "customerId": customer_id,
-                    "status": "CONFIRMED"
+                    "status": "CONFIRMED",
+                    "product": [
+                        {
+                            "productId": p["product"]["product_id"],
+                            "productName": p["product"]["product_name"],
+                            "quantity": p["quantity"]
+                        }
+                        for p in product_details
+                    ],
+                    "totalAmount": total_amount
                 }
             )
 
@@ -462,7 +485,8 @@ def create_order(event):
             "OrderFailed",
             {
                 "customerId": customer_id,
-                "reason": str(e)
+                "reason": str(e),
+                "status": "FAILED"
             }
         )
         print("ERROR:", str(e))
