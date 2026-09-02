@@ -11,10 +11,6 @@ permissions:
 
 jobs:
 
-  # ---------------------------
-  # NETWORK STACK
-  # ---------------------------
-
   lint-network:
     runs-on: ubuntu-latest
 
@@ -25,8 +21,7 @@ jobs:
         run: pip install cfn-lint
 
       - name: Lint Network Stack
-        run: |
-          cfn-lint --non-zero-exit-code error cloudformation/network-stack.yaml
+        run: cfn-lint cloudformation/network-stack.yaml
 
   deploy-network:
     needs: lint-network
@@ -41,11 +36,6 @@ jobs:
           role-to-assume: ${{ secrets.ARN_ROLE }}
           aws-region: ap-south-1
 
-      - name: Validate Network Stack
-        run: |
-          aws cloudformation validate-template \
-            --template-body file://cloudformation/network-stack.yaml
-
       - name: Deploy Network Stack
         run: |
           aws cloudformation deploy \
@@ -53,10 +43,6 @@ jobs:
             --stack-name cloudmart-network-stack \
             --capabilities CAPABILITY_NAMED_IAM \
             --no-fail-on-empty-changeset
-
-  # ---------------------------
-  # DATA STACK
-  # ---------------------------
 
   lint-data:
     needs: deploy-network
@@ -69,8 +55,7 @@ jobs:
         run: pip install cfn-lint
 
       - name: Lint Data Stack
-        run: |
-          cfn-lint --non-zero-exit-code error cloudformation/data-stack.yaml
+        run: cfn-lint cloudformation/data-stack.yaml
 
   deploy-data:
     needs: lint-data
@@ -85,11 +70,6 @@ jobs:
           role-to-assume: ${{ secrets.ARN_ROLE }}
           aws-region: ap-south-1
 
-      - name: Validate Data Stack
-        run: |
-          aws cloudformation validate-template \
-            --template-body file://cloudformation/data-stack.yaml
-
       - name: Deploy Data Stack
         run: |
           aws cloudformation deploy \
@@ -97,10 +77,6 @@ jobs:
             --stack-name cloudmart-data-stack \
             --capabilities CAPABILITY_NAMED_IAM \
             --no-fail-on-empty-changeset
-
-  # ---------------------------
-  # IAM STACK
-  # ---------------------------
 
   lint-iam:
     needs: deploy-data
@@ -113,8 +89,7 @@ jobs:
         run: pip install cfn-lint
 
       - name: Lint IAM Stack
-        run: |
-          cfn-lint --non-zero-exit-code error cloudformation/iam-stack.yaml
+        run: cfn-lint cloudformation/iam-stack.yaml
 
   deploy-iam:
     needs: lint-iam
@@ -129,11 +104,6 @@ jobs:
           role-to-assume: ${{ secrets.ARN_ROLE }}
           aws-region: ap-south-1
 
-      - name: Validate IAM Stack
-        run: |
-          aws cloudformation validate-template \
-            --template-body file://cloudformation/iam-stack.yaml
-
       - name: Deploy IAM Stack
         run: |
           aws cloudformation deploy \
@@ -141,10 +111,6 @@ jobs:
             --stack-name cloudmart-iam-stack \
             --capabilities CAPABILITY_NAMED_IAM \
             --no-fail-on-empty-changeset
-
-  # ---------------------------
-  # AUTH STACK
-  # ---------------------------
 
   lint-auth:
     needs: deploy-iam
@@ -157,8 +123,7 @@ jobs:
         run: pip install cfn-lint
 
       - name: Lint Auth Stack
-        run: |
-          cfn-lint --non-zero-exit-code error cloudformation/auth-stack.yaml
+        run: cfn-lint cloudformation/auth-stack.yaml
 
   deploy-auth:
     needs: lint-auth
@@ -173,18 +138,17 @@ jobs:
           role-to-assume: ${{ secrets.ARN_ROLE }}
           aws-region: ap-south-1
 
+      - name: Verify AWS Connection
+        run: aws sts get-caller-identity
+
       - name: Setup SAM CLI
         uses: aws-actions/setup-sam@v2
 
       - name: Validate Auth Stack
-        run: |
-          sam validate \
-            --template-file cloudformation/auth-stack.yaml
+        run: sam validate --template-file cloudformation/auth-stack.yaml
 
       - name: Build Auth Stack
-        run: |
-          sam build \
-            --template-file cloudformation/auth-stack.yaml
+        run: sam build --template-file cloudformation/auth-stack.yaml
 
       - name: Deploy Auth Stack
         run: |
@@ -195,10 +159,6 @@ jobs:
             --resolve-s3 \
             --no-fail-on-empty-changeset \
             --region ap-south-1
-
-  # ---------------------------
-  # PRODUCT STACK
-  # ---------------------------
 
   lint-product:
     needs: deploy-auth
@@ -211,8 +171,7 @@ jobs:
         run: pip install cfn-lint
 
       - name: Lint Product Stack
-        run: |
-          cfn-lint --non-zero-exit-code error cloudformation/product-stack.yaml
+        run: cfn-lint cloudformation/product-stack.yaml
 
   deploy-product:
     needs: lint-product
@@ -231,14 +190,10 @@ jobs:
         uses: aws-actions/setup-sam@v2
 
       - name: Validate Product Stack
-        run: |
-          sam validate \
-            --template-file cloudformation/product-stack.yaml
+        run: sam validate --template-file cloudformation/product-stack.yaml
 
       - name: Build Product Stack
-        run: |
-          sam build \
-            --template-file cloudformation/product-stack.yaml
+        run: sam build --template-file cloudformation/product-stack.yaml
 
       - name: Deploy Product Stack
         run: |
@@ -249,3 +204,62 @@ jobs:
             --resolve-s3 \
             --no-fail-on-empty-changeset \
             --region ap-south-1
+
+  lint-orders:
+    needs: deploy-product
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cfn-lint
+        run: pip install cfn-lint
+
+      - name: Lint Orders Stack
+        run: cfn-lint cloudformation/orders-stack.yaml
+
+  deploy-orders:
+    needs: lint-orders
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.ARN_ROLE }}
+          aws-region: ap-south-1
+
+      - name: Verify AWS Connection
+        run: aws sts get-caller-identity
+
+      - name: Setup SAM CLI
+        uses: aws-actions/setup-sam@v2
+
+      - name: Validate Orders Stack
+        run: sam validate --template-file cloudformation/orders-stack.yaml
+
+      - name: Build Orders Stack
+        run: sam build --template-file cloudformation/orders-stack.yaml
+
+      - name: Deploy Orders Stack
+        run: |
+          sam deploy \
+            --template-file .aws-sam/build/template.yaml \
+            --stack-name cloudmart-orders-stack \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --resolve-s3 \
+            --no-fail-on-empty-changeset \
+            --region ap-south-1
+
+      - name: Check Orders Stack Status
+        run: |
+          aws cloudformation describe-stacks \
+            --stack-name cloudmart-orders-stack
+
+      - name: Show Stack Events On Failure
+        if: failure()
+        run: |
+          aws cloudformation describe-stack-events \
+            --stack-name cloudmart-orders-stack
