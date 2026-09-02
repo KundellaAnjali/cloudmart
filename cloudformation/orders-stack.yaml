@@ -1,0 +1,140 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: CloudMart Orders Stack
+
+Resources:
+
+  CustomerNotificationsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: cloudmart-customer-notifications
+
+  OwnerNotificationsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: cloudmart-owner-notifications
+
+  CustomerEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      Endpoint: kundelakomala@gmail.com
+      TopicArn: !Ref CustomerNotificationsTopic
+
+  OwnerEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      Endpoint: kundelakomala@gmail.com
+      TopicArn: !Ref OwnerNotificationsTopic
+
+  CustomerOrderEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: cloudmart-customer-order-events
+
+      EventPattern:
+        source:
+          - cloudmart.orders
+
+        detail-type:
+          - OrderPlaced
+          - OrderConfirmed
+          - OrderFailed
+
+      State: ENABLED
+
+      Targets:
+        - Arn: !Ref CustomerNotificationsTopic
+          Id: CustomerNotificationsTarget
+
+  LowStockEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: cloudmart-low-stock-events
+
+      EventPattern:
+        source:
+          - cloudmart.inventory
+
+        detail-type:
+          - LowStock
+
+      State: ENABLED
+
+      Targets:
+        - Arn: !Ref OwnerNotificationsTopic
+          Id: OwnerNotificationsTarget
+
+  CustomerTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref CustomerNotificationsTopic
+
+      PolicyDocument:
+        Version: '2012-10-17'
+
+        Statement:
+          - Sid: AllowEventBridgeToPublishCustomer
+
+            Effect: Allow
+
+            Principal:
+              Service: events.amazonaws.com
+
+            Action:
+              - sns:Publish
+
+            Resource: !Ref CustomerNotificationsTopic
+
+  OwnerTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref OwnerNotificationsTopic
+
+      PolicyDocument:
+        Version: '2012-10-17'
+
+        Statement:
+          - Sid: AllowEventBridgeToPublishOwner
+
+            Effect: Allow
+
+            Principal:
+              Service: events.amazonaws.com
+
+            Action:
+              - sns:Publish
+
+            Resource: !Ref OwnerNotificationsTopic
+
+  CustomerTopicArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /cloudmart/dev/customer/topic-arn
+      Type: String
+      Value: !Ref CustomerNotificationsTopic
+
+  OwnerTopicArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /cloudmart/dev/owner/topic-arn
+      Type: String
+      Value: !Ref OwnerNotificationsTopic
+
+Outputs:
+
+  CustomerTopicArn:
+    Description: Customer Notification Topic ARN
+    Value: !Ref CustomerNotificationsTopic
+    Export:
+      Name: CloudMart-Customer-Topic-Arn
+
+  OwnerTopicArn:
+    Description: Owner Notification Topic ARN
+    Value: !Ref OwnerNotificationsTopic
+    Export:
+      Name: CloudMart-Owner-Topic-Arn

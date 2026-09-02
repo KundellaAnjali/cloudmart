@@ -119,6 +119,70 @@ Resources:
           - InventoryUpdated
       State: ENABLED
 
+  
+
+  
+  OrderLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: cloudmart-order-function
+
+      Runtime: python3.12
+      Handler: index.handler
+
+      CodeUri: ../lambdas/order/
+
+      Role:
+        Fn::ImportValue: OrderProcessorRoleArn
+
+      Timeout: 30
+      MemorySize: 256
+
+      VpcConfig:
+        SecurityGroupIds:
+          - Fn::ImportValue: CloudMart-Lambda-SG
+
+        SubnetIds:
+          - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
+          - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
+
+      Events:
+        CreateCustomer:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /customers
+            Method: POST
+
+        GetCustomers:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /customers
+            Method: GET
+
+        CreateOrder:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /orders
+            Method: POST
+
+        GetOrders:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /orders
+            Method: GET
+
+        GetOrderById:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /orders/{id}
+            Method: GET
+
+
 Outputs:
 
   ProductLambdaArn:
@@ -131,12 +195,21 @@ Outputs:
     Description: API Gateway URL
     Value: !Sub "https://${ProductApi}.execute-api.${AWS::Region}.amazonaws.com/dev"
 
+
   ProductApiId:
     Description: API Gateway ID
     Value: !Ref ProductApi
-  
+    Export:
+      Name: ProductApiId
+    
   LowStockTopicArn:
     Description: SNS Topic ARN
     Value: !Ref LowStockTopic
     Export:
       Name: CloudMart-LowStock-Topic-Arn
+  
+  OrderLambdaArn:
+    Description: Order Lambda ARN
+    Value: !GetAtt OrderLambdaFunction.Arn
+    Export:
+      Name: CloudMart-Order-Lambda-Arn
