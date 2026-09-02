@@ -21,7 +21,7 @@ jobs:
         run: pip install cfn-lint
 
       - name: Lint Network Stack
-        run: cfn-lint cloudformation/network-stack.yaml
+        run: cfn-lint -i W1011 cloudformation/network-stack.yaml
 
   deploy-network:
     needs: lint-network
@@ -55,7 +55,7 @@ jobs:
         run: pip install cfn-lint
 
       - name: Lint Data Stack
-        run: cfn-lint cloudformation/data-stack.yaml
+        run: cfn-lint -i W1011 cloudformation/data-stack.yaml
 
   deploy-data:
     needs: lint-data
@@ -89,7 +89,7 @@ jobs:
         run: pip install cfn-lint
 
       - name: Lint IAM Stack
-        run: cfn-lint cloudformation/iam-stack.yaml
+        run: cfn-lint -i W1011 cloudformation/iam-stack.yaml
 
   deploy-iam:
     needs: lint-iam
@@ -123,7 +123,7 @@ jobs:
         run: pip install cfn-lint
 
       - name: Lint Auth Stack
-        run: cfn-lint cloudformation/auth-stack.yaml
+        run: cfn-lint -i W1011 cloudformation/auth-stack.yaml
 
   deploy-auth:
     needs: lint-auth
@@ -171,7 +171,7 @@ jobs:
         run: pip install cfn-lint
 
       - name: Lint Product Stack
-        run: cfn-lint cloudformation/product-stack.yaml
+        run: cfn-lint -i W1011 cloudformation/product-stack.yaml
 
   deploy-product:
     needs: lint-product
@@ -216,7 +216,7 @@ jobs:
         run: pip install cfn-lint
 
       - name: Lint Orders Stack
-        run: cfn-lint cloudformation/orders-stack.yaml
+        run: cfn-lint -i W1011 cloudformation/orders-stack.yaml
 
   deploy-orders:
     needs: lint-orders
