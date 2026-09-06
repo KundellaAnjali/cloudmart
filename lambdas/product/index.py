@@ -6,6 +6,7 @@ ssm = boto3.client("ssm")
 sns = boto3.client("sns")
 events = boto3.client("events")
 
+
 def get_parameter(name, decrypt=False):
     response = ssm.get_parameter(
         Name=name,
@@ -19,19 +20,9 @@ def get_connection():
     print("Lambda started")
 
     db_host = get_parameter("/cloudmart/dev/db/host")
-    
-
     db_name = get_parameter("/cloudmart/dev/db/name")
-    
-
     db_user = get_parameter("/cloudmart/dev/db/username")
-    
-
-    db_password = get_parameter(
-        "/cloudmart/dev/db/password",
-        decrypt=False
-    )
-    
+    db_password = get_parameter("/cloudmart/dev/db/password")
 
     print("Connecting to database...")
 
@@ -44,13 +35,13 @@ def get_connection():
         cursorclass=pymysql.cursors.DictCursor
     )
 
-    #print("Connected to database")
     print(json.dumps({
-    "level": "INFO",
-    "message": "Connected to database"
-}))
+        "level": "INFO",
+        "message": "Connected to database"
+    }))
 
     return connection
+
 
 def get_all_products(connection):
 
@@ -90,6 +81,14 @@ def get_product_by_id(connection, product_id):
 
         product = cursor.fetchone()
 
+    if product is None:
+        return {
+            "statusCode": 404,
+            "body": json.dumps({
+                "message": "Product not found"
+            })
+        }
+
     return {
         "statusCode": 200,
         "body": json.dumps(product, default=str)
@@ -99,6 +98,28 @@ def get_product_by_id(connection, product_id):
 def create_product(connection, event):
 
     body = json.loads(event["body"])
+
+    threshold = int(
+        get_parameter("/cloudmart/dev/inventory/stock-threshold")
+    )
+
+    stock_count = body["stock_count"]
+
+    if stock_count < 0:
+        return {
+            "statusCode": 400,
+            "body": json.dumps({
+                "message": "Stock count cannot be negative"
+            })
+        }
+
+    if stock_count < threshold:
+        return {
+            "statusCode": 400,
+            "body": json.dumps({
+                "message": f"Stock count cannot be less than threshold value ({threshold})"
+            })
+        }
 
     with connection.cursor() as cursor:
 
@@ -121,18 +142,44 @@ def create_product(connection, event):
             True
         ))
 
+        product_id = cursor.lastrowid
+
     connection.commit()
 
     return {
         "statusCode": 201,
         "body": json.dumps({
-            "message": "Product created successfully"
+            "message": "Product created successfully",
+            "product_id": product_id
         })
     }
+
 
 def update_product(connection, product_id, event):
 
     body = json.loads(event["body"])
+
+    threshold = int(
+        get_parameter("/cloudmart/dev/inventory/stock-threshold")
+    )
+
+    stock_count = body["stock_count"]
+
+    if stock_count < 0:
+        return {
+            "statusCode": 400,
+            "body": json.dumps({
+                "message": "Stock count cannot be negative"
+            })
+        }
+
+    if stock_count < threshold:
+        return {
+            "statusCode": 400,
+            "body": json.dumps({
+                "message": f"Stock count cannot be less than threshold value ({threshold})"
+            })
+        }
 
     with connection.cursor() as cursor:
 
@@ -156,9 +203,7 @@ def update_product(connection, product_id, event):
 
     connection.commit()
 
-    print("Before eventbridge")
-
-    response = events.put_events(
+    events.put_events(
         Entries=[
             {
                 "Source": "cloudmart.inventory",
@@ -172,57 +217,14 @@ def update_product(connection, product_id, event):
         ]
     )
 
-    print(response)
-    print("After eventbridge")
-
-    with connection.cursor() as cursor:
-
-        threshold = int(
-            get_parameter("/cloudmart/dev/inventory/stock-threshold")
-        )
-
-        cursor.execute("""
-            SELECT product_name, stock_count
-            FROM product
-            WHERE product_id = %s
-        """, (product_id,))
-
-        product = cursor.fetchone()
-
-        print(product)
-
-        if product is None:
-            return {
-                "statusCode": 404,
-                "body": json.dumps({
-                    "message": "Product not found"
-                })
-            }
-
-        if product["stock_count"] < threshold:
-
-            print("Before SNS")
-
-            sns.publish(
-                TopicArn=get_parameter(
-                    "/cloudmart/dev/sns/topic-arn"
-                ),
-                Subject="CloudMart Low Stock Alert",
-                Message=f"""
-Product: {product['product_name']}
-Current Stock: {product['stock_count']}
-Threshold: {threshold}
-"""
-            )
-
-            print("After SNS")
-
     return {
         "statusCode": 200,
         "body": json.dumps({
-            "message": "Product updated successfully"
+            "message": "Product updated successfully",
+            "product_id": product_id
         })
     }
+
 
 def delete_product(connection, product_id):
 
@@ -238,9 +240,12 @@ def delete_product(connection, product_id):
     return {
         "statusCode": 200,
         "body": json.dumps({
-            "message": "Product deleted successfully"
+            "message": "Product deleted successfully",
+            "product_id": product_id
         })
     }
+
+
 def handler(event, context):
 
     try:
@@ -249,7 +254,6 @@ def handler(event, context):
 
         with connection.cursor() as cursor:
 
-            # Create table automatically
             cursor.execute("""
             CREATE TABLE IF NOT EXISTS product (
                 product_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -265,72 +269,31 @@ def handler(event, context):
             )
             """)
 
-            cursor.execute(
-                "SELECT COUNT(*) AS total FROM product"
-            )
-
-            result = cursor.fetchone()
-
-            if result["total"] == 0:
-
-                cursor.execute("""
-                INSERT INTO product
-                (
-                    product_name,
-                    description,
-                    category,
-                    price,
-                    stock_count,
-                    is_active
-                )
-                VALUES
-                (
-                    'Laptop',
-                    'High-performance laptop',
-                    'Electronics',
-                    75000.00,
-                    10,
-                    TRUE
-                ),
-                (
-                    'Mouse',
-                    'Wireless Mouse',
-                    'Accessories',
-                    500.00,
-                    50,
-                    TRUE
-                ),
-                (
-                    'Keyboard',
-                    'Mechanical Keyboard',
-                    'Accessories',
-                    1500.00,
-                    25,
-                    TRUE
-                )
-                """)
-
             connection.commit()
 
         http_method = event.get("httpMethod")
         path_parameters = event.get("pathParameters") or {}
 
         if http_method == "GET" and path_parameters.get("id"):
+
             response = get_product_by_id(
                 connection,
                 path_parameters["id"]
             )
 
         elif http_method == "GET":
+
             response = get_all_products(connection)
 
         elif http_method == "POST":
+
             response = create_product(
                 connection,
                 event
             )
 
         elif http_method == "PUT":
+
             response = update_product(
                 connection,
                 path_parameters["id"],
@@ -338,12 +301,14 @@ def handler(event, context):
             )
 
         elif http_method == "DELETE":
+
             response = delete_product(
                 connection,
                 path_parameters["id"]
             )
 
         else:
+
             response = {
                 "statusCode": 405,
                 "body": json.dumps({
