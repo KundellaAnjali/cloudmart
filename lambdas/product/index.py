@@ -3,7 +3,7 @@ import boto3
 import pymysql
 
 ssm = boto3.client("ssm")
-sns = boto3.client("sns")
+
 events = boto3.client("events")
 
 
@@ -173,14 +173,6 @@ def update_product(connection, product_id, event):
             })
         }
 
-    if stock_count < threshold:
-        return {
-            "statusCode": 400,
-            "body": json.dumps({
-                "message": f"Stock count cannot be less than threshold value ({threshold})"
-            })
-        }
-
     with connection.cursor() as cursor:
 
         cursor.execute("""
@@ -216,6 +208,23 @@ def update_product(connection, product_id, event):
             }
         ]
     )
+
+    if stock_count < threshold:
+
+        events.put_events(
+            Entries=[
+                {
+                    "Source": "cloudmart.inventory",
+                    "DetailType": "LowStockAlert",
+                    "Detail": json.dumps({
+                        "product_id": product_id,
+                        "product_name": body["product_name"],
+                        "stock_count": stock_count,
+                        "threshold": threshold
+                    })
+                }
+            ]
+        )
 
     return {
         "statusCode": 200,

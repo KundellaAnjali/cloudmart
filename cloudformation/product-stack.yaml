@@ -108,18 +108,43 @@ Resources:
       Type: String
       Value: !Ref LowStockTopic
     
-  InventoryChangeRule:
+  LowStockRule:
     Type: AWS::Events::Rule
     Properties:
-      Name: cloudmart-inventory-change-rule
+      Name: cloudmart-low-stock-rule
+
       EventPattern:
         source:
           - cloudmart.inventory
+
         detail-type:
-          - InventoryUpdated
+          - LowStockAlert
+
       State: ENABLED
 
-  
+      Targets:
+        - Arn: !Ref LowStockTopic
+          Id: LowStockSNSTarget
+
+  LowStockTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref LowStockTopic
+
+      PolicyDocument:
+        Version: "2012-10-17"
+
+        Statement:
+          - Effect: Allow
+
+            Principal:
+              Service: events.amazonaws.com
+
+            Action:
+              - sns:Publish
+
+            Resource: !Ref LowStockTopic
 
   
   OrderLambdaFunction:
