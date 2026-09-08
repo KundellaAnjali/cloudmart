@@ -172,6 +172,7 @@ Resources:
           - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
 
       Events:
+
         CreateCustomer:
           Type: Api
           Properties:
@@ -184,6 +185,13 @@ Resources:
           Properties:
             RestApiId: !Ref ProductApi
             Path: /customers
+            Method: GET
+
+        GetCustomerById:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /customers/{id}
             Method: GET
 
         CreateOrder:
@@ -206,6 +214,13 @@ Resources:
             RestApiId: !Ref ProductApi
             Path: /orders/{id}
             Method: GET
+
+        CancelOrder:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /orders/{id}
+            Method: PUT
 
 
 Outputs:
