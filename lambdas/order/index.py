@@ -572,6 +572,38 @@ def get_customer_orders(customer_id):
     finally:
         conn.close()
 
+def get_all_orders():
+
+    conn = get_connection()
+
+    try:
+
+        with conn.cursor() as cursor:
+
+            cursor.execute(
+                """
+                SELECT *
+                FROM orders
+                ORDER BY order_date DESC
+                """
+            )
+
+            orders = cursor.fetchall()
+
+            return response(200, orders)
+
+    except Exception as e:
+
+        return response(
+            500,
+            {
+                "message": str(e)
+            }
+        )
+
+    finally:
+        conn.close()
+
 def handler(event, context):
     initialize_schema()
     method = event["httpMethod"]
@@ -593,6 +625,8 @@ def handler(event, context):
             return get_customer_orders(
                 query["customerId"]
             )
+        if path.endswith("/orders"):
+            return get_all_orders()
 
         parts = path.split("/")
 
