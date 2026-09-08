@@ -27,7 +27,9 @@ Resources:
               - Effect: Allow
                 Action:
                   - ssm:GetParameter
-                Resource: "*"
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/dev/auth/token
+
 
   ProductLambdaRole:
     Type: AWS::IAM::Role
@@ -50,14 +52,21 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
+
               - Effect: Allow
                 Action:
                   - ssm:GetParameter
                   - ssm:GetParameters
-                  - sns:Publish
-                  - kms:Decrypt
+                  
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/dev/db/*
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/dev/inventory/*
+
+              - Effect: Allow
+                Action:
                   - events:PutEvents
-                Resource: "*"
+                Resource:
+                  - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
 
   OrderProcessorRole:
     Type: AWS::IAM::Role
@@ -80,14 +89,21 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
+
               - Effect: Allow
                 Action:
                   - ssm:GetParameter
-                  - events:PutEvents
                   - ssm:GetParameters
-                  - kms:Decrypt
-                  - sns:Publish
-                Resource: "*"
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/dev/db/*
+
+              
+
+              - Effect: Allow
+                Action:
+                  - events:PutEvents
+                Resource:
+                  - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
 
   ReportLambdaRole:
     Type: AWS::IAM::Role
@@ -110,13 +126,25 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
+
               - Effect: Allow
                 Action:
                   - ssm:GetParameter
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/dev/*
+
+              - Effect: Allow
+                Action:
                   - s3:GetObject
                   - s3:PutObject
+                Resource:
+                  - arn:aws:s3:::cloudmart-reports-bucket/*
+
+              - Effect: Allow
+                Action:
                   - s3:ListBucket
-                Resource: "*"
+                Resource:
+                  - arn:aws:s3:::cloudmart-reports-bucket
 
   EC2DashboardRole:
     Type: AWS::IAM::Role
@@ -136,10 +164,21 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
+
               - Effect: Allow
                 Action:
                   - s3:GetObject
+                Resource:
+                  - arn:aws:s3:::cloudmart-reports-bucket/*
+
+              - Effect: Allow
+                Action:
                   - s3:ListBucket
+                Resource:
+                  - arn:aws:s3:::cloudmart-reports-bucket
+
+              - Effect: Allow
+                Action:
                   - cloudwatch:GetMetricData
                   - cloudwatch:ListMetrics
                 Resource: "*"
