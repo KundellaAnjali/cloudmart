@@ -59,6 +59,7 @@ def get_all_products(connection):
                 updated_at,
                 is_active
             FROM product
+            WHERE is_active = TRUE
         """)
 
         products = cursor.fetchall()
@@ -77,6 +78,7 @@ def get_product_by_id(connection, product_id):
             SELECT *
             FROM product
             WHERE product_id = %s
+            AND is_active = TRUE
         """, (product_id,))
 
         product = cursor.fetchone()
@@ -240,7 +242,8 @@ def delete_product(connection, product_id):
     with connection.cursor() as cursor:
 
         cursor.execute("""
-            DELETE FROM product
+            UPDATE product
+            SET is_active = FALSE
             WHERE product_id=%s
         """, (product_id,))
 
@@ -249,7 +252,7 @@ def delete_product(connection, product_id):
     return {
         "statusCode": 200,
         "body": json.dumps({
-            "message": "Product deleted successfully",
+            "message": "Product soft deleted successfully",
             "product_id": product_id
         })
     }

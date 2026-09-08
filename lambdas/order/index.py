@@ -362,6 +362,7 @@ def create_order(event):
                     SELECT product_name, stock_count
                     FROM product
                     WHERE product_id = %s
+                    AND is_active = TRUE
                     """,
                     (product["product_id"],)
                 )
