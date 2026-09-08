@@ -72,11 +72,11 @@ def response(status, body):
         "body": json.dumps(body, default=str)
     }
 
-def publish_event(detail_type, detail):
+def publish_event(detail_type, detail, source="cloudmart.orders"):
     events.put_events(
         Entries=[
             {
-                "Source": "cloudmart.orders",
+                "Source": source,
                 "DetailType": detail_type,
                 "Detail": json.dumps(detail)
             }
@@ -247,6 +247,16 @@ def create_order(event):
                 product = cursor.fetchone()
 
                 if not product:
+
+                    publish_event(
+                        "OrderFailed",
+                        {
+                            "customerId": customer_id,
+                            "productId": product_id,
+                            "reason": "Product not found"
+                        }
+                    )
+
                     return response(
                         404,
                         {
@@ -256,6 +266,18 @@ def create_order(event):
                     )
 
                 if quantity > product["stock_count"]:
+
+                    publish_event(
+                        "OrderFailed",
+                        {
+                            "customerId": customer_id,
+                            "productId": product_id,
+                            "availableStock": product["stock_count"],
+                            "requestedQuantity": quantity,
+                            "reason": "Insufficient stock"
+                        }
+                    )
+
                     return response(
                         400,
                         {
@@ -301,6 +323,17 @@ def create_order(event):
 
                 product = item["product"]
                 quantity = item["quantity"]
+                cursor.execute(
+                    """
+                    UPDATE product
+                    SET stock_count = stock_count - %s
+                    WHERE product_id = %s
+                    """,
+                    (
+                        quantity,
+                        product["product_id"]
+                    )
+                )
 
                 cursor.execute(
                     """
@@ -326,15 +359,30 @@ def create_order(event):
 
                 cursor.execute(
                     """
-                    UPDATE product
-                    SET stock_count = stock_count - %s
+                    SELECT product_name, stock_count
+                    FROM product
                     WHERE product_id = %s
                     """,
-                    (
-                        quantity,
-                        product["product_id"]
-                    )
+                    (product["product_id"],)
                 )
+
+                updated_product = cursor.fetchone()
+
+                threshold = 10
+
+                if updated_product["stock_count"] < threshold:
+
+                    publish_event(
+                        "LowStock",
+                        {
+                            "productId": product["product_id"],
+                            "productName": product["product_name"],
+                            "stockCount": updated_product["stock_count"],
+                            "threshold": threshold
+                        },
+
+                        "cloudmart.inventory"
+                    )
 
             cursor.execute(
                 """
@@ -385,11 +433,33 @@ def create_order(event):
             )
 
             conn.commit()
+            publish_event(
+                "OrderPlaced",
+                {
+                    "orderId": order_id,
+                    "customerId": customer_id,
+                    "totalAmount": total_amount
+                }
+            )
+
+            publish_event(
+                "OrderConfirmed",
+                {
+                    "orderId": order_id,
+                    "customerId": customer_id,
+                    "totalAmount": total_amount,
+                    "status": "CONFIRMED"
+                }
+            )
 
             return response(
                 201,
                 {
                     "orderId": order_id,
+                    "productIds": [
+                        item["product"]["product_id"]
+                        for item in product_details
+                    ],
                     "status": "CONFIRMED",
                     "totalAmount": total_amount
                 }
