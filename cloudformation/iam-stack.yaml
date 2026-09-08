@@ -28,8 +28,9 @@ Resources:
                 Action:
                   - ssm:GetParameter
                 Resource:
-                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/dev/auth/token
-
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/dev/auth/customer-token
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/dev/auth/product-token
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/dev/auth/admin-token
 
   ProductLambdaRole:
     Type: AWS::IAM::Role
@@ -138,13 +139,12 @@ Resources:
                   - s3:GetObject
                   - s3:PutObject
                 Resource:
-                  - arn:aws:s3:::cloudmart-reports-bucket/*
-
+                  - !Sub arn:aws:s3:::cloudmart-reports-${AWS::AccountId}/*
               - Effect: Allow
                 Action:
                   - s3:ListBucket
                 Resource:
-                  - arn:aws:s3:::cloudmart-reports-bucket
+                  - !Sub arn:aws:s3:::cloudmart-reports-${AWS::AccountId}
 
   EC2DashboardRole:
     Type: AWS::IAM::Role
@@ -169,13 +169,13 @@ Resources:
                 Action:
                   - s3:GetObject
                 Resource:
-                  - arn:aws:s3:::cloudmart-reports-bucket/*
+                  - !Sub arn:aws:s3:::cloudmart-reports-${AWS::AccountId}/*
 
               - Effect: Allow
                 Action:
                   - s3:ListBucket
                 Resource:
-                  - arn:aws:s3:::cloudmart-reports-bucket
+                  - !Sub arn:aws:s3:::cloudmart-reports-${AWS::AccountId}
 
               - Effect: Allow
                 Action:

@@ -285,6 +285,23 @@ def handler(event, context):
 
         http_method = event.get("httpMethod")
         path_parameters = event.get("pathParameters") or {}
+        #role = event["requestContext"]["authorizer"]["role"]
+        role = (
+            event.get("requestContext", {})
+                .get("authorizer", {})
+                .get("role")
+        )
+
+
+        if http_method in ["POST", "PUT", "DELETE"]:
+
+            if role not in ["PRODUCT", "ADMIN"]:
+                return {
+                    "statusCode": 403,
+                    "body": json.dumps({
+                        "message": "Access Denied"
+                    })
+                }
 
         if http_method == "GET" and path_parameters.get("id"):
 

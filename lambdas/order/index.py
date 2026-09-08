@@ -240,6 +240,7 @@ def create_order(event):
                            stock_count
                     FROM product
                     WHERE product_id = %s
+                    AND is_active = TRUE
                     """,
                     (product_id,)
                 )
@@ -609,29 +610,74 @@ def handler(event, context):
     initialize_schema()
     method = event["httpMethod"]
     path = event["path"]
+    role = event["requestContext"]["authorizer"]["role"]
 
     if method == "POST" and path.endswith("/customers"):
+
+        if role not in ["CUSTOMER", "ADMIN"]:
+            return response(
+                403,
+                {"message": "Access Denied"}
+            )
+
         return create_customer(event)
 
     if method == "GET" and path.endswith("/customers"):
+
+        if role != "ADMIN":
+            return response(
+                403,
+                {"message": "Access Denied"}
+            )
+
         return get_customers()
 
     if method == "POST" and path.endswith("/orders"):
+
+        if role not in ["CUSTOMER", "ADMIN"]:
+            return response(
+                403,
+                {"message": "Access Denied"}
+            )
+
         return create_order(event)
+
+
     if method == "GET":
 
         query = event.get("queryStringParameters") or {}
 
         if "customerId" in query:
+
+            if role not in ["CUSTOMER", "ADMIN"]:
+                return response(
+                    403,
+                    {"message": "Access Denied"}
+                )
+
             return get_customer_orders(
                 query["customerId"]
             )
         if path.endswith("/orders"):
+
+            if role != "ADMIN":
+                return response(
+                    403,
+                    {"message": "Access Denied"}
+                )
+
             return get_all_orders()
 
         parts = path.split("/")
 
         if len(parts) > 2:
+
+            if role not in ["CUSTOMER", "ADMIN"]:
+                return response(
+                    403,
+                    {"message": "Access Denied"}
+                )
+
             return get_order(parts[-1])
 
     return response(
