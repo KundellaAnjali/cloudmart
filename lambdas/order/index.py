@@ -130,11 +130,11 @@ def create_customer(event):
             return response(
                 201,
                 {
-                    "customerId": customer_id,
-                    "customerName": customer_name,
-                    "customerEmail": customer_email
+                    "message": "Customer created successfully",
+                    "customerId": customer_id
                 }
             )
+            
 
     except Exception as e:
 
@@ -169,6 +169,50 @@ def get_customers():
             customers = cursor.fetchall()
 
             return response(200, customers)
+
+    except Exception as e:
+
+        return response(
+            500,
+            {
+                "message": str(e)
+            }
+        )
+
+    finally:
+        conn.close()
+
+def get_customer_by_id(customer_id):
+
+    conn = get_connection()
+
+    try:
+
+        with conn.cursor() as cursor:
+
+            cursor.execute(
+                """
+                SELECT *
+                FROM customers
+                WHERE customer_id = %s
+                """,
+                (customer_id,)
+            )
+
+            customer = cursor.fetchone()
+
+            if not customer:
+                return response(
+                    404,
+                    {
+                        "message": "Customer not found"
+                    }
+                )
+
+            return response(
+                200,
+                customer
+            )
 
     except Exception as e:
 
@@ -606,6 +650,130 @@ def get_all_orders():
     finally:
         conn.close()
 
+def cancel_order(order_id):
+
+    conn = get_connection()
+
+    try:
+
+        with conn.cursor() as cursor:
+
+            cursor.execute(
+                """
+                SELECT order_status
+                FROM orders
+                WHERE order_id = %s
+                """,
+                (order_id,)
+            )
+
+            order = cursor.fetchone()
+
+            if not order:
+                return response(
+                    404,
+                    {
+                        "message": "Order not found"
+                    }
+                )
+
+            if order["order_status"] == "CANCELLED":
+                return response(
+                    400,
+                    {
+                        "message": "Order is already cancelled"
+                    }
+                )
+
+            cursor.execute(
+                """
+                SELECT product_id,
+                       quantity
+                FROM order_items
+                WHERE order_id = %s
+                """,
+                (order_id,)
+            )
+
+            items = cursor.fetchall()
+
+            for item in items:
+
+                cursor.execute(
+                    """
+                    UPDATE product
+                    SET stock_count = stock_count + %s
+                    WHERE product_id = %s
+                    """,
+                    (
+                        item["quantity"],
+                        item["product_id"]
+                    )
+                )
+
+            cursor.execute(
+                """
+                UPDATE orders
+                SET order_status = %s
+                WHERE order_id = %s
+                """,
+                (
+                    "CANCELLED",
+                    order_id
+                )
+            )
+
+            cursor.execute(
+                """
+                INSERT INTO order_status_history
+                (
+                    order_id,
+                    order_status,
+                    remarks
+                )
+                VALUES
+                (%s,%s,%s)
+                """,
+                (
+                    order_id,
+                    "CANCELLED",
+                    "Order cancelled"
+                )
+            )
+
+            conn.commit()
+
+            publish_event(
+                "OrderCancelled",
+                {
+                    "orderId": order_id,
+                    "status": "CANCELLED"
+                }
+            )
+
+            return response(
+                200,
+                {
+                    "message": "Order cancelled successfully",
+                    "orderId": order_id,
+                    "status": "CANCELLED"
+                }
+            )
+
+    except Exception as e:
+
+        conn.rollback()
+
+        return response(
+            500,
+            {
+                "message": str(e)
+            }
+        )
+
+    finally:
+        conn.close()
+
 def handler(event, context):
     initialize_schema()
     method = event["httpMethod"]
@@ -622,15 +790,29 @@ def handler(event, context):
 
         return create_customer(event)
 
-    if method == "GET" and path.endswith("/customers"):
+    if method == "GET":
 
-        if role != "ADMIN":
-            return response(
-                403,
-                {"message": "Access Denied"}
-            )
+        if "/customers/" in path:
 
-        return get_customers()
+            if role != "ADMIN":
+                return response(
+                    403,
+                    {"message": "Access Denied"}
+                )
+
+            customer_id = path.split("/")[-1]
+
+            return get_customer_by_id(customer_id)
+
+        if path.endswith("/customers"):
+
+            if role != "ADMIN":
+                return response(
+                    403,
+                    {"message": "Access Denied"}
+                )
+
+            return get_customers()
 
     if method == "POST" and path.endswith("/orders"):
 
@@ -667,18 +849,27 @@ def handler(event, context):
                 )
 
             return get_all_orders()
+        
 
         parts = path.split("/")
 
         if len(parts) > 2:
 
-            if role not in ["CUSTOMER", "ADMIN"]:
-                return response(
-                    403,
-                    {"message": "Access Denied"}
-                )
-
             return get_order(parts[-1])
+    
+    if method == "PUT" and "/orders/" in path:
+
+        if role not in ["CUSTOMER", "ADMIN"]:
+            return response(
+                403,
+                {
+                    "message": "Access Denied"
+                }
+            )
+
+        order_id = path.split("/")[-1]
+
+        return cancel_order(order_id)
 
     return response(
         404,

@@ -19,7 +19,7 @@ Resources:
     Type: AWS::SNS::Subscription
     Properties:
       Protocol: email
-      Endpoint: kundelakomala@gmail.com
+      Endpoint: kundellaanjali2004@gmail.com
       TopicArn: !Ref CustomerNotificationsTopic
 
   OwnerEmailSubscription:
@@ -42,6 +42,7 @@ Resources:
           - OrderPlaced
           - OrderConfirmed
           - OrderFailed
+          - OrderCancelled
 
       State: ENABLED
 
