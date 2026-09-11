@@ -25,9 +25,7 @@ DB_PASSWORD = ssm.get_parameter(
 )["Parameter"]["Value"]
 
 def initialize_schema():
-
     conn = get_connection()
-
     try:
 
         schema_file = os.path.join(

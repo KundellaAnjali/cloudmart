@@ -1,255 +1,255 @@
-AWSTemplateFormatVersion: '2010-09-09'
-Transform: AWS::Serverless-2016-10-31
+  AWSTemplateFormatVersion: '2010-09-09'
+  Transform: AWS::Serverless-2016-10-31
 
-Description: CloudMart Product Stack
+  Description: CloudMart Product Stack
 
-Resources:
+  Resources:
 
-  ProductApi:
-    Type: AWS::Serverless::Api
-    Properties:
-      Name: cloudmart-product-api
-      StageName: dev
+    ProductApi:
+      Type: AWS::Serverless::Api
+      Properties:
+        Name: cloudmart-product-api
+        StageName: dev
 
-      Auth:
-        DefaultAuthorizer: CloudMartAuthorizer
+        Auth:
+          DefaultAuthorizer: CloudMartAuthorizer
 
-        Authorizers:
-          CloudMartAuthorizer:
-            FunctionArn:
-              Fn::ImportValue: LambdaAuthorizerArn
+          Authorizers:
+            CloudMartAuthorizer:
+              FunctionArn:
+                Fn::ImportValue: LambdaAuthorizerArn
 
-            FunctionPayloadType: TOKEN
+              FunctionPayloadType: TOKEN
 
-            Identity:
-              Header: Authorization
+              Identity:
+                Header: Authorization
 
-            AuthorizerResultTtlInSeconds: 300
+              AuthorizerResultTtlInSeconds: 0
 
-  ProductLambdaFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: cloudmart-product-function
+    ProductLambdaFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+        FunctionName: cloudmart-product-function
 
-      Runtime: python3.12
+        Runtime: python3.12
 
-      Handler: index.handler
+        Handler: index.handler
 
-      CodeUri: ../lambdas/product/
+        CodeUri: ../lambdas/product/
 
-      Role:
-        Fn::ImportValue: ProductLambdaRoleArn
+        Role:
+          Fn::ImportValue: ProductLambdaRoleArn
 
-      Timeout: 30
+        Timeout: 30
 
-      MemorySize: 256
+        MemorySize: 256
 
-      VpcConfig:
-        SecurityGroupIds:
-          - Fn::ImportValue: CloudMart-Lambda-SG
+        VpcConfig:
+          SecurityGroupIds:
+            - Fn::ImportValue: CloudMart-Lambda-SG
 
-        SubnetIds:
-          - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
-          - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
+          SubnetIds:
+            - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
+            - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
 
-      Events:
+        Events:
 
-        GetProducts:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ProductApi
-            Path: /products
-            Method: GET
+          GetProducts:
+            Type: Api
+            Properties:
+              RestApiId: !Ref ProductApi
+              Path: /products
+              Method: GET
 
-        GetProductById:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ProductApi
-            Path: /products/{id}
-            Method: GET
+          GetProductById:
+            Type: Api
+            Properties:
+              RestApiId: !Ref ProductApi
+              Path: /products/{id}
+              Method: GET
 
-        CreateProduct:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ProductApi
-            Path: /products
-            Method: POST
+          CreateProduct:
+            Type: Api
+            Properties:
+              RestApiId: !Ref ProductApi
+              Path: /products
+              Method: POST
 
-        UpdateProduct:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ProductApi
-            Path: /products/{id}
-            Method: PUT
+          UpdateProduct:
+            Type: Api
+            Properties:
+              RestApiId: !Ref ProductApi
+              Path: /products/{id}
+              Method: PUT
 
-        DeleteProduct:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ProductApi
-            Path: /products/{id}
-            Method: DELETE
+          DeleteProduct:
+            Type: Api
+            Properties:
+              RestApiId: !Ref ProductApi
+              Path: /products/{id}
+              Method: DELETE
 
-  LowStockTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      TopicName: cloudmart-low-stock
+    LowStockTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: cloudmart-low-stock
 
-  LowStockSubscription:
-    Type: AWS::SNS::Subscription
-    Properties:
-      Protocol: email
-      Endpoint: kundelakomala@gmail.com
-      TopicArn: !Ref LowStockTopic
+    LowStockSubscription:
+      Type: AWS::SNS::Subscription
+      Properties:
+        Protocol: email
+        Endpoint: kundelakomala@gmail.com
+        TopicArn: !Ref LowStockTopic
 
-  LowStockTopicArnParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: /cloudmart/dev/sns/topic-arn
-      Type: String
+    LowStockTopicArnParameter:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /cloudmart/dev/sns/topic-arn 
+        Type: String
+        Value: !Ref LowStockTopic
+      
+    LowStockRule:
+      Type: AWS::Events::Rule
+      Properties:
+        Name: cloudmart-low-stock-rule
+
+        EventPattern:
+          source:
+            - cloudmart.inventory
+
+          detail-type:
+            - LowStockAlert
+
+        State: ENABLED
+
+        Targets:
+          - Arn: !Ref LowStockTopic
+            Id: LowStockSNSTarget
+
+    LowStockTopicPolicy:
+      Type: AWS::SNS::TopicPolicy
+      Properties:
+        Topics:
+          - !Ref LowStockTopic
+
+        PolicyDocument:
+          Version: "2012-10-17"
+
+          Statement:
+            - Effect: Allow
+
+              Principal:
+                Service: events.amazonaws.com
+
+              Action:
+                - sns:Publish
+
+              Resource: !Ref LowStockTopic
+
+    
+    OrderLambdaFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+        FunctionName: cloudmart-order-function
+
+        Runtime: python3.12
+        Handler: index.handler
+
+        CodeUri: ../lambdas/order/
+
+        Role:
+          Fn::ImportValue: OrderProcessorRoleArn
+
+        Timeout: 30
+        MemorySize: 256
+
+        VpcConfig:
+          SecurityGroupIds:
+            - Fn::ImportValue: CloudMart-Lambda-SG
+
+          SubnetIds:
+            - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
+            - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
+
+        Events:
+
+          CreateCustomer:
+            Type: Api
+            Properties:
+              RestApiId: !Ref ProductApi
+              Path: /customers
+              Method: POST
+
+          GetCustomers:
+            Type: Api
+            Properties:
+              RestApiId: !Ref ProductApi
+              Path: /customers
+              Method: GET
+
+          GetCustomerById:
+            Type: Api
+            Properties:
+              RestApiId: !Ref ProductApi
+              Path: /customers/{id}
+              Method: GET
+
+          CreateOrder:
+            Type: Api
+            Properties:
+              RestApiId: !Ref ProductApi
+              Path: /orders
+              Method: POST
+
+          GetOrders:
+            Type: Api
+            Properties:
+              RestApiId: !Ref ProductApi
+              Path: /orders
+              Method: GET
+
+          GetOrderById:
+            Type: Api
+            Properties:
+              RestApiId: !Ref ProductApi
+              Path: /orders/{id}
+              Method: GET
+
+          CancelOrder:
+            Type: Api
+            Properties:
+              RestApiId: !Ref ProductApi
+              Path: /orders/{id}
+              Method: PUT
+
+
+  Outputs:
+
+    ProductLambdaArn:
+      Description: Product Lambda ARN
+      Value: !GetAtt ProductLambdaFunction.Arn
+      Export:
+        Name: ProductLambdaArn
+
+    ProductApiUrl:
+      Description: API Gateway URL
+      Value: !Sub "https://${ProductApi}.execute-api.${AWS::Region}.amazonaws.com/dev"
+
+
+    ProductApiId:
+      Description: API Gateway ID
+      Value: !Ref ProductApi
+      Export:
+        Name: ProductApiId
+      
+    LowStockTopicArn:
+      Description: SNS Topic ARN
       Value: !Ref LowStockTopic
+      Export:
+        Name: CloudMart-LowStock-Topic-Arn
     
-  LowStockRule:
-    Type: AWS::Events::Rule
-    Properties:
-      Name: cloudmart-low-stock-rule
-
-      EventPattern:
-        source:
-          - cloudmart.inventory
-
-        detail-type:
-          - LowStockAlert
-
-      State: ENABLED
-
-      Targets:
-        - Arn: !Ref LowStockTopic
-          Id: LowStockSNSTarget
-
-  LowStockTopicPolicy:
-    Type: AWS::SNS::TopicPolicy
-    Properties:
-      Topics:
-        - !Ref LowStockTopic
-
-      PolicyDocument:
-        Version: "2012-10-17"
-
-        Statement:
-          - Effect: Allow
-
-            Principal:
-              Service: events.amazonaws.com
-
-            Action:
-              - sns:Publish
-
-            Resource: !Ref LowStockTopic
-
-  
-  OrderLambdaFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: cloudmart-order-function
-
-      Runtime: python3.12
-      Handler: index.handler
-
-      CodeUri: ../lambdas/order/
-
-      Role:
-        Fn::ImportValue: OrderProcessorRoleArn
-
-      Timeout: 30
-      MemorySize: 256
-
-      VpcConfig:
-        SecurityGroupIds:
-          - Fn::ImportValue: CloudMart-Lambda-SG
-
-        SubnetIds:
-          - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
-          - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
-
-      Events:
-
-        CreateCustomer:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ProductApi
-            Path: /customers
-            Method: POST
-
-        GetCustomers:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ProductApi
-            Path: /customers
-            Method: GET
-
-        GetCustomerById:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ProductApi
-            Path: /customers/{id}
-            Method: GET
-
-        CreateOrder:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ProductApi
-            Path: /orders
-            Method: POST
-
-        GetOrders:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ProductApi
-            Path: /orders
-            Method: GET
-
-        GetOrderById:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ProductApi
-            Path: /orders/{id}
-            Method: GET
-
-        CancelOrder:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ProductApi
-            Path: /orders/{id}
-            Method: PUT
-
-
-Outputs:
-
-  ProductLambdaArn:
-    Description: Product Lambda ARN
-    Value: !GetAtt ProductLambdaFunction.Arn
-    Export:
-      Name: ProductLambdaArn
-
-  ProductApiUrl:
-    Description: API Gateway URL
-    Value: !Sub "https://${ProductApi}.execute-api.${AWS::Region}.amazonaws.com/dev"
-
-
-  ProductApiId:
-    Description: API Gateway ID
-    Value: !Ref ProductApi
-    Export:
-      Name: ProductApiId
-    
-  LowStockTopicArn:
-    Description: SNS Topic ARN
-    Value: !Ref LowStockTopic
-    Export:
-      Name: CloudMart-LowStock-Topic-Arn
-  
-  OrderLambdaArn:
-    Description: Order Lambda ARN
-    Value: !GetAtt OrderLambdaFunction.Arn
-    Export:
-      Name: CloudMart-Order-Lambda-Arn
+    OrderLambdaArn:
+      Description: Order Lambda ARN
+      Value: !GetAtt OrderLambdaFunction.Arn
+      Export:
+        Name: CloudMart-Order-Lambda-Arn

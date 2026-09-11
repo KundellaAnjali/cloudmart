@@ -7,6 +7,7 @@ Parameters:
     NoEcho: true
     Default: CloudMart123!
 
+
 Resources:
 
   CloudMartDBSubnetGroup:
