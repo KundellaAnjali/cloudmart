@@ -205,6 +205,7 @@ Resources:
 
 Outputs:
 
+
   ProductLambdaArn:
     Description: Product Lambda ARN
     Value: !GetAtt ProductLambdaFunction.Arn
