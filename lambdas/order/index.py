@@ -73,7 +73,7 @@ def response(status, body):
     }
 
 def publish_event(detail_type, detail, source="cloudmart.orders"):
-    events.PATCH_events(
+    events.put_events(
         Entries=[
             {
                 "Source": source,

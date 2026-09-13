@@ -214,7 +214,7 @@ def update_product(connection, product_id, event):
 
     connection.commit()
 
-    events.Patch_events(
+    events.put_events(
         Entries=[
             {
                 "Source": "cloudmart.inventory",
@@ -230,7 +230,7 @@ def update_product(connection, product_id, event):
 
     if stock_count < threshold:
 
-        events.PATCH_events(
+        events.put_events(
             Entries=[
                 {
                     "Source": "cloudmart.inventory",
