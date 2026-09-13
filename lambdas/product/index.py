@@ -176,41 +176,66 @@ def update_product(connection, product_id, event):
 
     body = json.loads(event["body"])
 
-    threshold = int(
-        get_parameter(
-            f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
-        )
-    )
+    allowed_fields = {
+        "product_name": "product_name",
+        "description": "description",
+        "category": "category",
+        "price": "price",
+        "stock_count": "stock_count"
+    }
 
-    stock_count = body["stock_count"]
+    update_fields = []
+    values = []
 
-    if stock_count < 0:
+    for field in allowed_fields:
+        if field in body:
+            update_fields.append(f"{allowed_fields[field]} = %s")
+            values.append(body[field])
+
+    if not update_fields:
         return {
             "statusCode": 400,
             "body": json.dumps({
-                "message": "Stock count cannot be negative"
+                "message": "No fields provided for update"
             })
         }
 
+    if "stock_count" in body:
+
+        threshold = int(
+            get_parameter(
+                f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
+            )
+        )
+
+        if body["stock_count"] < 0:
+            return {
+                "statusCode": 400,
+                "body": json.dumps({
+                    "message": "Stock count cannot be negative"
+                })
+            }
+
+    values.append(product_id)
+
+    query = f"""
+        UPDATE product
+        SET {', '.join(update_fields)}
+        WHERE product_id = %s
+        AND is_active = TRUE
+    """
+
     with connection.cursor() as cursor:
 
-        cursor.execute("""
-            UPDATE product
-            SET
-                product_name=%s,
-                description=%s,
-                category=%s,
-                price=%s,
-                stock_count=%s
-            WHERE product_id=%s
-        """, (
-            body["product_name"],
-            body["description"],
-            body["category"],
-            body["price"],
-            body["stock_count"],
-            product_id
-        ))
+        cursor.execute(query, values)
+
+        if cursor.rowcount == 0:
+            return {
+                "statusCode": 404,
+                "body": json.dumps({
+                    "message": "Product not found"
+                })
+            }
 
     connection.commit()
 
@@ -220,30 +245,35 @@ def update_product(connection, product_id, event):
                 "Source": "cloudmart.inventory",
                 "DetailType": "InventoryUpdated",
                 "Detail": json.dumps({
-                    "product_id": product_id,
-                    "product_name": body["product_name"],
-                    "stock_count": body["stock_count"]
+                    "product_id": product_id
                 })
             }
         ]
     )
 
-    if stock_count < threshold:
+    if "stock_count" in body:
 
-        events.put_events(
-            Entries=[
-                {
-                    "Source": "cloudmart.inventory",
-                    "DetailType": "LowStockAlert",
-                    "Detail": json.dumps({
-                        "product_id": product_id,
-                        "product_name": body["product_name"],
-                        "stock_count": stock_count,
-                        "threshold": threshold
-                    })
-                }
-            ]
+        threshold = int(
+            get_parameter(
+                f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
+            )
         )
+
+        if body["stock_count"] < threshold:
+
+            events.put_events(
+                Entries=[
+                    {
+                        "Source": "cloudmart.inventory",
+                        "DetailType": "LowStockAlert",
+                        "Detail": json.dumps({
+                            "product_id": product_id,
+                            "stock_count": body["stock_count"],
+                            "threshold": threshold
+                        })
+                    }
+                ]
+            )
 
     return {
         "statusCode": 200,
@@ -253,7 +283,6 @@ def update_product(connection, product_id, event):
         })
     }
 
-
 def delete_product(connection, product_id):
 
     with connection.cursor() as cursor:
@@ -261,8 +290,17 @@ def delete_product(connection, product_id):
         cursor.execute("""
             UPDATE product
             SET is_active = FALSE
-            WHERE product_id=%s
+            WHERE product_id = %s
+            AND is_active = TRUE
         """, (product_id,))
+
+        if cursor.rowcount == 0:
+            return {
+                "statusCode": 404,
+                "body": json.dumps({
+                    "message": "Product not found"
+                })
+            }
 
     connection.commit()
 

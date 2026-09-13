@@ -484,6 +484,7 @@ def create_order(event):
                 {
                     "orderId": order_id,
                     "customerId": customer_id,
+                    "customerName": customer["customer_name"],
                     "totalAmount": total_amount
                 }
             )
@@ -794,7 +795,7 @@ def handler(event, context):
 
         if "/customers/" in path:
 
-            if role != "ADMIN":
+            if role not in ["CUSTOMER", "ADMIN"]:
                 return response(
                     403,
                     {"message": "Access Denied"}
