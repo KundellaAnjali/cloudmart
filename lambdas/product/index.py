@@ -216,6 +216,14 @@ def update_product(connection, product_id, event):
                 })
             }
 
+        if body["stock_count"] < threshold:
+            return {
+                "statusCode": 400,
+                "body": json.dumps({
+                    "message": f"Stock count must be greater than or equal to threshold value ({threshold})"
+                })
+            }
+
     values.append(product_id)
 
     query = f"""
@@ -245,35 +253,12 @@ def update_product(connection, product_id, event):
                 "Source": "cloudmart.inventory",
                 "DetailType": "InventoryUpdated",
                 "Detail": json.dumps({
-                    "product_id": product_id
+                    "product_id": product_id,
+                    "updated_fields": body
                 })
             }
         ]
     )
-
-    if "stock_count" in body:
-
-        threshold = int(
-            get_parameter(
-                f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
-            )
-        )
-
-        if body["stock_count"] < threshold:
-
-            events.put_events(
-                Entries=[
-                    {
-                        "Source": "cloudmart.inventory",
-                        "DetailType": "LowStockAlert",
-                        "Detail": json.dumps({
-                            "product_id": product_id,
-                            "stock_count": body["stock_count"],
-                            "threshold": threshold
-                        })
-                    }
-                ]
-            )
 
     return {
         "statusCode": 200,

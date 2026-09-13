@@ -421,12 +421,25 @@ def create_order(event):
                     publish_event(
                         "LowStock",
                         {
-                            "productId": product["product_id"],
-                            "productName": product["product_name"],
-                            "stockCount": updated_product["stock_count"],
-                            "threshold": threshold
-                        },
+                            "subject": "CloudMart Low Stock Alert",
+                            "message": f"""
+                    Dear Product Owner,
 
+                    A product has fallen below the configured inventory threshold.
+
+                    Product Details
+                    ----------------------------------------
+                    Product ID      : {product['product_id']}
+                    Product Name    : {product['product_name']}
+                    Current Stock   : {updated_product['stock_count']}
+                    Threshold Value : {threshold}
+
+                    Please replenish inventory at the earliest.
+
+                    Regards,
+                    CloudMart Inventory Monitoring
+                    """
+                        },
                         "cloudmart.inventory"
                     )
 
@@ -479,23 +492,37 @@ def create_order(event):
             )
 
             conn.commit()
-            publish_event(
-                "OrderPlaced",
-                {
-                    "orderId": order_id,
-                    "customerId": customer_id,
-                    "customerName": customer["customer_name"],
-                    "totalAmount": total_amount
-                }
-            )
+            
 
             publish_event(
                 "OrderConfirmed",
                 {
-                    "orderId": order_id,
-                    "customerId": customer_id,
-                    "totalAmount": total_amount,
-                    "status": "CONFIRMED"
+                    "subject": "CloudMart Order Confirmation",
+                    "message": f"""
+            Dear {customer['customer_name']},
+
+            Your order has been successfully confirmed.
+
+            Order Details
+            ----------------------------------------
+            Order ID      : {order_id}
+            Customer ID   : {customer_id}
+            Status        : CONFIRMED
+            Total Amount  : ₹{total_amount}
+
+            Products Ordered:
+            {chr(10).join([
+                f"• {item['product']['product_name']}\n"
+                f"  Quantity   : {item['quantity']}\n"
+                f"  Unit Price : ₹{item['product']['price']}"
+                for item in product_details
+            ])}
+
+            Thank you for shopping with CloudMart.
+
+            Regards,
+            CloudMart Team
+            """
                 }
             )
 
@@ -747,8 +774,20 @@ def cancel_order(order_id):
             publish_event(
                 "OrderCancelled",
                 {
-                    "orderId": order_id,
-                    "status": "CANCELLED"
+                    "subject": "CloudMart Order Cancellation",
+                    "message": f"""
+            Dear Customer,
+
+            Your order has been cancelled successfully.
+
+            Order ID : {order_id}
+            Status   : CANCELLED
+
+            If this was not expected, please contact support.
+
+            Regards,
+            CloudMart Team
+            """
                 }
             )
 

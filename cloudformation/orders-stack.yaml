@@ -48,7 +48,6 @@ Resources:
           - cloudmart.orders
 
         detail-type:
-          - OrderPlaced
           - OrderConfirmed
           - OrderFailed
           - OrderCancelled

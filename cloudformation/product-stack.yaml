@@ -85,53 +85,6 @@ Resources:
             Path: /products/{id}
             Method: DELETE
 
-  LowStockTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      TopicName: cloudmart-low-stock
-
-  LowStockSubscription:
-    Type: AWS::SNS::Subscription
-    Properties:
-      Protocol: email
-      Endpoint: kundelakomala@gmail.com
-      TopicArn: !Ref LowStockTopic
-
-  LowStockTopicArnParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub /cloudmart/${Environment}/sns/topic-arn
-      Type: String
-      Value: !Ref LowStockTopic
-
-  LowStockRule:
-    Type: AWS::Events::Rule
-    Properties:
-      Name: cloudmart-low-stock-rule
-      EventPattern:
-        source:
-          - cloudmart.inventory
-        detail-type:
-          - LowStockAlert
-      State: ENABLED
-      Targets:
-        - Arn: !Ref LowStockTopic
-          Id: LowStockSNSTarget
-
-  LowStockTopicPolicy:
-    Type: AWS::SNS::TopicPolicy
-    Properties:
-      Topics:
-        - !Ref LowStockTopic
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: events.amazonaws.com
-            Action:
-              - sns:Publish
-            Resource: !Ref LowStockTopic
 
   OrderLambdaFunction:
     Type: AWS::Serverless::Function
@@ -222,11 +175,7 @@ Outputs:
     Export:
       Name: ProductApiId
 
-  LowStockTopicArn:
-    Description: SNS Topic ARN
-    Value: !Ref LowStockTopic
-    Export:
-      Name: CloudMart-LowStock-Topic-Arn
+ 
 
   OrderLambdaArn:
     Description: Order Lambda ARN
