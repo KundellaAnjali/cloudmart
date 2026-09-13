@@ -1,6 +1,9 @@
 import boto3
+import os
 
 ssm = boto3.client("ssm")
+
+ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev")
 
 
 def get_parameter(name):
@@ -15,15 +18,15 @@ def handler(event, context):
     token = event.get("authorizationToken", "")
 
     customer_token = get_parameter(
-        "/cloudmart/${Environment}/auth/customer-token"
+        f"/cloudmart/{ENVIRONMENT}/auth/customer-token"
     )
 
     product_token = get_parameter(
-        "/cloudmart/${Environment}/auth/product-token"
+        f"/cloudmart/{ENVIRONMENT}/auth/product-token"
     )
 
     admin_token = get_parameter(
-        "/cloudmart/${Environment}/auth/admin-token"
+        f"/cloudmart/{ENVIRONMENT}/auth/admin-token"
     )
 
     if token == f"Bearer {customer_token}":

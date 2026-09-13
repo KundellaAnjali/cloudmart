@@ -1,10 +1,12 @@
 import json
 import boto3
 import pymysql
+import os
 
 ssm = boto3.client("ssm")
-
 events = boto3.client("events")
+
+ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev")
 
 
 def get_parameter(name, decrypt=False):
@@ -19,14 +21,22 @@ def get_connection():
 
     print("Lambda started")
 
-    db_host = get_parameter("/cloudmart/${Environment}/db/host")
-    db_name = get_parameter("/cloudmart/${Environment}/db/name")
-    db_user = get_parameter("/cloudmart/${Environment}/db/username")
-    #db_password = get_parameter("/cloudmart/${Environment}/db/password")
+    db_host = get_parameter(
+        f"/cloudmart/{ENVIRONMENT}/db/host"
+    )
+
+    db_name = get_parameter(
+        f"/cloudmart/{ENVIRONMENT}/db/name"
+    )
+
+    db_user = get_parameter(
+        f"/cloudmart/{ENVIRONMENT}/db/username"
+    )
+
     db_password = get_parameter(
-    "/cloudmart/${Environment}/db/password",
-    decrypt=True
-)
+        f"/cloudmart/{ENVIRONMENT}/db/password",
+        decrypt=True
+    )
 
     print("Connecting to database...")
 
@@ -106,9 +116,10 @@ def create_product(connection, event):
     body = json.loads(event["body"])
 
     threshold = int(
-        get_parameter("/cloudmart/${Environment}/inventory/stock-threshold")
+        get_parameter(
+            f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
+        )
     )
-
     stock_count = body["stock_count"]
 
     if stock_count < 0:
@@ -166,7 +177,9 @@ def update_product(connection, product_id, event):
     body = json.loads(event["body"])
 
     threshold = int(
-        get_parameter("/cloudmart/${Environment}/inventory/stock-threshold")
+        get_parameter(
+            f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
+        )
     )
 
     stock_count = body["stock_count"]

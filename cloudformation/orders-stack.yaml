@@ -3,6 +3,15 @@ Transform: AWS::Serverless-2016-10-31
 
 Description: CloudMart Orders Stack
 
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - test
+      - prod
+
 Resources:
 
   CustomerNotificationsTopic:
@@ -79,7 +88,6 @@ Resources:
 
         Statement:
           - Sid: AllowEventBridgeToPublishCustomer
-
             Effect: Allow
 
             Principal:
@@ -101,7 +109,6 @@ Resources:
 
         Statement:
           - Sid: AllowEventBridgeToPublishOwner
-
             Effect: Allow
 
             Principal:
@@ -115,14 +122,14 @@ Resources:
   CustomerTopicArnParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /cloudmart/${Environment}/customer/topic-arn
+      Name: !Sub /cloudmart/${Environment}/customer/topic-arn
       Type: String
       Value: !Ref CustomerNotificationsTopic
 
   OwnerTopicArnParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /cloudmart/${Environment}/owner/topic-arn
+      Name: !Sub /cloudmart/${Environment}/owner/topic-arn
       Type: String
       Value: !Ref OwnerNotificationsTopic
 
