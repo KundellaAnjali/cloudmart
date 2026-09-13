@@ -76,7 +76,7 @@ Resources:
           Properties:
             RestApiId: !Ref ProductApi
             Path: /products/{id}
-            Method: PUT
+            Method: PATCH
 
         DeleteProduct:
           Type: Api
@@ -201,9 +201,9 @@ Resources:
           Properties:
             RestApiId: !Ref ProductApi
             Path: /orders/{id}
-            Method: PUT
+            Method: PATCH
 
-Outputs:
+OutPuts:
 
 
   ProductLambdaArn:

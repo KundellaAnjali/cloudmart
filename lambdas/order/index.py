@@ -73,7 +73,7 @@ def response(status, body):
     }
 
 def publish_event(detail_type, detail, source="cloudmart.orders"):
-    events.put_events(
+    events.PATCH_events(
         Entries=[
             {
                 "Source": source,
@@ -857,7 +857,7 @@ def handler(event, context):
 
             return get_order(parts[-1])
     
-    if method == "PUT" and "/orders/" in path:
+    if method == "PATCH" and "/orders/" in path:
 
         if role not in ["CUSTOMER", "ADMIN"]:
             return response(

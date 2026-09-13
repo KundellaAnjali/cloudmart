@@ -214,7 +214,7 @@ def update_product(connection, product_id, event):
 
     connection.commit()
 
-    events.put_events(
+    events.Patch_events(
         Entries=[
             {
                 "Source": "cloudmart.inventory",
@@ -230,7 +230,7 @@ def update_product(connection, product_id, event):
 
     if stock_count < threshold:
 
-        events.put_events(
+        events.PATCH_events(
             Entries=[
                 {
                     "Source": "cloudmart.inventory",
@@ -310,7 +310,7 @@ def handler(event, context):
         )
 
 
-        if http_method in ["POST", "PUT", "DELETE"]:
+        if http_method in ["POST", "PATCH", "DELETE"]:
 
             if role not in ["PRODUCT", "ADMIN"]:
                 return {
@@ -338,7 +338,7 @@ def handler(event, context):
                 event
             )
 
-        elif http_method == "PUT":
+        elif http_method == "PATCH":
 
             response = update_product(
                 connection,

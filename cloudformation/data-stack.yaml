@@ -13,6 +13,7 @@ Parameters:
   DBPassword:
     Type: String
     NoEcho: true
+    Default: CloudMart123!
 
 Resources:
 
