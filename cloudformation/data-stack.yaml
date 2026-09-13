@@ -14,9 +14,6 @@ Parameters:
     Type: String
     NoEcho: true
 
-  DBPassword:
-    Type: String
-    NoEcho: true
 
 Resources:
 
