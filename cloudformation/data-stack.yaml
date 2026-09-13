@@ -93,8 +93,7 @@ Resources:
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub /cloudmart/${Environment}/db/password
-      Type: SecureString
-      KeyId: !Ref CloudMartKMSKey
+      Type: String
       Value: !Ref DBPassword
 
   DBHostParameter:
