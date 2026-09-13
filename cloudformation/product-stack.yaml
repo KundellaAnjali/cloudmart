@@ -203,7 +203,7 @@ Resources:
             Path: /orders/{id}
             Method: PATCH
 
-OutPuts:
+Outputs:
 
 
   ProductLambdaArn:
