@@ -115,14 +115,14 @@ Resources:
   CustomerTopicArnParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /cloudmart/dev/customer/topic-arn
+      Name: /cloudmart/${Environment}/customer/topic-arn
       Type: String
       Value: !Ref CustomerNotificationsTopic
 
   OwnerTopicArnParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /cloudmart/dev/owner/topic-arn
+      Name: /cloudmart/${Environment}/owner/topic-arn
       Type: String
       Value: !Ref OwnerNotificationsTopic
 

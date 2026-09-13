@@ -15,15 +15,15 @@ def handler(event, context):
     token = event.get("authorizationToken", "")
 
     customer_token = get_parameter(
-        "/cloudmart/dev/auth/customer-token"
+        "/cloudmart/${Environment}/auth/customer-token"
     )
 
     product_token = get_parameter(
-        "/cloudmart/dev/auth/product-token"
+        "/cloudmart/${Environment}/auth/product-token"
     )
 
     admin_token = get_parameter(
-        "/cloudmart/dev/auth/admin-token"
+        "/cloudmart/${Environment}/auth/admin-token"
     )
 
     if token == f"Bearer {customer_token}":

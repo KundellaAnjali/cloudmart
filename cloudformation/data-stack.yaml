@@ -2,13 +2,35 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: CloudMart Data Stack
 
 Parameters:
+  Environment:
+    Type: String
+    Default: ${Environment}
+    AllowedValues:
+      - ${Environment}
+      - test
+      - prod
+
   DBPassword:
     Type: String
     NoEcho: true
-    Default: CloudMart123!
 
+  DBPassword:
+    Type: String
+    NoEcho: true
 
 Resources:
+
+  CloudMartKMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: KMS key for CloudMart secrets
+      EnableKeyRotation: true
+
+  CloudMartKMSKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: alias/cloudmart-kms
+      TargetKeyId: !Ref CloudMartKMSKey
 
   CloudMartDBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
@@ -46,63 +68,64 @@ Resources:
   CustomerTokenParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /cloudmart/dev/auth/customer-token
+      Name: /cloudmart/${Environment}/auth/customer-token
       Type: String
       Value: customer123
 
   ProductTokenParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /cloudmart/dev/auth/product-token
+      Name: /cloudmart/${Environment}/auth/product-token
       Type: String
       Value: product123
 
   AdminTokenParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /cloudmart/dev/auth/admin-token
+      Name: /cloudmart/${Environment}/auth/admin-token
       Type: String
       Value: admin123
 
   DBUsernameParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /cloudmart/dev/db/username
+      Name: /cloudmart/${Environment}/db/username
       Type: String
       Value: admin
 
   DBPasswordParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /cloudmart/dev/db/password
-      Type: String
-      Value: CloudMart123!
+      Name: /cloudmart/${Environment}/db/password
+      Type: SecureString
+      KeyId: !Ref CloudMartKMSKey
+      Value: !Ref DBPassword
 
   DBHostParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /cloudmart/dev/db/host
+      Name: /cloudmart/${Environment}/db/host
       Type: String
       Value: !GetAtt CloudMartRDS.Endpoint.Address
 
   DBNameParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /cloudmart/dev/db/name
+      Name: /cloudmart/${Environment}/db/name
       Type: String
       Value: cloudmart
 
   StockThresholdParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /cloudmart/dev/inventory/stock-threshold
+      Name: /cloudmart/${Environment}/inventory/stock-threshold
       Type: String
       Value: "10"
 
   ReportsBucketParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /cloudmart/dev/s3/reports-bucket
+      Name: /cloudmart/${Environment}/s3/reports-bucket
       Type: String
       Value: !Ref ReportsBucket
 
@@ -125,4 +148,9 @@ Outputs:
     Value: !Ref ReportsBucket
     Export:
       Name: CloudMart-Reports-Bucket
-      
+
+  CloudMartKMSKeyArn:
+    Description: CloudMart KMS Key ARN
+    Value: !GetAtt CloudMartKMSKey.Arn
+    Export:
+      Name: CloudMart-KMS-Key-Arn

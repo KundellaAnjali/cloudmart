@@ -19,10 +19,14 @@ def get_connection():
 
     print("Lambda started")
 
-    db_host = get_parameter("/cloudmart/dev/db/host")
-    db_name = get_parameter("/cloudmart/dev/db/name")
-    db_user = get_parameter("/cloudmart/dev/db/username")
-    db_password = get_parameter("/cloudmart/dev/db/password")
+    db_host = get_parameter("/cloudmart/${Environment}/db/host")
+    db_name = get_parameter("/cloudmart/${Environment}/db/name")
+    db_user = get_parameter("/cloudmart/${Environment}/db/username")
+    #db_password = get_parameter("/cloudmart/${Environment}/db/password")
+    db_password = get_parameter(
+    "/cloudmart/${Environment}/db/password",
+    decrypt=True
+)
 
     print("Connecting to database...")
 
@@ -102,7 +106,7 @@ def create_product(connection, event):
     body = json.loads(event["body"])
 
     threshold = int(
-        get_parameter("/cloudmart/dev/inventory/stock-threshold")
+        get_parameter("/cloudmart/${Environment}/inventory/stock-threshold")
     )
 
     stock_count = body["stock_count"]
@@ -162,7 +166,7 @@ def update_product(connection, product_id, event):
     body = json.loads(event["body"])
 
     threshold = int(
-        get_parameter("/cloudmart/dev/inventory/stock-threshold")
+        get_parameter("/cloudmart/${Environment}/inventory/stock-threshold")
     )
 
     stock_count = body["stock_count"]

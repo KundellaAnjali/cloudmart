@@ -9,7 +9,7 @@
       Type: AWS::Serverless::Api
       Properties:
         Name: cloudmart-product-api
-        StageName: dev
+        StageName: ${Environment}
 
         Auth:
           DefaultAuthorizer: CloudMartAuthorizer
@@ -104,7 +104,7 @@
     LowStockTopicArnParameter:
       Type: AWS::SSM::Parameter
       Properties:
-        Name: /cloudmart/dev/sns/topic-arn 
+        Name: /cloudmart/${Environment}/sns/topic-arn 
         Type: String
         Value: !Ref LowStockTopic
       
@@ -233,7 +233,7 @@
 
     ProductApiUrl:
       Description: API Gateway URL
-      Value: !Sub "https://${ProductApi}.execute-api.${AWS::Region}.amazonaws.com/dev"
+      Value: !Sub "https://${ProductApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}"
 
 
     ProductApiId:

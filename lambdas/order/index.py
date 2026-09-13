@@ -8,19 +8,19 @@ ssm = boto3.client("ssm")
 events = boto3.client("events")
 
 DB_HOST = ssm.get_parameter(
-    Name="/cloudmart/dev/db/host"
+    Name="/cloudmart/${Environment}/db/host"
 )["Parameter"]["Value"]
 
 DB_NAME = ssm.get_parameter(
-    Name="/cloudmart/dev/db/name"
+    Name="/cloudmart/${Environment}/db/name"
 )["Parameter"]["Value"]
 
 DB_USER = ssm.get_parameter(
-    Name="/cloudmart/dev/db/username"
+    Name="/cloudmart/${Environment}/db/username"
 )["Parameter"]["Value"]
 
 DB_PASSWORD = ssm.get_parameter(
-    Name="/cloudmart/dev/db/password",
+    Name="/cloudmart/${Environment}/db/password",
     WithDecryption=True
 )["Parameter"]["Value"]
 

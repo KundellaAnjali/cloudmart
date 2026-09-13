@@ -28,9 +28,9 @@ Resources:
                 Action:
                   - ssm:GetParameter
                 Resource:
-                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/dev/auth/customer-token
-                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/dev/auth/product-token
-                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/dev/auth/admin-token
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/${Environment}/auth/customer-token
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/${Environment}/auth/product-token
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/${Environment}/auth/admin-token
 
   ProductLambdaRole:
     Type: AWS::IAM::Role
@@ -58,10 +58,15 @@ Resources:
                 Action:
                   - ssm:GetParameter
                   - ssm:GetParameters
-                  
                 Resource:
-                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/dev/db/*
-                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/dev/inventory/*
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/${Environment}/db/*
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/${Environment}/inventory/*
+
+              - Effect: Allow
+                Action:
+                  - kms:Decrypt
+                Resource:
+                  - Fn::ImportValue: CloudMart-KMS-Key-Arn
 
               - Effect: Allow
                 Action:
@@ -96,9 +101,13 @@ Resources:
                   - ssm:GetParameter
                   - ssm:GetParameters
                 Resource:
-                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/dev/db/*
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/${Environment}/db/*
 
-              
+              - Effect: Allow
+                Action:
+                  - kms:Decrypt
+                Resource:
+                  - Fn::ImportValue: CloudMart-KMS-Key-Arn
 
               - Effect: Allow
                 Action:
@@ -132,7 +141,13 @@ Resources:
                 Action:
                   - ssm:GetParameter
                 Resource:
-                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/dev/*
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/${Environment}/*
+
+              - Effect: Allow
+                Action:
+                  - kms:Decrypt
+                Resource:
+                  - Fn::ImportValue: CloudMart-KMS-Key-Arn
 
               - Effect: Allow
                 Action:
@@ -140,6 +155,7 @@ Resources:
                   - s3:PutObject
                 Resource:
                   - !Sub arn:aws:s3:::cloudmart-reports-${AWS::AccountId}/*
+
               - Effect: Allow
                 Action:
                   - s3:ListBucket
@@ -182,11 +198,8 @@ Resources:
                   - cloudwatch:GetMetricData
                   - cloudwatch:ListMetrics
                 Resource: "*"
-  
 
 Outputs:
-
-
 
   LambdaAuthorizerRoleArn:
     Description: Lambda Authorizer Role ARN
