@@ -822,11 +822,11 @@ def handler(event, context):
 
     if method == "POST" and path.endswith("/customers"):
 
-        if role not in ["CUSTOMER", "ADMIN"]:
-            return response(
-                403,
-                {"message": "Access Denied"}
-            )
+        #"""if role not in ["CUSTOMER", "ADMIN"]:
+        #    return response(
+         #       403,
+        #        {"message": "Access Denied"}
+         #   )"""
 
         return create_customer(event)
 
@@ -834,11 +834,11 @@ def handler(event, context):
 
         if "/customers/" in path:
 
-            if role not in ["CUSTOMER", "ADMIN"]:
-                return response(
-                    403,
-                    {"message": "Access Denied"}
-                )
+          # """ if role not in ["CUSTOMER", "ADMIN"]:
+             #   return response(
+             #       403,
+              #      {"message": "Access Denied"}
+               # )"""
 
             customer_id = path.split("/")[-1]
 
@@ -846,21 +846,21 @@ def handler(event, context):
 
         if path.endswith("/customers"):
 
-            if role != "ADMIN":
-                return response(
-                    403,
-                    {"message": "Access Denied"}
-                )
+          # """ if role != "ADMIN":
+          #      return response(
+           #         403,
+           #         {"message": "Access Denied"}
+           #     )"""
 
             return get_customers()
 
     if method == "POST" and path.endswith("/orders"):
 
-        if role not in ["CUSTOMER", "ADMIN"]:
-            return response(
-                403,
-                {"message": "Access Denied"}
-            )
+       #""" if role not in ["CUSTOMER", "ADMIN"]:
+        #    return response(
+          #      403,
+          #      {"message": "Access Denied"}
+          #  )"""
 
         return create_order(event)
 
@@ -871,22 +871,22 @@ def handler(event, context):
 
         if "customerId" in query:
 
-            if role not in ["CUSTOMER", "ADMIN"]:
-                return response(
-                    403,
-                    {"message": "Access Denied"}
-                )
-
+           # """if role not in ["CUSTOMER", "ADMIN"]:
+            #    return response(
+             #       403,
+             #       {"message": "Access Denied"}
+              #  )
+#"""
             return get_customer_orders(
                 query["customerId"]
             )
         if path.endswith("/orders"):
 
-            if role != "ADMIN":
-                return response(
-                    403,
-                    {"message": "Access Denied"}
-                )
+           #""" if role != "ADMIN":
+            #    return response(
+             #       403,
+             #       {"message": "Access Denied"}
+             #   )"""
 
             return get_all_orders()
         
@@ -899,13 +899,13 @@ def handler(event, context):
     
     if method == "PATCH" and "/orders/" in path:
 
-        if role not in ["CUSTOMER", "ADMIN"]:
-            return response(
-                403,
-                {
-                    "message": "Access Denied"
-                }
-            )
+        #"""if role not in ["CUSTOMER", "ADMIN"]:
+          #  return response(
+              #  403,
+              #  {
+                 #   "message": "Access Denied"
+                #}
+           # )"""
 
         order_id = path.split("/")[-1]
 

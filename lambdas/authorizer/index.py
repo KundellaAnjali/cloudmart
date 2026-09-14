@@ -35,6 +35,19 @@ def handler(event, context):
     method_arn = event["methodArn"]
     print("METHOD ARN:", method_arn)
 
+    arn_parts = method_arn.split(":")
+    api_gateway_part = arn_parts[5]
+
+    api_id = api_gateway_part.split("/")[0]
+    stage = api_gateway_part.split("/")[1]
+
+    base_arn = (
+        f"arn:aws:execute-api:"
+        f"{arn_parts[3]}:"
+        f"{arn_parts[4]}:"
+        f"{api_id}/{stage}"
+    )
+
     customer_token = get_parameter(
         f"/cloudmart/{ENVIRONMENT}/auth/customer-token"
     )
@@ -60,42 +73,43 @@ def handler(event, context):
         raise Exception("Unauthorized")
 
     if role == "ADMIN":
+
         return generate_policy(
             role,
             "Allow",
-            "*"
+            [f"{base_arn}/*/*"]
         )
 
     elif role == "PRODUCT":
 
-        if "/customers" in method_arn or "/orders" in method_arn:
-            return generate_policy(
-                role,
-                "Deny",
-                method_arn
-            )
-
         return generate_policy(
             role,
             "Allow",
-            "*"
+            [
+                f"{base_arn}/GET/products",
+                f"{base_arn}/GET/products/*",
+
+                f"{base_arn}/POST/products",
+                f"{base_arn}/PATCH/products/*",
+                f"{base_arn}/DELETE/products/*"
+            ]
         )
 
     elif role == "CUSTOMER":
 
-        if any(x in method_arn for x in [
-            "/POST/products",
-            "/PATCH/products",
-            "/DELETE/products"
-        ]):
-            return generate_policy(
-                role,
-                "Deny",
-                method_arn
-            )
-
         return generate_policy(
             role,
             "Allow",
-            "*"
+            [
+                f"{base_arn}/GET/products",
+                f"{base_arn}/GET/products/*",
+
+                f"{base_arn}/POST/customers",
+                f"{base_arn}/GET/customers/*",
+
+                f"{base_arn}/POST/orders",
+                f"{base_arn}/GET/orders",
+                f"{base_arn}/GET/orders/*",
+                f"{base_arn}/PATCH/orders/*"
+            ]
         )
