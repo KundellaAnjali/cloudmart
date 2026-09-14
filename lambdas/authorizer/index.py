@@ -1,34 +1,72 @@
 import boto3
 import os
+import pymysql
+import json
 
 ssm = boto3.client("ssm")
 
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev")
 
-def get_parameter(name):
+def get_connection():
+
+    db_host = get_parameter(
+        f"/cloudmart/{ENVIRONMENT}/db/host"
+    )
+
+    db_name = get_parameter(
+        f"/cloudmart/{ENVIRONMENT}/db/name"
+    )
+
+    db_user = get_parameter(
+        f"/cloudmart/{ENVIRONMENT}/db/username"
+    )
+
+    db_password = get_parameter(
+        f"/cloudmart/{ENVIRONMENT}/db/password",
+        decrypt=True
+    )
+
+    return pymysql.connect(
+        host=db_host,
+        user=db_user,
+        password=db_password,
+        database=db_name,
+        cursorclass=pymysql.cursors.DictCursor
+    )
+
+def get_parameter(name, decrypt=False):
     response = ssm.get_parameter(
-        Name=name
+        Name=name,
+        WithDecryption=decrypt
     )
     return response["Parameter"]["Value"]
 
-def generate_policy(role, effect, resource):
+def generate_policy(
+    principal_id,
+    role,
+    customer_id,
+    customer_name,
+    effect,
+    resources
+):
     return {
-        "principalId": role,
+        "principalId": principal_id,
         "policyDocument": {
             "Version": "2012-10-17",
             "Statement": [
                 {
                     "Action": "execute-api:Invoke",
                     "Effect": effect,
-                    "Resource": resource
+                    "Resource": resources
                 }
             ]
         },
         "context": {
-            "role": role
+            "role": role,
+            "customer_id": str(customer_id),
+            "customer_name": customer_name
         }
     }
-
 def handler(event, context):
 
     token = event.get("authorizationToken", "")
@@ -48,42 +86,60 @@ def handler(event, context):
         f"{api_id}/{stage}"
     )
 
-    customer_token = get_parameter(
-        f"/cloudmart/{ENVIRONMENT}/auth/customer-token"
-    )
+    token = token.replace("Bearer ", "")
 
-    product_token = get_parameter(
-        f"/cloudmart/{ENVIRONMENT}/auth/product-token"
-    )
+    conn = get_connection()
 
-    admin_token = get_parameter(
-        f"/cloudmart/{ENVIRONMENT}/auth/admin-token"
-    )
+    try:
 
-    if token == f"Bearer {customer_token}":
-        role = "CUSTOMER"
+        with conn.cursor() as cursor:
 
-    elif token == f"Bearer {product_token}":
-        role = "PRODUCT"
+            cursor.execute(
+                """
+                SELECT
+                    customer_id,
+                    customer_name,
+                    role,
+                    is_active
+                FROM customers
+                WHERE auth_token = %s
+                AND is_active = TRUE
+                """,
+                (token,)
+            )
 
-    elif token == f"Bearer {admin_token}":
-        role = "ADMIN"
+            user = cursor.fetchone()
 
-    else:
+    finally:
+        conn.close()
+
+    if not user:
         raise Exception("Unauthorized")
+
+    if not user["is_active"]:
+        raise Exception("Unauthorized")
+
+    role = user["role"]
+
 
     if role == "ADMIN":
 
         return generate_policy(
+            str(user["customer_id"]),
             role,
+            user["customer_id"],
+            user["customer_name"],
             "Allow",
-            [f"{base_arn}/*/*"]
+            "*"
         )
 
     elif role == "PRODUCT":
 
         return generate_policy(
+            str(user["customer_id"]),
             role,
+            user["customer_id"],
+            user["customer_name"],
             "Allow",
             [
                 f"{base_arn}/GET/products",
@@ -95,10 +151,14 @@ def handler(event, context):
             ]
         )
 
+
     elif role == "CUSTOMER":
 
         return generate_policy(
+            str(user["customer_id"]),
             role,
+            user["customer_id"],
+            user["customer_name"],
             "Allow",
             [
                 f"{base_arn}/GET/products",
@@ -113,3 +173,4 @@ def handler(event, context):
                 f"{base_arn}/PATCH/orders/*"
             ]
         )
+  

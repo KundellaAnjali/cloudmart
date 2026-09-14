@@ -19,6 +19,18 @@ Resources:
 
       Timeout: 30
 
+      Environment:
+        Variables:
+          ENVIRONMENT: dev
+
+      VpcConfig:
+        SecurityGroupIds:
+          - Fn::ImportValue: CloudMart-Lambda-SG
+
+        SubnetIds:
+          - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
+          - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
+
 Outputs:
 
   LambdaAuthorizerArn:

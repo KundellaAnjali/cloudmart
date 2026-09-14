@@ -62,26 +62,6 @@ Resources:
     Properties:
       BucketName: !Sub cloudmart-reports-${AWS::AccountId}
 
-  CustomerTokenParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub /cloudmart/${Environment}/auth/customer-token
-      Type: String
-      Value: customer123
-
-  ProductTokenParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub /cloudmart/${Environment}/auth/product-token
-      Type: String
-      Value: product123
-
-  AdminTokenParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub /cloudmart/${Environment}/auth/admin-token
-      Type: String
-      Value: admin123
 
   DBUsernameParameter:
     Type: AWS::SSM::Parameter

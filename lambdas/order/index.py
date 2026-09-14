@@ -3,6 +3,7 @@ import uuid
 import pymysql
 import boto3
 import os
+import secrets
 
 ssm = boto3.client("ssm")
 events = boto3.client("events")
@@ -83,6 +84,7 @@ def publish_event(detail_type, detail, source="cloudmart.orders"):
         ]
     )
 def create_customer(event):
+    token = secrets.token_hex(32)
 
     body = json.loads(event.get("body", "{}"))
 
@@ -112,14 +114,18 @@ def create_customer(event):
                 INSERT INTO customers
                 (
                     customer_name,
-                    customer_email
+                    customer_email,
+                    auth_token,
+                    role
                 )
                 VALUES
-                (%s,%s)
+                (%s,%s,%s,%s)
                 """,
                 (
                     customer_name,
-                    customer_email
+                    customer_email,
+                    token,
+                    "CUSTOMER"
                 )
             )
 
@@ -131,7 +137,8 @@ def create_customer(event):
                 201,
                 {
                     "message": "Customer created successfully",
-                    "customerId": customer_id
+                    "customerId": customer_id,
+                    "authToken": token
                 }
             )
             
@@ -231,6 +238,7 @@ def create_order(event):
     body = json.loads(event.get("body", "{}"))
 
     customer_id = body.get("customerId")
+    #customer_id = event["requestContext"]["authorizer"]["customer_id"]
     items = body.get("items", [])
 
     if not customer_id:
@@ -821,47 +829,18 @@ def handler(event, context):
     role = event["requestContext"]["authorizer"]["role"]
 
     if method == "POST" and path.endswith("/customers"):
-
-        #"""if role not in ["CUSTOMER", "ADMIN"]:
-        #    return response(
-         #       403,
-        #        {"message": "Access Denied"}
-         #   )"""
-
         return create_customer(event)
 
     if method == "GET":
 
         if "/customers/" in path:
-
-          # """ if role not in ["CUSTOMER", "ADMIN"]:
-             #   return response(
-             #       403,
-              #      {"message": "Access Denied"}
-               # )"""
-
             customer_id = path.split("/")[-1]
-
             return get_customer_by_id(customer_id)
 
         if path.endswith("/customers"):
-
-          # """ if role != "ADMIN":
-          #      return response(
-           #         403,
-           #         {"message": "Access Denied"}
-           #     )"""
-
             return get_customers()
 
     if method == "POST" and path.endswith("/orders"):
-
-       #""" if role not in ["CUSTOMER", "ADMIN"]:
-        #    return response(
-          #      403,
-          #      {"message": "Access Denied"}
-          #  )"""
-
         return create_order(event)
 
 
@@ -870,24 +849,10 @@ def handler(event, context):
         query = event.get("queryStringParameters") or {}
 
         if "customerId" in query:
-
-           # """if role not in ["CUSTOMER", "ADMIN"]:
-            #    return response(
-             #       403,
-             #       {"message": "Access Denied"}
-              #  )
-#"""
             return get_customer_orders(
                 query["customerId"]
             )
         if path.endswith("/orders"):
-
-           #""" if role != "ADMIN":
-            #    return response(
-             #       403,
-             #       {"message": "Access Denied"}
-             #   )"""
-
             return get_all_orders()
         
 
@@ -898,15 +863,6 @@ def handler(event, context):
             return get_order(parts[-1])
     
     if method == "PATCH" and "/orders/" in path:
-
-        #"""if role not in ["CUSTOMER", "ADMIN"]:
-          #  return response(
-              #  403,
-              #  {
-                 #   "message": "Access Denied"
-                #}
-           # )"""
-
         order_id = path.split("/")[-1]
 
         return cancel_order(order_id)
