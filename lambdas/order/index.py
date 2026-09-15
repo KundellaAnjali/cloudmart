@@ -28,6 +28,7 @@ def log(level, operation, message, **kwargs):
 
 ssm = boto3.client("ssm")
 events = boto3.client("events")
+cloudwatch = boto3.client("cloudwatch")
 
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev")
 
@@ -104,6 +105,20 @@ def publish_event(detail_type, detail, source="cloudmart.orders"):
             }
         ]
     )
+
+def publish_metric(metric_name, value=1):
+
+    cloudwatch.put_metric_data(
+        Namespace="CloudMart",
+        MetricData=[
+            {
+                "MetricName": metric_name,
+                "Value": value,
+                "Unit": "Count"
+            }
+        ]
+    )
+
 def create_customer(event):
     token = secrets.token_hex(32)
 
@@ -364,7 +379,7 @@ def create_order(event):
                 product = cursor.fetchone()
 
                 if not product:
-
+                    publish_metric("FailedOrders")
                     publish_event(
                         "OrderFailed",
                         {
@@ -383,7 +398,7 @@ def create_order(event):
                     )
 
                 if quantity > product["stock_count"]:
-
+                    publish_metric("FailedOrders")
                     publish_event(
                         "OrderFailed",
                         {
@@ -458,6 +473,10 @@ def create_order(event):
                         product["product_id"]
                     )
                 )
+                publish_metric(
+                    "InventoryDeductions",
+                    quantity
+                )
 
                 cursor.execute(
                     """
@@ -496,7 +515,7 @@ def create_order(event):
                 threshold = 10
 
                 if updated_product["stock_count"] < threshold:
-
+                    publish_metric("LowStockProducts")
                     publish_event(
                         "LowStock",
                         {
@@ -571,8 +590,12 @@ def create_order(event):
             )
 
             conn.commit()
+            publish_metric("OrdersCreated")
+            publish_metric(
+                "OrderValue",
+                total_amount
+            )
             
-
             publish_event(
                 "OrderConfirmed",
                 {

@@ -48,6 +48,14 @@ Resources:
                 Resource:
                   - Fn::ImportValue: CloudMart-KMS-Key-Arn
 
+              - Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricData
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    cloudwatch:namespace: CloudMart
+
   ProductLambdaRole:
     Type: AWS::IAM::Role
     Properties:
@@ -90,6 +98,14 @@ Resources:
                 Resource:
                   - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
 
+              - Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricData
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    cloudwatch:namespace: CloudMart
+
   OrderProcessorRole:
     Type: AWS::IAM::Role
     Properties:
@@ -131,6 +147,14 @@ Resources:
                 Resource:
                   - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
 
+              - Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricData
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    cloudwatch:namespace: CloudMart
+                    
   ReportLambdaRole:
     Type: AWS::IAM::Role
     Properties:

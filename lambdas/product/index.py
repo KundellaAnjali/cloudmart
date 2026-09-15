@@ -9,6 +9,7 @@ logger.setLevel(logging.INFO)
 
 ssm = boto3.client("ssm")
 events = boto3.client("events")
+cloudwatch = boto3.client("cloudwatch")
 
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev")
 
@@ -61,6 +62,19 @@ def get_connection():
     }))
 
     return connection
+
+def publish_metric(metric_name, value=1):
+
+    cloudwatch.put_metric_data(
+        Namespace="CloudMart",
+        MetricData=[
+            {
+                "MetricName": metric_name,
+                "Value": value,
+                "Unit": "Count"
+            }
+        ]
+    )
 
 
 def get_all_products(connection):
@@ -188,7 +202,7 @@ def create_product(connection, event):
         }))
 
     connection.commit()
-
+    publish_metric("ProductsCreated")
     return {
         "statusCode": 201,
         "body": json.dumps({
@@ -243,6 +257,7 @@ def update_product(connection, product_id, event):
             }
 
         if body["stock_count"] < threshold:
+            
             return {
                 "statusCode": 400,
                 "body": json.dumps({
@@ -272,7 +287,7 @@ def update_product(connection, product_id, event):
             }
 
     connection.commit()
-
+    publish_metric("InventoryUpdated")
     events.put_events(
         Entries=[
             {

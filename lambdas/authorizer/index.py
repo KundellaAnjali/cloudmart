@@ -4,6 +4,7 @@ import pymysql
 import json
 
 ssm = boto3.client("ssm")
+cloudwatch = boto3.client("cloudwatch")
 
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev")
 
@@ -67,6 +68,20 @@ def generate_policy(
             "customer_name": customer_name
         }
     }
+
+def publish_metric(metric_name):
+
+    cloudwatch.put_metric_data(
+        Namespace="CloudMart",
+        MetricData=[
+            {
+                "MetricName": metric_name,
+                "Value": 1,
+                "Unit": "Count"
+            }
+        ]
+    )
+
 def handler(event, context):
 
     token = event.get("authorizationToken", "")
@@ -114,6 +129,7 @@ def handler(event, context):
         conn.close()
 
     if not user:
+        publish_metric("UnauthorizedRequests")
         print(json.dumps({
             "level": "ERROR",
             "operation": "Authorizer",
@@ -122,11 +138,8 @@ def handler(event, context):
         }))
         raise Exception("Unauthorized")
 
-    #if not user["is_active"]:
-    #    raise Exception("Unauthorized")
-
     role = user["role"]
-
+    publish_metric("AuthorizedRequests")
     print(json.dumps({
         "level": "INFO",
         "operation": "Authorizer",
