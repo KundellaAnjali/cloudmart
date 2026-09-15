@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - tokens
+      - monitor
 
 permissions:
   id-token: write
