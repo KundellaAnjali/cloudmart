@@ -109,6 +109,11 @@ Resources:
     Properties:
       GroupDescription: Lambda Security Group
       VpcId: !Ref CloudMartVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !Ref LambdaSecurityGroup
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
@@ -190,6 +195,19 @@ Resources:
       PrivateDnsEnabled: true
       SubnetIds:
         - !Ref PrivateSubnetA
+      SecurityGroupIds:
+        - !Ref LambdaSecurityGroup
+
+  CloudWatchMonitoringVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref CloudMartVPC
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.monitoring
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
       SecurityGroupIds:
         - !Ref LambdaSecurityGroup
 
