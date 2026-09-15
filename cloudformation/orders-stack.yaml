@@ -60,10 +60,14 @@ Resources:
 
           InputTransformer:
             InputPathsMap:
+              subject: "$.detail.subject"
               message: "$.detail.message"
 
             InputTemplate: |
-              <message>
+              {
+                "Subject": "<subject>",
+                "Message": "<message>"
+              }
 
   LowStockEventRule:
     Type: AWS::Events::Rule
@@ -85,10 +89,15 @@ Resources:
 
           InputTransformer:
             InputPathsMap:
+              subject: "$.detail.subject"
               message: "$.detail.message"
 
             InputTemplate: |
-              <message>
+              {
+                "Subject": "<subject>",
+                "Message": "<message>"
+              }
+
 
 
   CustomerTopicPolicy:
