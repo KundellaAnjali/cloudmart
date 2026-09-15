@@ -114,13 +114,27 @@ def handler(event, context):
         conn.close()
 
     if not user:
+        print(json.dumps({
+            "level": "ERROR",
+            "operation": "Authorizer",
+            "message": "Invalid token",
+            "token": token
+        }))
         raise Exception("Unauthorized")
 
-    if not user["is_active"]:
-        raise Exception("Unauthorized")
+    #if not user["is_active"]:
+    #    raise Exception("Unauthorized")
 
     role = user["role"]
 
+    print(json.dumps({
+        "level": "INFO",
+        "operation": "Authorizer",
+        "message": "Token validated successfully",
+        "customer_id": user["customer_id"],
+        "customer_name": user["customer_name"],
+        "role": role
+    }))
 
     if role == "ADMIN":
 

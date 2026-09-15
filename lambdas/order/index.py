@@ -4,6 +4,27 @@ import pymysql
 import boto3
 import os
 import secrets
+import logging
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+
+def log(level, operation, message, **kwargs):
+    log_data = {
+        "level": level,
+        "operation": operation,
+        "message": message
+    }
+
+    log_data.update(kwargs)
+
+    if level == "ERROR":
+        logger.error(json.dumps(log_data))
+    elif level == "WARNING":
+        logger.warning(json.dumps(log_data))
+    else:
+        logger.info(json.dumps(log_data))
 
 ssm = boto3.client("ssm")
 events = boto3.client("events")
@@ -103,6 +124,14 @@ def create_customer(event):
             {"message": "customerEmail is required"}
         )
 
+    log(
+        "INFO",
+        "CreateCustomer",
+        "Customer creation request received",
+        customer_name=customer_name,
+        customer_email=customer_email
+    )
+
     conn = get_connection()
 
     try:
@@ -133,6 +162,13 @@ def create_customer(event):
 
             conn.commit()
 
+            log(
+                "INFO",
+                "CreateCustomer",
+                "Customer created successfully",
+                customer_id=customer_id
+            )
+
             return response(
                 201,
                 {
@@ -147,10 +183,17 @@ def create_customer(event):
 
         conn.rollback()
 
+        log(
+            "ERROR",
+            "CreateCustomer",
+            "Customer creation failed",
+            error=repr(e)
+        )
+
         return response(
             500,
             {
-                "message": str(e)
+                "message": repr(e)
             }
         )
 
@@ -209,6 +252,12 @@ def get_customer_by_id(customer_id):
             customer = cursor.fetchone()
 
             if not customer:
+                log(
+                    "WARNING",
+                    "GetCustomerById",
+                    "Customer not found",
+                    customer_id=customer_id
+                )
                 return response(
                     404,
                     {
@@ -240,6 +289,13 @@ def create_order(event):
     customer_id = body.get("customerId")
     #customer_id = event["requestContext"]["authorizer"]["customer_id"]
     items = body.get("items", [])
+
+    log(
+        "INFO",
+        "CreateOrder",
+        "Order creation started",
+        customer_id=customer_id
+    )
 
     if not customer_id:
         return response(400, {"message": "customerId is required"})
@@ -283,6 +339,14 @@ def create_order(event):
 
                 product_id = item["productId"]
                 quantity = item["quantity"]
+
+            log(
+                "INFO",
+                "CreateOrder",
+                "Product validated",
+                product_id=product_id,
+                quantity=quantity
+            )
 
                 cursor.execute(
                     """
@@ -348,6 +412,13 @@ def create_order(event):
                         "product": product,
                         "quantity": quantity
                     }
+                )
+
+                log(
+                    "INFO",
+                    "CreateOrder",
+                    "Creating order record",
+                    total_amount=total_amount
                 )
 
             order_id = f"ORD-{uuid.uuid4().hex[:8]}"
@@ -534,6 +605,14 @@ def create_order(event):
                 }
             )
 
+            log(
+                "INFO",
+                "CreateOrder",
+                "Order created successfully",
+                order_id=order_id,
+                total_amount=total_amount
+            )
+
             return response(
                 201,
                 {
@@ -551,7 +630,12 @@ def create_order(event):
 
         conn.rollback()
 
-        print("ERROR:", str(e))
+        log(
+            "ERROR",
+            "CreateOrder",
+            "Order creation failed",
+            error=repr(e)
+        )
 
         return response(
             500,
@@ -583,6 +667,14 @@ def get_order(order_id):
             order = cursor.fetchone()
 
             if not order:
+
+                log(
+                    "WARNING",
+                    "GetOrder",
+                    "Order not found",
+                    order_id=order_id
+                )
+
                 return response(
                     404,
                     {
@@ -689,6 +781,12 @@ def get_all_orders():
 def cancel_order(order_id):
 
     conn = get_connection()
+    log(
+        "INFO",
+        "CancelOrder",
+        "Order cancellation requested",
+        order_id=order_id
+    )
 
     try:
 
@@ -714,6 +812,13 @@ def cancel_order(order_id):
                 )
 
             if order["order_status"] == "CANCELLED":
+
+                log(
+                    "INFO",
+                    "CancelOrder",
+                    "Order cancelled successfully",
+                    order_id=order_id
+                )
                 return response(
                     400,
                     {
@@ -797,6 +902,13 @@ def cancel_order(order_id):
             CloudMart Team
             """
                 }
+            )
+
+            log(
+                "ERROR",
+                "CancelOrder",
+                "Order cancellation failed",
+                error=repr(e)
             )
 
             return response(

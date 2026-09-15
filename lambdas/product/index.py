@@ -2,6 +2,10 @@ import json
 import boto3
 import pymysql
 import os
+import logging
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 ssm = boto3.client("ssm")
 events = boto3.client("events")
@@ -19,7 +23,8 @@ def get_parameter(name, decrypt=False):
 
 def get_connection():
 
-    print("Lambda started")
+    logger.info("Lambda started")
+
 
     db_host = get_parameter(
         f"/cloudmart/{ENVIRONMENT}/db/host"
@@ -38,7 +43,7 @@ def get_connection():
         decrypt=True
     )
 
-    print("Connecting to database...")
+    logger.info("Connecting to database")
 
     connection = pymysql.connect(
         host=db_host,
@@ -49,8 +54,9 @@ def get_connection():
         cursorclass=pymysql.cursors.DictCursor
     )
 
-    print(json.dumps({
+    logger.info(json.dumps({
         "level": "INFO",
+        "operation": "DatabaseConnection",
         "message": "Connected to database"
     }))
 
@@ -98,6 +104,12 @@ def get_product_by_id(connection, product_id):
         product = cursor.fetchone()
 
     if product is None:
+        logger.warning(json.dumps({
+            "level": "WARNING",
+            "operation": "GetProductById",
+            "message": "Product not found",
+            "product_id": product_id
+        }))
         return {
             "statusCode": 404,
             "body": json.dumps({
@@ -112,9 +124,17 @@ def get_product_by_id(connection, product_id):
 
 
 def create_product(connection, event):
-
     body = json.loads(event["body"])
 
+    logger.info(json.dumps({
+        "level": "INFO",
+        "operation": "CreateProduct",
+        "message": "Create product request received",
+        "product_name": body.get("product_name"),
+        "category": body.get("category")
+    }))
+
+    
     threshold = int(
         get_parameter(
             f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
@@ -160,6 +180,12 @@ def create_product(connection, event):
         ))
 
         product_id = cursor.lastrowid
+        logger.info(json.dumps({
+            "level": "INFO",
+            "operation": "CreateProduct",
+            "message": "Product created successfully",
+            "product_id": product_id
+        }))
 
     connection.commit()
 
@@ -260,6 +286,14 @@ def update_product(connection, product_id, event):
         ]
     )
 
+    logger.info(json.dumps({
+        "level": "INFO",
+        "operation": "UpdateProduct",
+        "message": "Product updated successfully",
+        "product_id": product_id,
+        "updated_fields": body
+    }))
+
     return {
         "statusCode": 200,
         "body": json.dumps({
@@ -280,6 +314,13 @@ def delete_product(connection, product_id):
         """, (product_id,))
 
         if cursor.rowcount == 0:
+            logger.warning(json.dumps({
+                "level": "WARNING",
+                "operation": "DeleteProduct",
+                "message": "Product not found",
+                "product_id": product_id
+            }))
+
             return {
                 "statusCode": 404,
                 "body": json.dumps({
@@ -288,6 +329,13 @@ def delete_product(connection, product_id):
             }
 
     connection.commit()
+
+    logger.info(json.dumps({
+        "level": "INFO",
+        "operation": "DeleteProduct",
+        "message": "Product deleted successfully",
+        "product_id": product_id
+    }))
 
     return {
         "statusCode": 200,
@@ -375,9 +423,17 @@ def handler(event, context):
 
     except Exception as e:
 
+        logger.error(json.dumps({
+            "level": "ERROR",
+            "operation": "ProductLambda",
+            "error": repr(e)
+        }))
+
         return {
             "statusCode": 500,
             "body": json.dumps({
-                "error": str(e)
+                "error": repr(e)
             })
         }
+    
+    
