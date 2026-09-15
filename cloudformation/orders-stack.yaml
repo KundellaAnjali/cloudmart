@@ -58,6 +58,13 @@ Resources:
         - Arn: !Ref CustomerNotificationsTopic
           Id: CustomerNotificationsTarget
 
+          InputTransformer:
+            InputPathsMap:
+              message: "$.detail.message"
+
+            InputTemplate: |
+              <message>
+
   LowStockEventRule:
     Type: AWS::Events::Rule
     Properties:
@@ -75,6 +82,14 @@ Resources:
       Targets:
         - Arn: !Ref OwnerNotificationsTopic
           Id: OwnerNotificationsTarget
+
+          InputTransformer:
+            InputPathsMap:
+              message: "$.detail.message"
+
+            InputTemplate: |
+              <message>
+
 
   CustomerTopicPolicy:
     Type: AWS::SNS::TopicPolicy

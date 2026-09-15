@@ -340,13 +340,13 @@ def create_order(event):
                 product_id = item["productId"]
                 quantity = item["quantity"]
 
-            log(
-                "INFO",
-                "CreateOrder",
-                "Product validated",
-                product_id=product_id,
-                quantity=quantity
-            )
+                log(
+                    "INFO",
+                    "CreateOrder",
+                    "Product validated",
+                    product_id=product_id,
+                    quantity=quantity
+                )
 
                 cursor.execute(
                     """
@@ -631,10 +631,10 @@ def create_order(event):
         conn.rollback()
 
         log(
-            "ERROR",
-            "CreateOrder",
-            "Order creation failed",
-            error=repr(e)
+            "INFO",
+            "CancelOrder",
+            "Order cancelled successfully",
+            order_id=order_id
         )
 
         return response(
@@ -908,7 +908,7 @@ def cancel_order(order_id):
                 "ERROR",
                 "CancelOrder",
                 "Order cancellation failed",
-                error=repr(e)
+                order_id=order_id
             )
 
             return response(
@@ -935,10 +935,16 @@ def cancel_order(order_id):
         conn.close()
 
 def handler(event, context):
+    log(
+        "INFO",
+        "Handler",
+        "Lambda handler started"
+    )
+
     initialize_schema()
     method = event["httpMethod"]
     path = event["path"]
-    role = event["requestContext"]["authorizer"]["role"]
+    role = event["requestContext"]["authorizer"]["role"]  
 
     if method == "POST" and path.endswith("/customers"):
         return create_customer(event)
