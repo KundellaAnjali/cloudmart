@@ -154,7 +154,7 @@ Resources:
                 Condition:
                   StringEquals:
                     cloudwatch:namespace: CloudMart
-                    
+
   ReportLambdaRole:
     Type: AWS::IAM::Role
     Properties:
@@ -201,6 +201,14 @@ Resources:
                   - s3:ListBucket
                 Resource:
                   - !Sub arn:aws:s3:::cloudmart-reports-${AWS::AccountId}
+
+              - Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricData
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    cloudwatch:namespace: CloudMart
 
   EC2DashboardRole:
     Type: AWS::IAM::Role

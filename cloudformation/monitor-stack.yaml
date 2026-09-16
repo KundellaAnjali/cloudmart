@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: CloudMart Monitoring Stack
+
+Parameters:
+
+  Environment:
+    Type: String
+    Default: dev
+
+Resources:
+
+  ReportLambdaFunction:
+    Type: AWS::Serverless::Function
+
+    Properties:
+
+      FunctionName: !Sub cloudmart-report-function-${Environment}
+
+      Runtime: python3.12
+
+      Handler: index.handler
+
+      CodeUri: ../lambdas/report/
+
+      Role:
+        Fn::ImportValue: ReportLambdaRoleArn
+
+      Timeout: 60
+
+      MemorySize: 512
+
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+
+      VpcConfig:
+        SecurityGroupIds:
+          - Fn::ImportValue: CloudMart-Lambda-SG
+
+        SubnetIds:
+          - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
+          - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
+
+      Events:
+
+        DailyReport:
+
+          Type: Schedule
+
+          Properties:
+
+            Name: !Sub cloudmart-daily-report-${Environment}
+
+            Schedule: rate(1 day)
+
+            Enabled: true
+
+Outputs:
+
+  ReportLambdaArn:
+    Description: Report Lambda ARN
+    Value: !GetAtt ReportLambdaFunction.Arn
+    Export:
+      Name: CloudMart-Report-Lambda-Arn
