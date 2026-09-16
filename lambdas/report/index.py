@@ -57,6 +57,8 @@ def get_connection():
     )
 
 
+
+    
 def handler(event, context):
     logger.info("Report generation started")
     conn = None
@@ -66,8 +68,6 @@ def handler(event, context):
         conn = get_connection()
 
         with conn.cursor() as cursor:
-
-            # Get Products
 
             cursor.execute("""
                 SELECT
@@ -82,8 +82,6 @@ def handler(event, context):
 
             products = cursor.fetchall()
 
-            # Get Orders
-
             cursor.execute("""
                 SELECT
                     order_id,
@@ -95,14 +93,66 @@ def handler(event, context):
 
             orders = cursor.fetchall()
 
-        # Create CSV
+        # -----------------------------
+        # BUSINESS METRICS
+        # -----------------------------
+
+        total_products = len(products)
+
+        total_orders = len(orders)
+
+        confirmed_orders = len(
+            [
+                order
+                for order in orders
+                if order["order_status"] == "CONFIRMED"
+            ]
+        )
+
+        cancelled_orders = len(
+            [
+                order
+                for order in orders
+                if order["order_status"] == "CANCELLED"
+            ]
+        )
+
+        total_revenue = sum(
+            float(order["total_amount"])
+            for order in orders
+            if order["order_status"] == "CONFIRMED"
+        )
+
+        low_stock_products = len(
+            [
+                product
+                for product in products
+                if product["stock_count"] < 10
+            ]
+        )
+
+        average_order_value = (
+            total_revenue / confirmed_orders
+            if confirmed_orders > 0
+            else 0
+        )
+
+        highest_order = max(
+            orders,
+            key=lambda order: float(order["total_amount"]),
+            default=None
+        )
+
+        # -----------------------------
+        # CSV GENERATION
+        # -----------------------------
 
         output = io.StringIO()
 
         writer = csv.writer(output)
 
         writer.writerow([
-            "CloudMart Daily Report"
+            "CLOUDMART BUSINESS REPORT"
         ])
 
         writer.writerow([
@@ -112,16 +162,75 @@ def handler(event, context):
 
         writer.writerow([])
 
-        # Products Section
+        # -----------------------------
+        # BUSINESS SUMMARY
+        # -----------------------------
 
-        writer.writerow(["PRODUCTS"])
+        writer.writerow(["BUSINESS SUMMARY"])
+
+        writer.writerow([
+            "Total Products",
+            total_products
+        ])
+
+        writer.writerow([
+            "Total Orders",
+            total_orders
+        ])
+
+        writer.writerow([
+            "Confirmed Orders",
+            confirmed_orders
+        ])
+
+        writer.writerow([
+            "Cancelled Orders",
+            cancelled_orders
+        ])
+
+        writer.writerow([
+            "Total Revenue",
+            total_revenue
+        ])
+
+        writer.writerow([
+            "Average Order Value",
+            round(average_order_value, 2)
+        ])
+
+        writer.writerow([
+            "Low Stock Products",
+            low_stock_products
+        ])
+
+        if highest_order:
+
+            writer.writerow([
+                "Highest Value Order",
+                highest_order["order_id"]
+            ])
+
+            writer.writerow([
+                "Highest Order Amount",
+                float(
+                    highest_order["total_amount"]
+                )
+            ])
+
+        writer.writerow([])
+
+        # -----------------------------
+        # PRODUCT DETAILS
+        # -----------------------------
+
+        writer.writerow(["PRODUCT DETAILS"])
 
         writer.writerow([
             "Product ID",
             "Product Name",
             "Category",
             "Price",
-            "Stock"
+            "Stock Count"
         ])
 
         for product in products:
@@ -136,9 +245,11 @@ def handler(event, context):
 
         writer.writerow([])
 
-        # Orders Section
+        # -----------------------------
+        # ORDER DETAILS
+        # -----------------------------
 
-        writer.writerow(["ORDERS"])
+        writer.writerow(["ORDER DETAILS"])
 
         writer.writerow([
             "Order ID",
@@ -156,16 +267,20 @@ def handler(event, context):
                 float(order["total_amount"])
             ])
 
-        # Metric 1
+        # -----------------------------
+        # METRIC
+        # -----------------------------
 
-        publish_metric("ReportsGenerated")
+        publish_metric(
+            "ReportsGenerated"
+        )
 
         bucket_name = get_parameter(
             f"/cloudmart/{ENVIRONMENT}/s3/reports-bucket"
         )
 
         file_name = (
-            f"reports/report-"
+            f"reports/cloudmart-business-report-"
             f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.csv"
         )
 
@@ -175,19 +290,18 @@ def handler(event, context):
             Body=output.getvalue(),
             ContentType="text/csv"
         )
-        logger.info(
-            f"Uploading report to {bucket_name}/{file_name}"
+
+        publish_metric(
+            "ReportUploadSuccess"
         )
 
-        # Metric 2
-
-        publish_metric("ReportUploadSuccess")
         output.close()
+
         return {
             "statusCode": 200,
             "body": json.dumps(
                 {
-                    "message": "Report generated successfully",
+                    "message": "Business report generated successfully",
                     "file": file_name,
                     "bucket": bucket_name
                 }
@@ -197,13 +311,13 @@ def handler(event, context):
     except Exception as e:
 
         try:
+
             publish_metric(
                 "ReportGenerationFailures"
             )
+
         except Exception:
             pass
-
-        print(f"ERROR: {str(e)}")
 
         return {
             "statusCode": 500,
