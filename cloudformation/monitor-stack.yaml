@@ -13,6 +13,8 @@ Resources:
 
   ReportLambdaFunction:
     Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: python3.12
 
     Properties:
 
