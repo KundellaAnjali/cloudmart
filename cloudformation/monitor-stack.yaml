@@ -214,6 +214,37 @@ Resources:
       AlarmActions:
         - !Ref AlarmNotificationTopic
 
+  DashboardInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+
+    Properties:
+      InstanceProfileName: CloudMart-Dashboard-Profile
+      Roles:
+        - CloudMart-EC2Dashboard-Role
+
+  DashboardEC2:
+    Type: AWS::EC2::Instance
+
+    Properties:
+
+      InstanceType: t3.micro
+
+      ImageId: ami-0f58b397bc5c1f2e8
+
+      IamInstanceProfile: !Ref DashboardInstanceProfile
+
+      SecurityGroupIds:
+        - Fn::ImportValue: CloudMart-EC2-SG
+
+      SubnetId:
+        Fn::ImportValue: CloudMart-Public-Subnet-ID
+
+      Tags:
+        - Key: Name
+          Value: CloudMart-Dashboard
+
+  
+
 Outputs:
 
   ReportLambdaArn:
@@ -221,3 +252,8 @@ Outputs:
     Value: !GetAtt ReportLambdaFunction.Arn
     Export:
       Name: CloudMart-Report-Lambda-Arn
+
+  DashboardPublicIP:
+    Description: Dashboard EC2 Public IP
+
+    Value: !GetAtt DashboardEC2.PublicIp
