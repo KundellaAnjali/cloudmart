@@ -59,6 +59,161 @@ Resources:
 
             Enabled: true
 
+  CloudMartDashboard:
+    Type: AWS::CloudWatch::Dashboard
+
+    Properties:
+
+      DashboardName: cloudmart-operations
+
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Product Metrics",
+                "metrics": [
+                  ["CloudMart","ProductsCreated"],
+                  ["CloudMart","InventoryUpdated"],
+                  ["CloudMart","LowStockProducts"]
+                ],
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Order Metrics",
+                "metrics": [
+                  ["CloudMart","OrdersCreated"],
+                  ["CloudMart","OrderValue"],
+                  ["CloudMart","InventoryDeductions"],
+                  ["CloudMart","FailedOrders"]
+                ],
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 6,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Report Metrics",
+                "metrics": [
+                  ["CloudMart","ReportsGenerated"],
+                  ["CloudMart","ReportUploadSuccess"],
+                  ["CloudMart","ReportGenerationFailures"]
+                ],
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 6,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Authorization Metrics",
+                "metrics": [
+                  ["CloudMart","AuthorizedRequests"],
+                  ["CloudMart","UnauthorizedRequests"]
+                ],
+                "region": "${AWS::Region}"
+              }
+            }
+          ]
+        }
+
+  AlarmNotificationTopic:
+    Type: AWS::SNS::Topic
+
+    Properties:
+      TopicName: cloudmart-monitoring-alerts
+
+  AlarmNotificationSubscription:
+    Type: AWS::SNS::Subscription
+
+    Properties:
+      Protocol: email
+      Endpoint: kundella.anjali@omc.com
+      TopicArn: !Ref AlarmNotificationTopic
+
+  FailedOrdersAlarm:
+    Type: AWS::CloudWatch::Alarm
+
+    Properties:
+      AlarmName: CloudMart-FailedOrders
+      Namespace: CloudMart
+      MetricName: FailedOrders
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  UnauthorizedRequestsAlarm:
+    Type: AWS::CloudWatch::Alarm
+
+    Properties:
+      AlarmName: CloudMart-UnauthorizedRequests
+      Namespace: CloudMart
+      MetricName: UnauthorizedRequests
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  ReportGenerationFailuresAlarm:
+    Type: AWS::CloudWatch::Alarm
+
+    Properties:
+      AlarmName: CloudMart-ReportGenerationFailures
+      Namespace: CloudMart
+      MetricName: ReportGenerationFailures
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  LowStockProductsAlarm:
+    Type: AWS::CloudWatch::Alarm
+
+    Properties:
+      AlarmName: CloudMart-LowStockProducts
+      Namespace: CloudMart
+      MetricName: LowStockProducts
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
 Outputs:
 
   ReportLambdaArn:
