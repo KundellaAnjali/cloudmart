@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ title }}</title>
+
+    <style>
+
+        body{
+            font-family: Arial, sans-serif;
+            background:#f4f6f9;
+            margin:0;
+        }
+
+        .header{
+            background:#1f2937;
+            color:white;
+            padding:20px;
+            text-align:center;
+        }
+
+        .container{
+            padding:20px;
+        }
+
+        .cards{
+            display:flex;
+            flex-wrap:wrap;
+            gap:20px;
+        }
+
+        .card{
+            background:white;
+            padding:20px;
+            width:220px;
+            border-radius:10px;
+            box-shadow:0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .value{
+            font-size:28px;
+            font-weight:bold;
+            margin-top:10px;
+        }
+
+        .section{
+            background:white;
+            margin-top:25px;
+            padding:20px;
+            border-radius:10px;
+            box-shadow:0 2px 6px rgba(0,0,0,0.05);
+        }
+
+        table{
+            width:100%;
+            border-collapse:collapse;
+        }
+
+        th,td{
+            padding:12px;
+            border-bottom:1px solid #ddd;
+            text-align:left;
+        }
+
+        th{
+            background:#f5f5f5;
+        }
+
+        .success{
+            color:green;
+            font-weight:bold;
+        }
+
+        .alarm{
+            color:red;
+            font-weight:bold;
+        }
+
+        .low-stock{
+            color:red;
+            font-weight:bold;
+        }
+
+        .available{
+            color:green;
+            font-weight:bold;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="header">
+    <h1>CloudMart Business Dashboard</h1>
+</div>
+
+<div class="container">
+
+    <!-- KPI CARDS -->
+
+    <div class="cards">
+
+        <div class="card">
+            <h3>Total Products</h3>
+            <div class="value">{{ total_products }}</div>
+        </div>
+
+        <div class="card">
+            <h3>Total Orders</h3>
+            <div class="value">{{ total_orders }}</div>
+        </div>
+
+        <div class="card">
+            <h3>Total Revenue</h3>
+            <div class="value">₹{{ revenue }}</div>
+        </div>
+
+        <div class="card">
+            <h3>Low Stock Products</h3>
+            <div class="value">{{ low_stock }}</div>
+        </div>
+
+    </div>
+
+    <!-- CLOUDWATCH METRICS -->
+
+    <div class="section">
+
+        <h2>CloudWatch Success Metrics</h2>
+
+        <table>
+
+            <tr>
+                <th>Metric</th>
+                <th>Value</th>
+            </tr>
+
+            <tr>
+                <td>Products Created</td>
+                <td class="success">{{ products_created }}</td>
+            </tr>
+
+            <tr>
+                <td>Orders Created</td>
+                <td class="success">{{ orders_created }}</td>
+            </tr>
+
+            <tr>
+                <td>Authorized Requests</td>
+                <td class="success">{{ authorized_requests }}</td>
+            </tr>
+
+            <tr>
+                <td>Failed Orders</td>
+                <td>{{ failed_orders }}</td>
+            </tr>
+
+        </table>
+
+    </div>
+
+    <!-- ALERTS -->
+
+    <div class="section">
+
+        <h2>Alerts & Monitoring</h2>
+
+        <table>
+
+            <tr>
+                <th>Alarm</th>
+                <th>Status</th>
+            </tr>
+
+            <tr>
+                <td>Failed Orders Alarm</td>
+                <td>
+                    {% if failed_orders_alarm == "ALARM" %}
+                    <span class="alarm">{{ failed_orders_alarm }}</span>
+                    {% else %}
+                    <span class="success">{{ failed_orders_alarm }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+
+            <tr>
+                <td>Low Stock Alarm</td>
+                <td>
+                    {% if low_stock_alarm == "ALARM" %}
+                    <span class="alarm">{{ low_stock_alarm }}</span>
+                    {% else %}
+                    <span class="success">{{ low_stock_alarm }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+
+            <tr>
+                <td>Unauthorized Requests Alarm</td>
+                <td>
+                    {% if unauthorized_alarm == "ALARM" %}
+                    <span class="alarm">{{ unauthorized_alarm }}</span>
+                    {% else %}
+                    <span class="success">{{ unauthorized_alarm }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+
+            <tr>
+                <td>Report Generation Failure Alarm</td>
+                <td>
+                    {% if report_alarm == "ALARM" %}
+                    <span class="alarm">{{ report_alarm }}</span>
+                    {% else %}
+                    <span class="success">{{ report_alarm }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+
+        </table>
+
+    </div>
+
+    <!-- REPORT SUMMARY -->
+
+    <div class="section">
+
+        <h2>Report Generation Summary</h2>
+
+        <table>
+
+            <tr>
+                <th>Metric</th>
+                <th>Value</th>
+            </tr>
+
+            <tr>
+                <td>Reports Generated</td>
+                <td class="success">{{ reports_generated }}</td>
+            </tr>
+
+            <tr>
+                <td>Report Upload Success</td>
+                <td class="success">{{ report_upload_success }}</td>
+            </tr>
+
+            <tr>
+                <td>Report Generation Failures</td>
+                <td>{{ report_generation_failures }}</td>
+            </tr>
+
+        </table>
+
+    </div>
+
+    <!-- RECENT ORDERS -->
+
+    <div class="section">
+
+        <h2>Recent Orders</h2>
+
+        <table>
+
+            <tr>
+                <th>Order ID</th>
+                <th>Customer ID</th>
+                <th>Status</th>
+                <th>Amount</th>
+            </tr>
+
+            {% for order in recent_orders %}
+
+            <tr>
+
+                <td>{{ order.order_id }}</td>
+
+                <td>{{ order.customer_id }}</td>
+
+                <td>
+
+                    {% if order.order_status == "CONFIRMED" %}
+                    <span class="success">{{ order.order_status }}</span>
+
+                    {% elif order.order_status == "CANCELLED" %}
+                    <span class="alarm">{{ order.order_status }}</span>
+
+                    {% else %}
+                    {{ order.order_status }}
+                    {% endif %}
+
+                </td>
+
+                <td>₹{{ order.total_amount }}</td>
+
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+    </div>
+
+    <!-- INVENTORY -->
+
+    <div class="section">
+
+        <h2>Inventory Dashboard</h2>
+
+        <table>
+
+            <tr>
+                <th>Product ID</th>
+                <th>Product Name</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Status</th>
+            </tr>
+
+            {% for product in inventory %}
+
+            <tr>
+
+                <td>{{ product.product_id }}</td>
+                <td>{{ product.product_name }}</td>
+                <td>{{ product.category }}</td>
+                <td>₹{{ product.price }}</td>
+                <td>{{ product.stock_count }}</td>
+
+                <td>
+
+                    {% if product.stock_count < 10 %}
+
+                    <span class="low-stock">
+                        LOW STOCK
+                    </span>
+
+                    {% else %}
+
+                    <span class="available">
+                        AVAILABLE
+                    </span>
+
+                    {% endif %}
+
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+    </div>
+
+    <!-- BUSINESS REPORTS -->
+
+    <div class="section">
+
+        <h2>Business Reports</h2>
+
+        <table>
+
+            <tr>
+                <th>Report Name</th>
+                <th>Generated Date</th>
+            </tr>
+
+            {% for report in reports %}
+
+            <tr>
+                <td>{{ report.name }}</td>
+                <td>{{ report.date }}</td>
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+    </div>
+
+</div>
+
+</body>
+</html>

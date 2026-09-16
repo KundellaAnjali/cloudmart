@@ -243,7 +243,43 @@ Resources:
         - Key: Name
           Value: CloudMart-Dashboard
 
-  
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+
+          yum update -y
+
+          yum install -y git python3 python3-pip
+
+          cd /home/ec2-user
+
+          git clone https://github.com/KundellaAnjali/cloudmart.git
+
+          cd cloudmart/dashboard
+
+          pip3 install -r requirements.txt
+
+          cat > /etc/systemd/system/cloudmart-dashboard.service << 'EOF'
+          [Unit]
+          Description=CloudMart Dashboard
+          After=network.target
+
+          [Service]
+          User=ec2-user
+          WorkingDirectory=/home/ec2-user/cloudmart/dashboard
+          ExecStart=/usr/bin/python3 /home/ec2-user/cloudmart/dashboard/app.py
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+
+          systemctl daemon-reload
+
+          systemctl enable cloudmart-dashboard
+
+          systemctl start cloudmart-dashboard
+        
 
 Outputs:
 

@@ -231,6 +231,19 @@ Resources:
 
               - Effect: Allow
                 Action:
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/${Environment}/*
+
+              - Effect: Allow
+                Action:
+                  - kms:Decrypt
+                Resource:
+                  - Fn::ImportValue: CloudMart-KMS-Key-Arn
+
+              - Effect: Allow
+                Action:
                   - s3:GetObject
                 Resource:
                   - !Sub arn:aws:s3:::cloudmart-reports-${AWS::AccountId}/*
@@ -243,10 +256,11 @@ Resources:
 
               - Effect: Allow
                 Action:
+                  - cloudwatch:GetMetricStatistics
+                  - cloudwatch:DescribeAlarms
                   - cloudwatch:GetMetricData
                   - cloudwatch:ListMetrics
                 Resource: "*"
-
 Outputs:
 
   LambdaAuthorizerRoleArn:
