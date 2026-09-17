@@ -258,8 +258,9 @@ Resources:
 
           cd cloudmart
           git checkout monitor
+          cd dashboard
 
-          pip3 install -r requirements.txt
+          pip3 install --break-system-packages -r requirements.txt
 
           cat > /etc/systemd/system/cloudmart-dashboard.service << 'EOF'
           [Unit]
