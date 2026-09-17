@@ -229,7 +229,8 @@ Resources:
 
       InstanceType: t3.micro
 
-      ImageId: ami-0f58b397bc5c1f2e8
+      # Amazon Linux 2023 AMI (replace with latest AMI ID for your region if needed)
+      ImageId: ami-0e35ddab05955cf57
 
       IamInstanceProfile: !Ref DashboardInstanceProfile
 
@@ -241,7 +242,7 @@ Resources:
 
       Tags:
         - Key: Name
-          Value: CloudMart-Dashboard
+          Value: CloudMart-Dashboard-v2
 
       UserData:
         Fn::Base64: !Sub |
@@ -275,11 +276,8 @@ Resources:
           EOF
 
           systemctl daemon-reload
-
           systemctl enable cloudmart-dashboard
-
           systemctl start cloudmart-dashboard
-        
 
 Outputs:
 
