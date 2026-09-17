@@ -222,7 +222,7 @@ Resources:
       Roles:
         - CloudMart-EC2Dashboard-Role
 
-  DashboardEC2:
+  DashboardEC2V2:
     Type: AWS::EC2::Instance
 
     Properties:
@@ -289,4 +289,4 @@ Outputs:
   DashboardPublicIP:
     Description: Dashboard EC2 Public IP
 
-    Value: !GetAtt DashboardEC2.PublicIp
+    Value: !GetAtt DashboardEC2V2.PublicIp
