@@ -248,11 +248,11 @@ Resources:
         Fn::Base64: !Sub |
           #!/bin/bash
 
-          yum update -y
+          apt update -y
 
-          yum install -y git python3 python3-pip
+          apt install -y git python3 python3-pip mariadb-client
 
-          cd /home/ec2-user
+          cd /home/ubuntu
 
           git clone https://github.com/KundellaAnjali/cloudmart.git
 
@@ -266,9 +266,9 @@ Resources:
           After=network.target
 
           [Service]
-          User=ec2-user
-          WorkingDirectory=/home/ec2-user/cloudmart/dashboard
-          ExecStart=/usr/bin/python3 /home/ec2-user/cloudmart/dashboard/app.py
+          User=ubuntu
+          WorkingDirectory=/home/ubuntu/cloudmart/dashboard
+          ExecStart=/usr/bin/python3 /home/ubuntu/cloudmart/dashboard/app.py
           Restart=always
 
           [Install]
@@ -278,7 +278,6 @@ Resources:
           systemctl daemon-reload
           systemctl enable cloudmart-dashboard
           systemctl start cloudmart-dashboard
-
 Outputs:
 
   ReportLambdaArn:

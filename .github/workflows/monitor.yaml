@@ -1,0 +1,61 @@
+name: Deploy Monitor Stack
+
+on:
+  push:
+    branches:
+      - monitor
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+
+  lint-monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cfn-lint
+        run: pip install cfn-lint
+
+      - name: Lint Monitor Stack
+        run: |
+          cfn-lint --non-zero-exit-code error cloudformation/monitor-stack.yaml
+
+  deploy-monitor:
+    needs: lint-monitor
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.ARN_ROLE }}
+          aws-region: ap-south-1
+
+      - name: Setup SAM CLI
+        uses: aws-actions/setup-sam@v2
+
+      - name: Validate Monitor Stack
+        run: |
+          sam validate \
+            --template-file cloudformation/monitor-stack.yaml
+
+      - name: Build Monitor Stack
+        run: |
+          sam build \
+            --template-file cloudformation/monitor-stack.yaml
+
+      - name: Deploy Monitor Stack
+        run: |
+          sam deploy \
+            --template-file .aws-sam/build/template.yaml \
+            --stack-name cloudmart-monitor-stack \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --resolve-s3 \
+            --no-fail-on-empty-changeset \
+            --region ap-south-1

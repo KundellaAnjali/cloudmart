@@ -3,7 +3,7 @@ name: CloudMart Deploy
 on:
   push:
     branches:
-      - monitor
+      - main
 
 permissions:
   id-token: write
