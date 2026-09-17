@@ -242,17 +242,17 @@ Resources:
 
       Tags:
         - Key: Name
-          Value: CloudMart-Dashboard-v2
+          Value: DashboardEC2v2
 
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
 
-          apt update -y
+          yum update -y
 
-          apt install -y git python3 python3-pip mariadb-client
+          yum install -y git python3 python3-pip mariadb105
 
-          cd /home/ubuntu
+          cd /home/ec2-user
 
           git clone https://github.com/KundellaAnjali/cloudmart.git
 
@@ -266,9 +266,9 @@ Resources:
           After=network.target
 
           [Service]
-          User=ubuntu
-          WorkingDirectory=/home/ubuntu/cloudmart/dashboard
-          ExecStart=/usr/bin/python3 /home/ubuntu/cloudmart/dashboard/app.py
+          User=ec2-user
+          WorkingDirectory=/home/ec2-user/cloudmart/dashboard
+          ExecStart=/usr/bin/python3 /home/ec2-user/cloudmart/dashboard/app.py
           Restart=always
 
           [Install]
@@ -289,4 +289,4 @@ Outputs:
   DashboardPublicIP:
     Description: Dashboard EC2 Public IP
 
-    Value: !GetAtt DashboardEC2.PublicIp
+    Value: !GetAtt DashboardEC2V2.PublicIp
