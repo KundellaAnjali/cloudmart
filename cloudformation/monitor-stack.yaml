@@ -256,7 +256,8 @@ Resources:
 
           git clone https://github.com/KundellaAnjali/cloudmart.git
 
-          cd cloudmart/dashboard
+          cd cloudmart
+          git checkout monitor
 
           pip3 install -r requirements.txt
 
