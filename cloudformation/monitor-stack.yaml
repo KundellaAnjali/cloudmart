@@ -289,4 +289,4 @@ Outputs:
   DashboardPublicIP:
     Description: Dashboard EC2 Public IP
 
-    Value: !GetAtt DashboardEC2V2.PublicIp
+    Value: !GetAtt DashboardEC2.PublicIp
