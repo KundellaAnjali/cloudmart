@@ -1,128 +1,19 @@
-<!DOCTYPE html>
-<html>
+{% extends "layout.html" %}
 
-<head>
+{% block content %}
 
-<title>Customers</title>
-
-<style>
-
-body{
-    font-family:Segoe UI;
-    background:#f4f6f9;
-    margin:0;
-}
-
-.container{
-    padding:30px;
-}
-
-.card{
-
-    width:250px;
-
-    background:white;
-
-    padding:20px;
-
-    border-radius:15px;
-
-    text-align:center;
-
-    margin-bottom:30px;
-
-    box-shadow:
-    0 3px 10px rgba(0,0,0,.1);
-
-}
-
-.card p{
-
-    font-size:28px;
-
-    font-weight:bold;
-
-    color:#2563eb;
-
-}
-
-table{
-
-    width:100%;
-
-    border-collapse:collapse;
-
-    background:white;
-
-    box-shadow:
-    0 5px 15px rgba(0,0,0,.1);
-
-}
-
-th{
-
-    background:#2563eb;
-
-    color:white;
-
-    padding:15px;
-
-}
-
-td{
-
-    padding:12px;
-
-    border-bottom:1px solid #ddd;
-
-}
-
-.active{
-
-    color:green;
-
-    font-weight:bold;
-
-}
-
-.inactive{
-
-    color:red;
-
-    font-weight:bold;
-
-}
-
-</style>
-
-</head>
-
-<body>
-
-<div class="container">
-
-<h1>👥 Customers</h1>
+<h2>👥 Customers</h2>
 
 <br>
-
-<div class="card">
-
-    <h3>Total Customers</h3>
-
-    <p>{{ total_customers }}</p>
-
-</div>
 
 <table>
 
 <tr>
 
-    <th>ID</th>
-    <th>Name</th>
-    <th>Email</th>
-    <th>Role</th>
-    <th>Status</th>
-    <th>Created</th>
+<th>ID</th>
+<th>Name</th>
+<th>Email</th>
+<th>Role</th>
 
 </tr>
 
@@ -130,37 +21,10 @@ td{
 
 <tr>
 
-    <td>{{ customer.customer_id }}</td>
-
-    <td>{{ customer.customer_name }}</td>
-
-    <td>{{ customer.customer_email }}</td>
-
-    <td>{{ customer.role }}</td>
-
-    <td>
-
-        {% if customer.is_active %}
-
-            <span class="active">
-
-                ACTIVE
-
-            </span>
-
-        {% else %}
-
-            <span class="inactive">
-
-                INACTIVE
-
-            </span>
-
-        {% endif %}
-
-    </td>
-
-    <td>{{ customer.created_at }}</td>
+<td>{{ customer.customer_id }}</td>
+<td>{{ customer.customer_name }}</td>
+<td>{{ customer.customer_email }}</td>
+<td>{{ customer.role }}</td>
 
 </tr>
 
@@ -168,8 +32,4 @@ td{
 
 </table>
 
-</div>
-
-</body>
-
-</html>
+{% endblock %}

@@ -1,198 +1,35 @@
-<!DOCTYPE html>
-<html>
+{% extends "layout.html" %}
 
-<head>
+{% block content %}
 
-<title>Orders</title>
+<h2>🛒 Orders</h2>
 
-<style>
+<br>
 
-body{
-    font-family:Segoe UI;
-    background:#f4f6f9;
-    margin:0;
-}
+<table>
 
-.container{
-    padding:30px;
-}
+<tr>
 
-.cards{
+<th>Order ID</th>
+<th>Customer ID</th>
+<th>Status</th>
+<th>Amount</th>
 
-    display:grid;
+</tr>
 
-    grid-template-columns:
-    repeat(auto-fit,minmax(220px,1fr));
+{% for order in orders %}
 
-    gap:20px;
+<tr>
 
-    margin-bottom:30px;
-}
+<td>{{ order.order_id }}</td>
+<td>{{ order.customer_id }}</td>
+<td>{{ order.order_status }}</td>
+<td>₹{{ order.total_amount }}</td>
 
-.card{
+</tr>
 
-    background:white;
+{% endfor %}
 
-    border-radius:15px;
+</table>
 
-    padding:20px;
-
-    text-align:center;
-
-    box-shadow:
-    0 3px 10px rgba(0,0,0,.1);
-
-}
-
-.card p{
-
-    font-size:28px;
-
-    font-weight:bold;
-
-    color:#2563eb;
-}
-
-table{
-
-    width:100%;
-
-    background:white;
-
-    border-collapse:collapse;
-
-    box-shadow:
-    0 3px 10px rgba(0,0,0,.1);
-
-}
-
-th{
-
-    background:#2563eb;
-
-    color:white;
-
-    padding:15px;
-
-}
-
-td{
-
-    padding:12px;
-
-    border-bottom:1px solid #ddd;
-
-}
-
-.confirmed{
-
-    color:green;
-
-    font-weight:bold;
-}
-
-.cancelled{
-
-    color:red;
-
-    font-weight:bold;
-}
-
-.pending{
-
-    color:orange;
-
-    font-weight:bold;
-}
-
-</style>
-
-</head>
-
-<body>
-
-<div class="container">
-
-    <h1>🛒 Orders Dashboard</h1>
-
-    <br>
-
-    <div class="cards">
-
-        <div class="card">
-            <h3>Total Orders</h3>
-            <p>{{ total_orders }}</p>
-        </div>
-
-        <div class="card">
-            <h3>Confirmed Orders</h3>
-            <p>{{ confirmed_orders }}</p>
-        </div>
-
-        <div class="card">
-            <h3>Cancelled Orders</h3>
-            <p>{{ cancelled_orders }}</p>
-        </div>
-
-        <div class="card">
-            <h3>Total Revenue</h3>
-            <p>₹{{ revenue }}</p>
-        </div>
-
-    </div>
-
-    <table>
-
-        <tr>
-
-            <th>Order ID</th>
-            <th>Customer ID</th>
-            <th>Status</th>
-            <th>Amount</th>
-            <th>Order Date</th>
-
-        </tr>
-
-        {% for order in orders %}
-
-        <tr>
-
-            <td>{{ order.order_id }}</td>
-
-            <td>{{ order.customer_id }}</td>
-
-            <td>
-
-                {% if order.order_status == "CONFIRMED" %}
-                    <span class="confirmed">
-                        {{ order.order_status }}
-                    </span>
-
-                {% elif order.order_status == "CANCELLED" %}
-                    <span class="cancelled">
-                        {{ order.order_status }}
-                    </span>
-
-                {% else %}
-                    <span class="pending">
-                        {{ order.order_status }}
-                    </span>
-                {% endif %}
-
-            </td>
-
-            <td>₹{{ order.total_amount }}</td>
-
-            <td>{{ order.order_date }}</td>
-
-        </tr>
-
-        {% endfor %}
-
-    </table>
-
-</div>
-
-</body>
-
-</html>
+{% endblock %}
