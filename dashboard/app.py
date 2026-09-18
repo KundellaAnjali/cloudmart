@@ -94,7 +94,47 @@ def get_alarm_state(alarm_name):
 
 
 @app.route("/")
-def home():
+def dashboard():
+
+    return render_template(
+        "dashboard.html"
+    )
+
+@app.route("/products")
+def products():
+    return render_template("products.html")
+
+
+@app.route("/orders")
+def orders():
+    return render_template("orders.html")
+
+
+@app.route("/customers")
+def customers():
+    return render_template("customers.html")
+
+
+@app.route("/reports")
+def reports():
+    return render_template("reports.html")
+
+
+@app.route("/metrics")
+def metrics():
+    return render_template("metrics.html")
+
+
+@app.route("/alerts")
+def alerts():
+    return render_template("alerts.html")
+
+
+@app.route("/health")
+def health():
+    return render_template("health.html")
+
+def old_dashboard():
 
     conn = get_connection()
 

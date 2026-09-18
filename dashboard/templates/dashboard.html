@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>CloudMart Operations Portal</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Segoe UI',sans-serif;
+}
+
+body{
+    background:#f4f6f9;
+}
+
+.header{
+
+    background:
+    linear-gradient(
+        135deg,
+        #0f172a,
+        #1e40af
+    );
+
+    color:white;
+
+    text-align:center;
+
+    padding:30px;
+}
+
+.header h1{
+    font-size:50px;
+}
+
+.main{
+
+    display:flex;
+
+    min-height:
+    calc(100vh - 120px);
+}
+
+.sidebar{
+
+    width:280px;
+
+    background:white;
+
+    box-shadow:
+    2px 0 10px rgba(0,0,0,.1);
+}
+
+.sidebar a{
+
+    display:block;
+
+    padding:20px;
+
+    color:#1e293b;
+
+    text-decoration:none;
+
+    font-size:18px;
+
+    cursor:pointer;
+
+    transition:.3s;
+}
+
+.sidebar a:hover{
+
+    background:#eff6ff;
+
+    color:#2563eb;
+
+}
+
+.content{
+
+    flex:1;
+
+    padding:30px;
+
+}
+
+.card{
+
+    background:white;
+
+    border-radius:20px;
+
+    padding:30px;
+
+    box-shadow:
+    0 5px 20px rgba(0,0,0,.1);
+
+}
+
+.section{
+
+    display:none;
+}
+
+#dashboard{
+
+    display:block;
+}
+
+h2{
+
+    margin-bottom:20px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="header">
+
+    <h1>☁️ CloudMart Operations Portal</h1>
+
+</div>
+
+<div class="main">
+
+    <div class="sidebar">
+
+        <a onclick="showSection('dashboard')">
+            📊 Dashboard
+        </a>
+
+        <a onclick="showSection('products')">
+            📦 Products & Inventory
+        </a>
+
+        <a onclick="showSection('orders')">
+            🛒 Orders
+        </a>
+
+        <a onclick="showSection('customers')">
+            👥 Customers
+        </a>
+
+        <a onclick="showSection('reports')">
+            📄 Reports
+        </a>
+
+        <a onclick="showSection('metrics')">
+            📈 CloudWatch Metrics
+        </a>
+
+        <a onclick="showSection('alerts')">
+            🚨 Alerts
+        </a>
+
+        <a onclick="showSection('health')">
+            ❤️ System Health
+        </a>
+
+    </div>
+
+    <div class="content">
+
+        <div id="dashboard" class="section card">
+
+            <h2>📊 Dashboard</h2>
+
+            <p>
+                Business KPIs will appear here.
+            </p>
+
+        </div>
+
+        <div id="products" class="section card">
+
+            <h2>📦 Products & Inventory</h2>
+
+            <p>
+                Product details and inventory data will appear here.
+            </p>
+
+        </div>
+
+        <div id="orders" class="section card">
+
+            <h2>🛒 Orders</h2>
+
+            <p>
+                Orders dashboard will appear here.
+            </p>
+
+        </div>
+
+        <div id="customers" class="section card">
+
+            <h2>👥 Customers</h2>
+
+            <p>
+                Customer information will appear here.
+            </p>
+
+        </div>
+
+        <div id="reports" class="section card">
+
+            <h2>📄 Reports</h2>
+
+            <p>
+                Reports available for download will appear here.
+            </p>
+
+        </div>
+
+        <div id="metrics" class="section card">
+
+            <h2>📈 CloudWatch Metrics</h2>
+
+            <p>
+                CloudWatch metrics will appear here.
+            </p>
+
+        </div>
+
+        <div id="alerts" class="section card">
+
+            <h2>🚨 Alerts</h2>
+
+            <p>
+                Failed Orders, Low Stock and other alerts will appear here.
+            </p>
+
+        </div>
+
+        <div id="health" class="section card">
+
+            <h2>❤️ System Health</h2>
+
+            <p>
+                RDS, Lambda, CPU, S3, SNS health will appear here.
+            </p>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+function showSection(sectionId){
+
+    let sections =
+        document.querySelectorAll('.section');
+
+    sections.forEach(function(section){
+
+        section.style.display='none';
+
+    });
+
+    document
+        .getElementById(sectionId)
+        .style.display='block';
+}
+
+</script>
+
+</body>
+
+</html>
