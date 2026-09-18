@@ -222,7 +222,7 @@ Resources:
       Roles:
         - CloudMart-EC2Dashboard-Role
 
-  DashboardEc2:
+  Dashboard:
     Type: AWS::EC2::Instance
 
     Properties:
@@ -242,7 +242,7 @@ Resources:
 
       Tags:
         - Key: Name
-          Value: DashboardEc2
+          Value: Dashboard
 
       UserData:
         Fn::Base64: !Sub |
@@ -328,4 +328,4 @@ Outputs:
   DashboardPublicIP:
     Description: Dashboard EC2 Public IP
 
-    Value: !GetAtt DashboardEc2.PublicIp
+    Value: !GetAtt Dashboard.PublicIp
