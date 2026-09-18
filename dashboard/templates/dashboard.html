@@ -1,43 +1,543 @@
-{% extends "layout.html" %}
+<!DOCTYPE html>
+<html>
 
-{% block content %}
+<head>
 
-<h2>📊 Dashboard</h2>
+<title>CloudMart Operations Portal</title>
 
-<br>
+<style>
 
-<div class="kpis">
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Segoe UI',sans-serif;
+}
 
-    <div class="kpi-card">
-        <h3>Total Products</h3>
-        <p>{{ total_products }}</p>
+body{
+    background:#f4f6f9;
+}
+
+.header{
+
+    background:
+    linear-gradient(
+        135deg,
+        #0f172a,
+        #1e40af
+    );
+
+    color:white;
+
+    text-align:center;
+
+    padding:30px;
+}
+
+.header h1{
+    font-size:50px;
+}
+
+.main{
+    display:flex;
+    min-height:calc(100vh - 120px);
+}
+
+.sidebar{
+
+    width:280px;
+
+    background:white;
+
+    box-shadow:
+    2px 0 10px rgba(0,0,0,.1);
+}
+
+.sidebar a{
+
+    display:block;
+
+    padding:20px;
+
+    color:#1e293b;
+
+    text-decoration:none;
+
+    font-size:18px;
+
+    cursor:pointer;
+
+    transition:.3s;
+}
+
+.sidebar a:hover{
+
+    background:#eff6ff;
+
+    color:#2563eb;
+}
+
+.content{
+
+    flex:1;
+
+    padding:30px;
+}
+
+.section{
+
+    display:none;
+}
+
+#dashboard{
+
+    display:block;
+}
+
+.kpis{
+
+    display:grid;
+
+    grid-template-columns:
+    repeat(auto-fit,minmax(220px,1fr));
+
+    gap:20px;
+}
+
+.kpi-card{
+
+    background:white;
+
+    padding:20px;
+
+    border-radius:15px;
+
+    text-align:center;
+
+    box-shadow:
+    0 3px 10px rgba(0,0,0,.1);
+}
+
+.kpi-card p{
+
+    font-size:28px;
+
+    font-weight:bold;
+
+    color:#2563eb;
+}
+
+table{
+
+    width:100%;
+
+    border-collapse:collapse;
+
+    background:white;
+
+    margin-top:20px;
+
+    box-shadow:
+    0 3px 10px rgba(0,0,0,.1);
+
+}
+
+th{
+
+    background:#2563eb;
+
+    color:white;
+
+    padding:15px;
+}
+
+td{
+
+    padding:12px;
+
+    border-bottom:1px solid #ddd;
+}
+
+.section-card{
+
+    background:white;
+
+    padding:25px;
+
+    border-radius:15px;
+
+    box-shadow:
+    0 3px 10px rgba(0,0,0,.1);
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="header">
+
+    <h1>☁️ CloudMart Operations Portal</h1>
+
+</div>
+
+<div class="main">
+
+    <div class="sidebar">
+
+        <a onclick="showSection('dashboard')">
+            📊 Dashboard
+        </a>
+
+        <a onclick="showSection('products')">
+            📦 Products & Inventory
+        </a>
+
+        <a onclick="showSection('orders')">
+            🛒 Orders
+        </a>
+
+        <a onclick="showSection('customers')">
+            👥 Customers
+        </a>
+
+        <a onclick="showSection('reports')">
+            📄 Reports
+        </a>
+
+        <a onclick="showSection('metrics')">
+            📈 CloudWatch Metrics
+        </a>
+
+        <a onclick="showSection('alerts')">
+            🚨 Alerts
+        </a>
+
+        <a onclick="showSection('health')">
+            ❤️ System Health
+        </a>
+
     </div>
 
-    <div class="kpi-card">
-        <h3>Total Orders</h3>
-        <p>{{ total_orders }}</p>
-    </div>
+    <div class="content">
 
-    <div class="kpi-card">
-        <h3>Total Customers</h3>
-        <p>{{ total_customers }}</p>
-    </div>
+        <!-- DASHBOARD -->
 
-    <div class="kpi-card">
-        <h3>Total Revenue</h3>
-        <p>₹{{ revenue }}</p>
-    </div>
+        <div id="dashboard" class="section">
 
-    <div class="kpi-card">
-        <h3>Low Stock Products</h3>
-        <p>{{ low_stock }}</p>
-    </div>
+            <h2>📊 Dashboard</h2>
 
-    <div class="kpi-card">
-        <h3>Failed Orders</h3>
-        <p>{{ failed_orders }}</p>
+            <br>
+
+            <div class="kpis">
+
+                <div class="kpi-card">
+                    <h3>Total Products</h3>
+                    <p>{{ total_products }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>Total Orders</h3>
+                    <p>{{ total_orders }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>Total Customers</h3>
+                    <p>{{ total_customers }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>Total Revenue</h3>
+                    <p>₹{{ revenue }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>Low Stock</h3>
+                    <p>{{ low_stock }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>Failed Orders</h3>
+                    <p>{{ failed_orders }}</p>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- PRODUCTS -->
+
+        <div id="products" class="section">
+
+            <div class="section-card">
+
+                <h2>📦 Products & Inventory</h2>
+
+                <table>
+
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                    </tr>
+
+                    {% for product in products %}
+
+                    <tr>
+
+                        <td>{{ product.product_id }}</td>
+                        <td>{{ product.product_name }}</td>
+                        <td>{{ product.category }}</td>
+                        <td>₹{{ product.price }}</td>
+                        <td>{{ product.stock_count }}</td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </table>
+
+            </div>
+
+        </div>
+
+        <!-- ORDERS -->
+
+        <div id="orders" class="section">
+
+            <div class="section-card">
+
+                <h2>🛒 Orders</h2>
+
+                <table>
+
+                    <tr>
+
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Status</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+
+                    </tr>
+
+                    {% for order in orders %}
+
+                    <tr>
+
+                        <td>{{ order.order_id }}</td>
+                        <td>{{ order.customer_id }}</td>
+                        <td>{{ order.order_status }}</td>
+                        <td>₹{{ order.total_amount }}</td>
+                        <td>{{ order.order_date }}</td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </table>
+
+            </div>
+
+        </div>
+
+        <!-- CUSTOMERS -->
+
+        <div id="customers" class="section">
+
+            <div class="section-card">
+
+                <h2>👥 Customers</h2>
+
+                <table>
+
+                    <tr>
+
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+
+                    </tr>
+
+                    {% for customer in customers %}
+
+                    <tr>
+
+                        <td>{{ customer.customer_id }}</td>
+                        <td>{{ customer.customer_name }}</td>
+                        <td>{{ customer.customer_email }}</td>
+                        <td>{{ customer.role }}</td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </table>
+
+            </div>
+
+        </div>
+
+        <!-- REPORTS -->
+
+        <div id="reports" class="section">
+
+            <div class="section-card">
+
+                <h2>📄 Reports</h2>
+
+                <table>
+
+                    <tr>
+                        <th>Report Name</th>
+                        <th>Date</th>
+                    </tr>
+
+                    {% for report in reports %}
+
+                    <tr>
+
+                        <td>{{ report.name }}</td>
+                        <td>{{ report.date }}</td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </table>
+
+            </div>
+
+        </div>
+
+        <!-- METRICS -->
+
+        <div id="metrics" class="section">
+
+            <h2>📈 CloudWatch Metrics</h2>
+
+            <div class="kpis">
+
+                <div class="kpi-card">
+                    <h3>Products Created</h3>
+                    <p>{{ products_created }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>Orders Created</h3>
+                    <p>{{ orders_created }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>Failed Orders</h3>
+                    <p>{{ failed_orders_metric }}</p>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ALERTS -->
+
+        <div id="alerts" class="section">
+
+            <div class="section-card">
+
+                <h2>🚨 Alerts</h2>
+
+                <table>
+
+                    <tr>
+                        <th>Alert</th>
+                        <th>Status</th>
+                    </tr>
+
+                    <tr>
+                        <td>Failed Orders</td>
+                        <td>{{ failed_orders_alarm }}</td>
+                    </tr>
+
+                    <tr>
+                        <td>Low Stock</td>
+                        <td>{{ low_stock_alarm }}</td>
+                    </tr>
+
+                    <tr>
+                        <td>Unauthorized Requests</td>
+                        <td>{{ unauthorized_alarm }}</td>
+                    </tr>
+
+                    <tr>
+                        <td>Report Failure</td>
+                        <td>{{ report_alarm }}</td>
+                    </tr>
+
+                </table>
+
+            </div>
+
+        </div>
+
+        <!-- HEALTH -->
+
+        <div id="health" class="section">
+
+            <div class="section-card">
+
+                <h2>❤️ System Health</h2>
+
+                <table>
+
+                    <tr>
+                        <th>Service</th>
+                        <th>Status</th>
+                    </tr>
+
+                    {% for service, status in health_status.items() %}
+
+                    <tr>
+
+                        <td>{{ service }}</td>
+                        <td>{{ status }}</td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </table>
+
+            </div>
+
+        </div>
+
     </div>
 
 </div>
 
-{% endblock %}
+<script>
+
+function showSection(sectionId){
+
+    let sections =
+        document.querySelectorAll('.section');
+
+    sections.forEach(function(section){
+
+        section.style.display='none';
+
+    });
+
+    document
+        .getElementById(sectionId)
+        .style.display='block';
+}
+
+</script>
+
+</body>
+
+</html>
