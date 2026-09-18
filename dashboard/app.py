@@ -9,10 +9,18 @@ ENVIRONMENT = "dev"
 
 # AWS Clients
 
-ssm = boto3.client("ssm")
-s3 = boto3.client("s3")
-cloudwatch = boto3.client("cloudwatch")
-
+ssm = boto3.client(
+    "ssm",
+    region_name="ap-south-1"
+)
+s3 = boto3.client(
+    "s3",
+    region_name="ap-south-1"
+)
+cloudwatch = boto3.client(
+    "cloudwatch",
+    region_name="ap-south-1"
+)
 # Database Parameters
 
 DB_HOST = ssm.get_parameter(
