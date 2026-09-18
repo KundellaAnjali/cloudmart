@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Reports</title>
+
+<style>
+
+body{
+    font-family:Segoe UI;
+    background:#f4f6f9;
+    margin:0;
+}
+
+.container{
+    padding:30px;
+}
+
+table{
+
+    width:100%;
+
+    border-collapse:collapse;
+
+    background:white;
+
+    box-shadow:
+    0 4px 12px rgba(0,0,0,.1);
+
+}
+
+th{
+
+    background:#2563eb;
+
+    color:white;
+
+    padding:15px;
+
+}
+
+td{
+
+    padding:12px;
+
+    border-bottom:1px solid #ddd;
+
+}
+
+.download{
+
+    background:#16a34a;
+
+    color:white;
+
+    text-decoration:none;
+
+    padding:8px 15px;
+
+    border-radius:8px;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>📄 Business Reports</h1>
+
+<br>
+
+<table>
+
+<tr>
+
+    <th>Report Name</th>
+
+    <th>Generated Date</th>
+
+    <th>Download</th>
+
+</tr>
+
+{% for report in reports %}
+
+<tr>
+
+    <td>
+
+        {{ report.name }}
+
+    </td>
+
+    <td>
+
+        {{ report.date }}
+
+    </td>
+
+    <td>
+
+        <a
+        class="download"
+    >
+
+    </td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+</body>
+
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Products & Inventory</title>
+
+<style>
+
+body{
+    font-family:Segoe UI;
+    background:#f4f6f9;
+    margin:0;
+}
+
+.container{
+    padding:30px;
+}
+
+h1{
+    color:#1e293b;
+}
+
+table{
+
+    width:100%;
+
+    border-collapse:collapse;
+
+    background:white;
+
+    box-shadow:
+    0 5px 15px rgba(0,0,0,.1);
+
+}
+
+th{
+
+    background:#2563eb;
+
+    color:white;
+
+    padding:15px;
+
+}
+
+td{
+
+    padding:12px;
+
+    border-bottom:1px solid #ddd;
+
+}
+
+.low{
+
+    color:red;
+
+    font-weight:bold;
+
+}
+
+.available{
+
+    color:green;
+
+    font-weight:bold;
+
+}
+
+.out{
+
+    color:red;
+
+    font-weight:bold;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>📦 Products & Inventory</h1>
+
+<br>
+
+<table>
+
+<tr>
+
+<th>ID</th>
+
+<th>Product Name</th>
+
+<th>Category</th>
+
+<th>Price</th>
+
+<th>Stock</th>
+
+<th>Status</th>
+
+</tr>
+
+{% for product in products %}
+
+<tr>
+
+<td>{{ product.product_id }}</td>
+
+<td>{{ product.product_name }}</td>
+
+<td>{{ product.category }}</td>
+
+<td>₹{{ product.price }}</td>
+
+<td>{{ product.stock_count }}</td>
+
+<td>
+
+{% if product.stock_count == 0 %}
+
+<span class="out">
+
+OUT OF STOCK
+
+</span>
+
+{% elif product.stock_count < 10 %}
+
+<span class="low">
+
+LOW STOCK
+
+</span>
+
+{% else %}
+
+<span class="available">
+
+AVAILABLE
+
+</span>
+
+{% endif %}
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+</body>
+
+</html>

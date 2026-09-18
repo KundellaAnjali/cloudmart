@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Alerts</title>
+
+<style>
+
+body{
+    font-family:Segoe UI;
+    background:#f4f6f9;
+    margin:0;
+}
+
+.container{
+    padding:30px;
+}
+
+table{
+
+    width:100%;
+
+    border-collapse:collapse;
+
+    background:white;
+
+    box-shadow:
+    0 4px 12px rgba(0,0,0,.1);
+
+}
+
+th{
+
+    background:#dc2626;
+
+    color:white;
+
+    padding:15px;
+
+}
+
+td{
+
+    padding:15px;
+
+    border-bottom:1px solid #ddd;
+
+}
+
+.ok{
+
+    color:green;
+
+    font-weight:bold;
+
+}
+
+.alarm{
+
+    color:red;
+
+    font-weight:bold;
+
+}
+
+.warning{
+
+    color:orange;
+
+    font-weight:bold;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🚨 Alerts Dashboard</h1>
+
+<br>
+
+<table>
+
+<tr>
+    <th>Alarm</th>
+    <th>Status</th>
+</tr>
+
+<tr>
+    <td>Failed Orders Alarm</td>
+
+    <td>
+
+        {% if failed_orders_alarm == "ALARM" %}
+            <span class="alarm">
+                {{ failed_orders_alarm }}
+            </span>
+
+        {% elif failed_orders_alarm == "OK" %}
+            <span class="ok">
+                {{ failed_orders_alarm }}
+            </span>
+
+        {% else %}
+            <span class="warning">
+                {{ failed_orders_alarm }}
+            </span>
+        {% endif %}
+
+    </td>
+
+</tr>
+
+<tr>
+
+    <td>Low Stock Products Alarm</td>
+
+    <td>
+
+        {% if low_stock_alarm == "ALARM" %}
+            <span class="alarm">
+                {{ low_stock_alarm }}
+            </span>
+
+        {% elif low_stock_alarm == "OK" %}
+            <span class="ok">
+                {{ low_stock_alarm }}
+            </span>
+
+        {% else %}
+            <span class="warning">
+                {{ low_stock_alarm }}
+            </span>
+        {% endif %}
+
+    </td>
+
+</tr>
+
+<tr>
+
+    <td>Unauthorized Requests Alarm</td>
+
+    <td>
+
+        {% if unauthorized_alarm == "ALARM" %}
+            <span class="alarm">
+                {{ unauthorized_alarm }}
+            </span>
+
+        {% elif unauthorized_alarm == "OK" %}
+            <span class="ok">
+                {{ unauthorized_alarm }}
+            </span>
+
+        {% else %}
+            <span class="warning">
+                {{ unauthorized_alarm }}
+            </span>
+        {% endif %}
+
+    </td>
+
+</tr>
+
+<tr>
+
+    <td>Report Generation Failure Alarm</td>
+
+    <td>
+
+        {% if report_alarm == "ALARM" %}
+            <span class="alarm">
+                {{ report_alarm }}
+            </span>
+
+        {% elif report_alarm == "OK" %}
+            <span class="ok">
+                {{ report_alarm }}
+            </span>
+
+        {% else %}
+            <span class="warning">
+                {{ report_alarm }}
+            </span>
+        {% endif %}
+
+    </td>
+
+</tr>
+
+</table>
+
+</div>
+
+</body>
+
+</html>

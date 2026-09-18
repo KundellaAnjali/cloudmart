@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>CloudWatch Metrics</title>
+
+<style>
+
+body{
+    font-family:Segoe UI;
+    background:#f4f6f9;
+    margin:0;
+}
+
+.container{
+    padding:30px;
+}
+
+.cards{
+
+    display:grid;
+
+    grid-template-columns:
+    repeat(auto-fit,minmax(250px,1fr));
+
+    gap:20px;
+
+}
+
+.card{
+
+    background:white;
+
+    border-radius:15px;
+
+    padding:25px;
+
+    text-align:center;
+
+    box-shadow:
+    0 4px 12px rgba(0,0,0,.1);
+
+}
+
+.card h3{
+
+    color:#334155;
+
+    margin-bottom:10px;
+
+}
+
+.card p{
+
+    color:#2563eb;
+
+    font-size:30px;
+
+    font-weight:bold;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>📈 CloudWatch Metrics</h1>
+
+<br>
+
+<div class="cards">
+
+    <div class="card">
+        <h3>Products Created</h3>
+        <p>{{ products_created }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Orders Created</h3>
+        <p>{{ orders_created }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Failed Orders</h3>
+        <p>{{ failed_orders }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Authorized Requests</h3>
+        <p>{{ authorized_requests }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Reports Generated</h3>
+        <p>{{ reports_generated }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Report Upload Success</h3>
+        <p>{{ report_upload_success }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Report Generation Failures</h3>
+        <p>{{ report_generation_failures }}</p>
+    </div>
+
+</div>
+
+</div>
+
+</body>
+
+</html>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>System Health</title>
+
+<style>
+
+body{
+    font-family:Segoe UI;
+    background:#f4f6f9;
+    margin:0;
+}
+
+.container{
+    padding:30px;
+}
+
+table{
+
+    width:100%;
+
+    border-collapse:collapse;
+
+    background:white;
+
+    box-shadow:
+    0 4px 12px rgba(0,0,0,.1);
+
+}
+
+th{
+
+    background:#475569;
+
+    color:white;
+
+    padding:15px;
+
+}
+
+td{
+
+    padding:15px;
+
+    border-bottom:1px solid #ddd;
+
+}
+
+.healthy{
+
+    color:green;
+
+    font-weight:bold;
+}
+
+.unhealthy{
+
+    color:red;
+
+    font-weight:bold;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>❤️ System Health</h1>
+
+<br>
+
+<table>
+
+<tr>
+    <th>Service</th>
+    <th>Status</th>
+</tr>
+
+{% for service, status in health_status.items() %}
+
+<tr>
+
+    <td>{{ service }}</td>
+
+    <td>
+
+        {% if status == "Healthy" %}
+
+            <span class="healthy">
+                ✅ {{ status }}
+            </span>
+
+        {% else %}
+
+            <span class="unhealthy">
+                ❌ {{ status }}
+            </span>
+
+        {% endif %}
+
+    </td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+</body>
+
+</html>

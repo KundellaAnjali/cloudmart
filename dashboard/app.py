@@ -93,46 +93,378 @@ def get_alarm_state(alarm_name):
     return alarms[0]["StateValue"]
 
 
+
 @app.route("/")
 def dashboard():
 
-    return render_template(
-        "dashboard.html"
-    )
+    conn = get_connection()
+
+    try:
+
+        with conn.cursor() as cursor:
+
+            cursor.execute("""
+                SELECT COUNT(*) total_products
+                FROM product
+                WHERE is_active = TRUE
+            """)
+            total_products = cursor.fetchone()["total_products"]
+
+            cursor.execute("""
+                SELECT COUNT(*) total_orders
+                FROM orders
+            """)
+            total_orders = cursor.fetchone()["total_orders"]
+
+            cursor.execute("""
+                SELECT COUNT(*) total_customers
+                FROM customers
+                WHERE is_active = TRUE
+            """)
+            total_customers = cursor.fetchone()["total_customers"]
+
+            cursor.execute("""
+                SELECT COALESCE(
+                    SUM(total_amount),
+                    0
+                ) revenue
+                FROM orders
+                WHERE order_status='CONFIRMED'
+            """)
+            revenue = cursor.fetchone()["revenue"]
+
+            cursor.execute("""
+                SELECT COUNT(*) low_stock
+                FROM product
+                WHERE stock_count < 10
+            """)
+            low_stock = cursor.fetchone()["low_stock"]
+
+            cursor.execute("""
+                SELECT COUNT(*) failed_orders
+                FROM orders
+                WHERE order_status='CANCELLED'
+            """)
+            failed_orders = cursor.fetchone()["failed_orders"]
+
+        return render_template(
+            "dashboard.html",
+            total_products=total_products,
+            total_orders=total_orders,
+            total_customers=total_customers,
+            revenue=revenue,
+            low_stock=low_stock,
+            failed_orders=failed_orders
+        )
+
+    finally:
+
+        conn.close()
 
 @app.route("/products")
 def products():
-    return render_template("products.html")
+
+    conn = get_connection()
+
+    try:
+
+        with conn.cursor() as cursor:
+
+            cursor.execute("""
+                SELECT
+                    product_id,
+                    product_name,
+                    category,
+                    price,
+                    stock_count,
+                    is_active
+                FROM product
+                ORDER BY product_name
+            """)
+
+            products = cursor.fetchall()
+
+        return render_template(
+            "products.html",
+            products=products
+        )
+
+    finally:
+
+        conn.close()
 
 
 @app.route("/orders")
 def orders():
-    return render_template("orders.html")
+
+    conn = get_connection()
+
+    try:
+
+        with conn.cursor() as cursor:
+
+            cursor.execute("""
+                SELECT COUNT(*) total_orders
+                FROM orders
+            """)
+            total_orders = cursor.fetchone()["total_orders"]
+
+            cursor.execute("""
+                SELECT COUNT(*) confirmed_orders
+                FROM orders
+                WHERE order_status='CONFIRMED'
+            """)
+            confirmed_orders = cursor.fetchone()["confirmed_orders"]
+
+            cursor.execute("""
+                SELECT COUNT(*) cancelled_orders
+                FROM orders
+                WHERE order_status='CANCELLED'
+            """)
+            cancelled_orders = cursor.fetchone()["cancelled_orders"]
+
+            cursor.execute("""
+                SELECT
+                    COALESCE(
+                        SUM(total_amount),
+                        0
+                    ) revenue
+                FROM orders
+                WHERE order_status='CONFIRMED'
+            """)
+            revenue = cursor.fetchone()["revenue"]
+
+            cursor.execute("""
+                SELECT
+                    order_id,
+                    customer_id,
+                    order_status,
+                    total_amount,
+                    order_date
+                FROM orders
+                ORDER BY order_date DESC
+            """)
+            orders = cursor.fetchall()
+
+        return render_template(
+            "orders.html",
+            total_orders=total_orders,
+            confirmed_orders=confirmed_orders,
+            cancelled_orders=cancelled_orders,
+            revenue=revenue,
+            orders=orders
+        )
+
+    finally:
+
+        conn.close()
 
 
 @app.route("/customers")
 def customers():
-    return render_template("customers.html")
+
+    conn = get_connection()
+
+    try:
+
+        with conn.cursor() as cursor:
+
+            cursor.execute("""
+                SELECT
+                    customer_id,
+                    customer_name,
+                    customer_email,
+                    role,
+                    is_active,
+                    created_at
+                FROM customers
+                ORDER BY customer_name
+            """)
+
+            customers = cursor.fetchall()
+
+            cursor.execute("""
+                SELECT COUNT(*) total_customers
+                FROM customers
+                WHERE is_active = TRUE
+            """)
+
+            total_customers = cursor.fetchone()["total_customers"]
+
+        return render_template(
+            "customers.html",
+            customers=customers,
+            total_customers=total_customers
+        )
+
+    finally:
+
+        conn.close()
 
 
 @app.route("/reports")
 def reports():
-    return render_template("reports.html")
+
+    response = s3.list_objects_v2(
+        Bucket=REPORTS_BUCKET,
+        Prefix="reports/"
+    )
+
+    reports = []
+
+    if "Contents" in response:
+
+        for report in sorted(
+            response["Contents"],
+            key=lambda x: x["LastModified"],
+            reverse=True
+        ):
+
+            reports.append({
+
+                "name":
+                report["Key"].split("/")[-1],
+
+                "key":
+                report["Key"],
+
+                "date":
+                report["LastModified"]
+
+            })
+
+    return render_template(
+        "reports.html",
+        reports=reports
+    )
 
 
 @app.route("/metrics")
 def metrics():
-    return render_template("metrics.html")
+
+    products_created = get_metric_value(
+        "ProductsCreated"
+    )
+
+    orders_created = get_metric_value(
+        "OrdersCreated"
+    )
+
+    failed_orders = get_metric_value(
+        "FailedOrders"
+    )
+
+    authorized_requests = get_metric_value(
+        "AuthorizedRequests"
+    )
+
+    reports_generated = get_metric_value(
+        "ReportsGenerated"
+    )
+
+    report_upload_success = get_metric_value(
+        "ReportUploadSuccess"
+    )
+
+    report_generation_failures = get_metric_value(
+        "ReportGenerationFailures"
+    )
+
+    return render_template(
+        "metrics.html",
+        products_created=products_created,
+        orders_created=orders_created,
+        failed_orders=failed_orders,
+        authorized_requests=authorized_requests,
+        reports_generated=reports_generated,
+        report_upload_success=report_upload_success,
+        report_generation_failures=report_generation_failures
+    )
 
 
 @app.route("/alerts")
 def alerts():
-    return render_template("alerts.html")
+
+    failed_orders_alarm = get_alarm_state(
+        "CloudMart-FailedOrders"
+    )
+
+    low_stock_alarm = get_alarm_state(
+        "CloudMart-LowStockProducts"
+    )
+
+    unauthorized_alarm = get_alarm_state(
+        "CloudMart-UnauthorizedRequests"
+    )
+
+    report_alarm = get_alarm_state(
+        "CloudMart-ReportGenerationFailures"
+    )
+
+    return render_template(
+        "alerts.html",
+        failed_orders_alarm=failed_orders_alarm,
+        low_stock_alarm=low_stock_alarm,
+        unauthorized_alarm=unauthorized_alarm,
+        report_alarm=report_alarm
+    )
 
 
 @app.route("/health")
 def health():
-    return render_template("health.html")
+
+    health_status = {}
+
+    try:
+        conn = get_connection()
+        conn.close()
+
+        health_status["RDS"] = "Healthy"
+
+    except:
+        health_status["RDS"] = "Unhealthy"
+
+    try:
+
+        s3.list_objects_v2(
+            Bucket=REPORTS_BUCKET,
+            MaxKeys=1
+        )
+
+        health_status["S3"] = "Healthy"
+
+    except:
+
+        health_status["S3"] = "Unhealthy"
+
+    try:
+
+        cloudwatch.list_metrics(
+            Namespace="CloudMart"
+        )
+
+        health_status["CloudWatch"] = "Healthy"
+
+    except:
+
+        health_status["CloudWatch"] = "Unhealthy"
+
+    try:
+
+        ssm.get_parameter(
+            Name=f"/cloudmart/{ENVIRONMENT}/db/host"
+        )
+
+        health_status["Parameter Store"] = "Healthy"
+
+    except:
+
+        health_status["Parameter Store"] = "Unhealthy"
+
+    return render_template(
+        "health.html",
+        health_status=health_status
+    )
 
 def old_dashboard():
 
