@@ -424,9 +424,9 @@ def dashboard():
             health_status=health_status
         )
 
-finally:
+    finally:
 
-    conn.close()
+        conn.close()
 
 
 @app.route("/view-report/<path:key>")
