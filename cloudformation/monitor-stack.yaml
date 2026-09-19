@@ -222,7 +222,7 @@ Resources:
       Roles:
         - CloudMart-EC2Dashboard-Role
 
-  Ec2DashboardVAA:
+  Ec2DashboardVA:
     Type: AWS::EC2::Instance
 
     Properties:
