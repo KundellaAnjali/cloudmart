@@ -88,9 +88,14 @@ def get_alarm_state(alarm_name):
     alarms = response["MetricAlarms"]
 
     if not alarms:
-        return "UNKNOWN"
+        return "0"
 
-    return alarms[0]["StateValue"]
+    state = alarms[0]["StateValue"]
+
+    if state == "INSUFFICIENT_DATA":
+        return "0"
+
+    return state
 
 
 
@@ -191,6 +196,67 @@ def dashboard():
             """)
             customers = cursor.fetchall()
 
+            # Best Selling Product
+
+            cursor.execute("""
+                SELECT
+                    p.product_name,
+                    SUM(oi.quantity) total_sold
+                FROM order_items oi
+                JOIN product p
+                    ON oi.product_id = p.product_id
+                GROUP BY p.product_name
+                ORDER BY total_sold DESC
+                LIMIT 1
+            """)
+
+            best_product = cursor.fetchone()
+
+            # Lowest Selling Product
+
+            cursor.execute("""
+                SELECT
+                    p.product_name,
+                    SUM(oi.quantity) total_sold
+                FROM order_items oi
+                JOIN product p
+                    ON oi.product_id = p.product_id
+                GROUP BY p.product_name
+                ORDER BY total_sold ASC
+                LIMIT 1
+            """)
+
+            lowest_product = cursor.fetchone()
+
+            # Highest Spending Customer
+
+            cursor.execute("""
+                SELECT
+                    customer_id,
+                    SUM(total_amount) total_spent
+                FROM orders
+                WHERE order_status='CONFIRMED'
+                GROUP BY customer_id
+                ORDER BY total_spent DESC
+                LIMIT 1
+            """)
+
+            top_spender = cursor.fetchone()
+
+            # Customer With Most Orders
+
+            cursor.execute("""
+                SELECT
+                    customer_id,
+                    COUNT(*) total_orders
+                FROM orders
+                GROUP BY customer_id
+                ORDER BY total_orders DESC
+                LIMIT 1
+            """)
+
+            top_customer = cursor.fetchone()
+
         # Reports
 
         response = s3.list_objects_v2(
@@ -210,9 +276,9 @@ def dashboard():
 
                 reports.append({
                     "name": report["Key"].split("/")[-1],
-                    "date": report["LastModified"]
+                    "date": report["LastModified"],
+                    "url": f"https://{REPORTS_BUCKET}.s3.amazonaws.com/{report['Key']}"
                 })
-
         # Metrics
 
         products_created = get_metric_value(
@@ -297,6 +363,8 @@ def dashboard():
         except:
             health_status["Parameter Store"] = "Unhealthy"
 
+        
+
         return render_template(
 
             "dashboard.html",
@@ -325,6 +393,10 @@ def dashboard():
             low_stock_alarm=low_stock_alarm,
             unauthorized_alarm=unauthorized_alarm,
             report_alarm=report_alarm,
+            best_product=best_product,
+            lowest_product=lowest_product,
+            top_spender=top_spender,
+            top_customer=top_customer,
 
             health_status=health_status
         )

@@ -169,6 +169,24 @@ td{
     box-shadow:
     0 3px 10px rgba(0,0,0,.1);
 }
+.btn{
+
+    background:#2563eb;
+
+    color:white;
+
+    padding:8px 15px;
+
+    text-decoration:none;
+
+    border-radius:5px;
+
+}
+
+.btn:hover{
+
+    background:#1d4ed8;
+}
 
 </style>
 
@@ -248,7 +266,7 @@ td{
                 </div>
 
                 <div class="kpi-card">
-                    <h3>Total Revenue</h3>
+                    <h3>Total Sales</h3>
                     <p>₹{{ revenue }}</p>
                 </div>
 
@@ -264,7 +282,34 @@ td{
 
             </div>
 
+            <br><br>
+
+            <div class="kpis">
+
+                <div class="kpi-card">
+                    <h3>🏆 Best Selling Product</h3>
+                    <p>{{ best_product.product_name }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>📉 Lowest Selling Product</h3>
+                    <p>{{ lowest_product.product_name }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>💰 Highest Spending Customer</h3>
+                    <p>{{ top_spender.customer_id }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>👤 Customer With Most Orders</h3>
+                    <p>{{ top_customer.customer_id }}</p>
+                </div>
+
+            </div>
+
         </div>
+
 
         <!-- PRODUCTS -->
 
@@ -282,6 +327,7 @@ td{
                         <th>Category</th>
                         <th>Price</th>
                         <th>Stock</th>
+                        <th>Status</th>
                     </tr>
 
                     {% for product in products %}
@@ -293,6 +339,20 @@ td{
                         <td>{{ product.category }}</td>
                         <td>₹{{ product.price }}</td>
                         <td>{{ product.stock_count }}</td>
+
+                        <td>
+
+                        {% if product.stock_count > 0 %}
+
+                        ✅ Available
+
+                        {% else %}
+
+                        ❌ Out of Stock
+
+                        {% endif %}
+
+                        </td>
 
                     </tr>
 
@@ -395,6 +455,8 @@ td{
                     <tr>
                         <th>Report Name</th>
                         <th>Date</th>
+                        <th>View</th>
+                        <th>Download</th>
                     </tr>
 
                     {% for report in reports %}
@@ -402,7 +464,21 @@ td{
                     <tr>
 
                         <td>{{ report.name }}</td>
+
                         <td>{{ report.date }}</td>
+
+                        <td>
+                            {{ report.url }}
+                            View
+                            </a>
+                        </td>
+
+                        <td>
+                            {{ report.url }}
+                            Download
+                            </a>
+                        </td>
+
 
                     </tr>
 
@@ -472,7 +548,7 @@ td{
                     </tr>
 
                     <tr>
-                        <td>Report Failure</td>
+                        <td>Report Generation Failure</td>
                         <td>{{ report_alarm }}</td>
                     </tr>
 
