@@ -476,13 +476,13 @@ td{
                         <td>{{ report.date }}</td>
 
                         <td>
-                            {{ report.url }}
+                            /view-report/{{ report.key }}
                             View
                             </a>
                         </td>
 
                         <td>
-                            {{ report.url }}
+                            /download-report/{{ report.key }}
                             Download
                             </a>
                         </td>
@@ -523,6 +523,10 @@ td{
                 <div class="kpi-card">
                 <h3>Authorized Requests</h3>
                 <p>{{ authorized_requests }}</p>
+            </div>
+            <div class="kpi-card">
+                <h3>Unauthorized Requests</h3>
+                <p>{{ unauthorized_requests }}</p>
             </div>
 
             <div class="kpi-card">

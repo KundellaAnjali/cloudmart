@@ -1,4 +1,5 @@
-from flask import Flask, render_template
+
+from flask import Flask, render_template, redirect
 import boto3
 import pymysql
 from datetime import datetime, timedelta
@@ -291,7 +292,7 @@ def dashboard():
                 reports.append({
                     "name": report["Key"].split("/")[-1],
                     "date": report["LastModified"],
-                    "url": f"https://{REPORTS_BUCKET}.s3.amazonaws.com/{report['Key']}"
+                    "key": report["Key"]
                 })
         # Metrics
 
@@ -310,6 +311,11 @@ def dashboard():
         authorized_requests = get_metric_value(
             "AuthorizedRequests"
         )
+
+        unauthorized_requests = get_metric_value(
+            "UnauthorizedRequests"
+        )
+
 
         reports_generated = get_metric_value(
             "ReportsGenerated"
@@ -361,20 +367,24 @@ def dashboard():
         except:
             health_status["S3"] = "Unhealthy"
 
-        try:
-            cloudwatch.list_metrics(
-                Namespace="CloudMart"
-            )
-            health_status["CloudWatch"] = "Healthy"
-        except:
-            health_status["CloudWatch"] = "Unhealthy"
 
-        try:
-            ssm.get_parameter(
-                Name=f"/cloudmart/{ENVIRONMENT}/db/host"
+       try:
+
+            ssm.get_parameters(
+                Names=[
+                    f"/cloudmart/{ENVIRONMENT}/db/host",
+                    f"/cloudmart/{ENVIRONMENT}/db/name",
+                    f"/cloudmart/{ENVIRONMENT}/db/username",
+                    f"/cloudmart/{ENVIRONMENT}/db/password",
+                    f"/cloudmart/{ENVIRONMENT}/s3/reports-bucket"
+                ],
+                WithDecryption=True
             )
+
             health_status["Parameter Store"] = "Healthy"
+
         except:
+
             health_status["Parameter Store"] = "Unhealthy"
 
         
@@ -402,7 +412,7 @@ def dashboard():
             reports_generated=reports_generated,
             report_upload_success=report_upload_success,
             report_generation_failures=report_generation_failures,
-
+            unauthorized_requests=unauthorized_requests,
             failed_orders_alarm=failed_orders_alarm,
             low_stock_alarm=low_stock_alarm,
             unauthorized_alarm=unauthorized_alarm,
@@ -415,9 +425,41 @@ def dashboard():
             health_status=health_status
         )
 
-    finally:
+finally:
 
-        conn.close()
+    conn.close()
+
+
+@app.route("/view-report/<path:key>")
+def view_report(key):
+
+    url = s3.generate_presigned_url(
+        "get_object",
+        Params={
+            "Bucket": REPORTS_BUCKET,
+            "Key": key
+        },
+        ExpiresIn=3600
+    )
+
+    return redirect(url)
+
+@app.route("/download-report/<path:key>")
+def download_report(key):
+
+    url = s3.generate_presigned_url(
+        "get_object",
+        Params={
+            "Bucket": REPORTS_BUCKET,
+            "Key": key,
+            "ResponseContentDisposition":
+                f'attachment; filename="{key.split("/")[-1]}"'
+        },
+        ExpiresIn=3600
+    )
+
+    return redirect(url)
+
 
 if __name__ == "__main__":
-    app.run(host = "0.0.0.0",port=5000,debug=False)
+    app.run(host="0.0.0.0", port=5000, debug=False)
