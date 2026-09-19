@@ -469,28 +469,26 @@ td{
 
                     {% for report in reports %}
 
-                    <tr>
+<tr>
 
-                        <td>{{ report.name }}</td>
+    <td>{{ report.name }}</td>
 
-                        <td>{{ report.date }}</td>
+    <td>{{ report.date }}</td>
 
-                        <td>
-                            /view-report/{{ report.key }}
-                            View
-                            </a>
-                        </td>
+    <td>
+        <a href="/view-report/{{ report.key }}   View
+        </a>
+    </td>
 
-                        <td>
-                            /download-report/{{ report.key }}
-                            Download
-                            </a>
-                        </td>
+    <td>
+        /download-report/{{ report.key }}
+           Download
+        </a>
+    </td>
 
+</tr>
 
-                    </tr>
-
-                    {% endfor %}
+{% endfor %}
 
                 </table>
 

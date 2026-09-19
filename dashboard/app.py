@@ -443,6 +443,7 @@ def view_report(key):
 
     return redirect(url)
 
+
 @app.route("/download-report/<path:key>")
 def download_report(key):
 
@@ -458,7 +459,6 @@ def download_report(key):
     )
 
     return redirect(url)
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)
