@@ -298,12 +298,20 @@ td{
 
                 <div class="kpi-card">
                     <h3>💰 Highest Spending Customer</h3>
-                    <p>{{ top_spender.customer_id }}</p>
+                    <p>
+                        {{ top_spender.customer_name }}
+                        <br>
+                        (ID: {{ top_spender.customer_id }})
+                    </p>
                 </div>
 
                 <div class="kpi-card">
                     <h3>👤 Customer With Most Orders</h3>
-                    <p>{{ top_customer.customer_id }}</p>
+                    <p>
+                        {{ top_customer.customer_name }}
+                        <br>
+                        (ID: {{ top_customer.customer_id }})
+                    </p>
                 </div>
 
             </div>
@@ -512,6 +520,25 @@ td{
                     <h3>Failed Orders</h3>
                     <p>{{ failed_orders_metric }}</p>
                 </div>
+                <div class="kpi-card">
+                <h3>Authorized Requests</h3>
+                <p>{{ authorized_requests }}</p>
+            </div>
+
+            <div class="kpi-card">
+                <h3>Reports Generated</h3>
+                <p>{{ reports_generated }}</p>
+            </div>
+
+            <div class="kpi-card">
+                <h3>Report Upload Success</h3>
+                <p>{{ report_upload_success }}</p>
+            </div>
+
+            <div class="kpi-card">
+                <h3>Report Generation Failures</h3>
+                <p>{{ report_generation_failures }}</p>
+            </div>
 
             </div>
 

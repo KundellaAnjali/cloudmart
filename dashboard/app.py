@@ -88,14 +88,14 @@ def get_alarm_state(alarm_name):
     alarms = response["MetricAlarms"]
 
     if not alarms:
-        return "0"
+        return 0
 
     state = alarms[0]["StateValue"]
 
-    if state == "INSUFFICIENT_DATA":
-        return "0"
+    if state == "ALARM":
+        return 1
 
-    return state
+    return 0
 
 
 
@@ -232,14 +232,21 @@ def dashboard():
 
             cursor.execute("""
                 SELECT
-                    customer_id,
-                    SUM(total_amount) total_spent
-                FROM orders
-                WHERE order_status='CONFIRMED'
-                GROUP BY customer_id
+                    c.customer_id,
+                    c.customer_name,
+                    SUM(o.total_amount) total_spent
+                FROM orders o
+                JOIN customers c
+                    ON o.customer_id = c.customer_id
+                WHERE o.order_status = 'CONFIRMED'
+                GROUP BY
+                    c.customer_id,
+                    c.customer_name
                 ORDER BY total_spent DESC
                 LIMIT 1
             """)
+
+
 
             top_spender = cursor.fetchone()
 
@@ -247,15 +254,22 @@ def dashboard():
 
             cursor.execute("""
                 SELECT
-                    customer_id,
+                    c.customer_id,
+                    c.customer_name,
                     COUNT(*) total_orders
-                FROM orders
-                GROUP BY customer_id
+                FROM orders o
+                JOIN customers c
+                    ON o.customer_id = c.customer_id
+                GROUP BY
+                    c.customer_id,
+                    c.customer_name
                 ORDER BY total_orders DESC
                 LIMIT 1
             """)
 
             top_customer = cursor.fetchone()
+
+            
 
         # Reports
 
