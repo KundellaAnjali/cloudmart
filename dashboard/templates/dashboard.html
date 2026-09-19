@@ -454,6 +454,8 @@ td{
 
        <!-- REPORTS -->
 
+        <!-- REPORTS -->
+
         <div id="reports" class="section">
 
             <div class="section-card">
@@ -479,19 +481,25 @@ td{
 
                         <td>
                             <a href="{{ url_for('view_report', key=report.key) }}" target="_blank" class="btn">
-                                👁️ View
+                                 View
                             </a>
                         </td>
 
                         <td>
                             <a href="{{ url_for('download_report', key=report.key) }}" class="btn">
-                                📥 Download
+                                 Download
                             </a>
                         </td>
 
                     </tr>
 
                     {% endfor %}
+
+                </table>
+
+            </div>
+
+        </div>
 
                 </table>
 

@@ -432,11 +432,26 @@ def dashboard():
 @app.route("/view-report/<path:key>")
 def view_report(key):
 
+    # Infer content type from file extension
+    key_lower = key.lower()
+    if key_lower.endswith(".pdf"):
+        content_type = "application/pdf"
+    elif key_lower.endswith(".csv"):
+        content_type = "text/csv"
+    elif key_lower.endswith(".json"):
+        content_type = "application/json"
+    elif key_lower.endswith(".html"):
+        content_type = "text/html"
+    else:
+        content_type = "text/plain"
+
     url = s3.generate_presigned_url(
         "get_object",
         Params={
             "Bucket": REPORTS_BUCKET,
-            "Key": key
+            "Key": key,
+            "ResponseContentDisposition": "inline",
+            "ResponseContentType": content_type
         },
         ExpiresIn=3600
     )
