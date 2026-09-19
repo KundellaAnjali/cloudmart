@@ -222,7 +222,7 @@ Resources:
       Roles:
         - CloudMart-EC2Dashboard-Role
 
-  Ec2DashboardV6:
+  Ec2DashboardV7:
     Type: AWS::EC2::Instance
 
     Properties:
@@ -242,7 +242,7 @@ Resources:
 
       Tags:
         - Key: Name
-          Value: Ec2DashboardV6
+          Value: Ec2DashboardV7
 
       UserData:
         Fn::Base64: !Sub |
@@ -328,4 +328,4 @@ Outputs:
   DashboardPublicIP:
     Description: Dashboard EC2 Public IP
 
-    Value: !GetAtt Ec2DashboardV6.PublicIp
+    Value: !GetAtt Ec2DashboardV7.PublicIp

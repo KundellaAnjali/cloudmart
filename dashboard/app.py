@@ -368,8 +368,7 @@ def dashboard():
             health_status["S3"] = "Unhealthy"
 
 
-       try:
-
+        try:
             ssm.get_parameters(
                 Names=[
                     f"/cloudmart/{ENVIRONMENT}/db/host",
