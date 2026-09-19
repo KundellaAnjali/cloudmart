@@ -473,10 +473,7 @@ def create_order(event):
                         product["product_id"]
                     )
                 )
-                publish_metric(
-                    "InventoryDeductions",
-                    quantity
-                )
+                
 
                 cursor.execute(
                     """
@@ -591,11 +588,8 @@ def create_order(event):
 
             conn.commit()
             publish_metric("OrdersCreated")
-            publish_metric(
-                "OrderValue",
-                total_amount
-            )
             
+
             publish_event(
                 "OrderConfirmed",
                 {
@@ -654,10 +648,10 @@ def create_order(event):
         conn.rollback()
 
         log(
-            "INFO",
-            "CancelOrder",
-            "Order cancelled successfully",
-            order_id=order_id
+            "ERROR",
+            "CreateOrder",
+            "Order creation failed",
+            error=str(e)
         )
 
         return response(
@@ -928,12 +922,11 @@ def cancel_order(order_id):
             )
 
             log(
-                "ERROR",
+                "INFO",
                 "CancelOrder",
-                "Order cancellation failed",
+                "Order cancelled successfully",
                 order_id=order_id
             )
-
             return response(
                 200,
                 {

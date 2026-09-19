@@ -10,11 +10,6 @@ Parameters:
       - test
       - prod
 
-  DBPassword:
-    Type: String
-    NoEcho: true
-    Default: CloudMart123!
-
 Resources:
 
   CloudMartKMSKey:
@@ -49,7 +44,8 @@ Resources:
       AllocatedStorage: 20
       DBName: cloudmart
       MasterUsername: admin
-      MasterUserPassword: !Ref DBPassword
+      # Resolves password from SSM dynamic reference using ssm-secure
+      MasterUserPassword: !Sub '{{resolve:ssm-secure:/cloudmart/${Environment}/db/password}}'
       PubliclyAccessible: false
       MultiAZ: false
       BackupRetentionPeriod: 0
@@ -62,20 +58,12 @@ Resources:
     Properties:
       BucketName: !Sub cloudmart-reports-${AWS::AccountId}
 
-
   DBUsernameParameter:
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub /cloudmart/${Environment}/db/username
       Type: String
       Value: admin
-
-  DBPasswordParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub /cloudmart/${Environment}/db/password
-      Type: String
-      Value: !Ref DBPassword
 
   DBHostParameter:
     Type: AWS::SSM::Parameter

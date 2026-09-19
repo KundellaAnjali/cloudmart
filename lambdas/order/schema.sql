@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS customers (
     customer_name VARCHAR(100) NOT NULL,
     customer_email VARCHAR(255) NOT NULL UNIQUE,
 
-    auth_token VARCHAR(255) UNIQUE,
+    auth_token VARCHAR(255),
     role VARCHAR(20) DEFAULT 'CUSTOMER',
     is_active BOOLEAN DEFAULT TRUE,
 

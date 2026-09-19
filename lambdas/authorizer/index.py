@@ -2,13 +2,15 @@ import boto3
 import os
 import pymysql
 import json
-
+import logging
 ssm = boto3.client("ssm")
 cloudwatch = boto3.client("cloudwatch")
 
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev")
-
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 def get_connection():
+    logger.info("Creating database connection")
 
     db_host = get_parameter(
         f"/cloudmart/{ENVIRONMENT}/db/host"
@@ -36,6 +38,7 @@ def get_connection():
     )
 
 def get_parameter(name, decrypt=False):
+    logger.info(f"Fetching parameter: {name}")
     response = ssm.get_parameter(
         Name=name,
         WithDecryption=decrypt
@@ -71,6 +74,10 @@ def generate_policy(
 
 def publish_metric(metric_name):
 
+    logger.info(
+        f"Publishing metric: {metric_name}"
+    )
+
     cloudwatch.put_metric_data(
         Namespace="CloudMart",
         MetricData=[
@@ -83,6 +90,10 @@ def publish_metric(metric_name):
     )
 
 def handler(event, context):
+    logger.info(
+        f"Authorization request received. "
+        f"Method ARN: {event['methodArn']}"
+    )
 
     token = event.get("authorizationToken", "")
     method_arn = event["methodArn"]
@@ -102,13 +113,18 @@ def handler(event, context):
     )
 
     token = token.replace("Bearer ", "")
+    logger.info(
+        f"Token received: {token[:10]}..."
+    )
 
     conn = get_connection()
 
     try:
 
         with conn.cursor() as cursor:
-
+            logger.info(
+                "Validating token against customer table"
+            )
             cursor.execute(
                 """
                 SELECT
@@ -130,7 +146,7 @@ def handler(event, context):
 
     if not user:
         publish_metric("UnauthorizedRequests")
-        print(json.dumps({
+        logger.error(json.dumps({
             "level": "ERROR",
             "operation": "Authorizer",
             "message": "Invalid token",
@@ -140,7 +156,7 @@ def handler(event, context):
 
     role = user["role"]
     publish_metric("AuthorizedRequests")
-    print(json.dumps({
+    logger.info(json.dumps({
         "level": "INFO",
         "operation": "Authorizer",
         "message": "Token validated successfully",
@@ -150,6 +166,10 @@ def handler(event, context):
     }))
 
     if role == "ADMIN":
+        logger.info(
+            f"Generating ADMIN policy "
+            f"for {user['customer_name']}"
+        )
 
         return generate_policy(
             str(user["customer_id"]),
@@ -161,7 +181,10 @@ def handler(event, context):
         )
 
     elif role == "PRODUCT":
-
+        logger.info(
+            f"Generating PRODUCT policy "
+            f"for {user['customer_name']}"
+        )
         return generate_policy(
             str(user["customer_id"]),
             role,
@@ -180,7 +203,10 @@ def handler(event, context):
 
 
     elif role == "CUSTOMER":
-
+        logger.info(
+            f"Generating CUSTOMER policy "
+            f"for {user['customer_name']}"
+        )
         return generate_policy(
             str(user["customer_id"]),
             role,
