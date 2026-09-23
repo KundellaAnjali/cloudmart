@@ -35,23 +35,23 @@ Resources:
         - Key: Name
           Value: CloudMartDBSubnetGroup
 
-  CloudMartRDS:
-    Type: AWS::RDS::DBInstance
-    Properties:
-      DBInstanceIdentifier: cloudmart-db
-      Engine: mysql
-      DBInstanceClass: db.t3.micro
-      AllocatedStorage: 20
-      DBName: cloudmart
-      MasterUsername: admin
-      # Resolves password from SSM dynamic reference using ssm-secure
-      MasterUserPassword: !Sub '{{resolve:ssm-secure:/cloudmart/${Environment}/db/password}}'
-      PubliclyAccessible: false
-      MultiAZ: false
-      BackupRetentionPeriod: 0
-      DBSubnetGroupName: !Ref CloudMartDBSubnetGroup
-      VPCSecurityGroups:
-        - Fn::ImportValue: CloudMart-RDS-SG
+    CloudMartRDS:
+      Type: AWS::RDS::DBInstance
+      Properties:
+        DBInstanceIdentifier: cloudmart-db
+        Engine: mysql
+        DBInstanceClass: db.t3.micro
+        AllocatedStorage: 20
+        DBName: cloudmart
+        MasterUsername: admin
+        # Resolves password from SSM dynamic reference using ssm-secure
+        MasterUserPassword: !Sub '{{resolve:ssm-secure:/cloudmart/${Environment}/db/password}}'
+        PubliclyAccessible: false
+        MultiAZ: false
+        BackupRetentionPeriod: 0
+        DBSubnetGroupName: !Ref CloudMartDBSubnetGroup
+        VPCSecurityGroups:
+          - Fn::ImportValue: CloudMart-RDS-SG
 
   ReportsBucket:
     Type: AWS::S3::Bucket

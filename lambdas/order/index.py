@@ -3,14 +3,14 @@ import uuid
 import pymysql
 import boto3
 import os
-import secrets
+import secrets #module for generating cryptographically secure random values.
 import logging
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-def log(level, operation, message, **kwargs):
+def log(level, operation, message, **kwargs): #**kwargs allows you to pass additional named information.
     log_data = {
         "level": level,
         "operation": operation,
@@ -75,8 +75,8 @@ def initialize_schema():
     finally:
         conn.close()
 
-print("DB_HOST:", DB_HOST)
-print("DB_NAME:", DB_NAME)
+logger.info(f"DB Host loaded")
+logger.info(f"DB Name loaded")
 def get_connection():
     return pymysql.connect(
         host=DB_HOST,
@@ -92,7 +92,7 @@ def response(status, body):
         "headers": {
             "Content-Type": "application/json"
         },
-        "body": json.dumps(body, default=str)
+        "body": json.dumps(body, default=str) #default str : Some Python objects cannot directly be converted to JSON.
     }
 
 def publish_event(detail_type, detail, source="cloudmart.orders"):
@@ -302,7 +302,7 @@ def create_order(event):
     body = json.loads(event.get("body", "{}"))
 
     customer_id = body.get("customerId")
-    #customer_id = event["requestContext"]["authorizer"]["customer_id"]
+   
     items = body.get("items", [])
 
     log(
@@ -379,7 +379,7 @@ def create_order(event):
                 product = cursor.fetchone()
 
                 if not product:
-                    publish_metric("FailedOrders")
+                    #publish_metric("FailedOrders")
                     publish_event(
                         "OrderFailed",
                         {
@@ -509,9 +509,23 @@ def create_order(event):
 
                 updated_product = cursor.fetchone()
 
-                threshold = 10
+                threshold = int(
+                    get_parameter(
+                        f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
+                    )
+                )
 
                 if updated_product["stock_count"] < threshold:
+
+                    log(
+                        "WARNING",
+                        "LowStock",
+                        "Product stock below threshold",
+                        product_id=product["product_id"],
+                        current_stock=updated_product["stock_count"],
+                        threshold=threshold
+                    )
+
                     publish_metric("LowStockProducts")
                     publish_event(
                         "LowStock",
@@ -833,7 +847,7 @@ def cancel_order(order_id):
                 log(
                     "INFO",
                     "CancelOrder",
-                    "Order cancelled successfully",
+                    "Order is already cancelled successfully",
                     order_id=order_id
                 )
                 return response(

@@ -4,10 +4,10 @@ import pymysql
 import json
 import logging
 ssm = boto3.client("ssm")
-cloudwatch = boto3.client("cloudwatch")
+cloudwatch = boto3.client("cloudwatch") # used for custom metrics
 
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev")
-logger = logging.getLogger()
+logger = logging.getLogger() #gets the root logger.
 logger.setLevel(logging.INFO)
 def get_connection():
     logger.info("Creating database connection")
@@ -28,7 +28,7 @@ def get_connection():
         f"/cloudmart/{ENVIRONMENT}/db/password",
         decrypt=True
     )
-
+    #Lambda connects to RDS.
     return pymysql.connect(
         host=db_host,
         user=db_user,
@@ -44,9 +44,9 @@ def get_parameter(name, decrypt=False):
         WithDecryption=decrypt
     )
     return response["Parameter"]["Value"]
-
+# creates authorization response to understand to the api gateway
 def generate_policy(
-    principal_id,
+    principal_id, # indentify the authonticated user
     role,
     customer_id,
     customer_name,
@@ -64,7 +64,7 @@ def generate_policy(
                     "Resource": resources
                 }
             ]
-        },
+        }, # it is sending additional data from authorizer to api gateway
         "context": {
             "role": role,
             "customer_id": str(customer_id),
@@ -139,7 +139,7 @@ def handler(event, context):
                 (token,)
             )
 
-            user = cursor.fetchone()
+            user = cursor.fetchone()  # get details of customer if match occurs
 
     finally:
         conn.close()

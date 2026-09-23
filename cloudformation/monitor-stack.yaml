@@ -15,7 +15,7 @@ Resources:
     Type: AWS::Serverless::Function
     Metadata:
       BuildMethod: python3.12
-
+# !Sub substitutes variables into a string to create dynamic values.
     Properties:
 
       FunctionName: !Sub cloudmart-report-function-${Environment}
@@ -229,7 +229,7 @@ Resources:
 
       InstanceType: t3.micro
 
-      # Amazon Linux 2023 AMI (replace with latest AMI ID for your region if needed)
+      #serve as blueprint to luanch ec2 instance
       ImageId: ami-0e35ddab05955cf57
 
       IamInstanceProfile: !Ref DashboardInstanceProfile

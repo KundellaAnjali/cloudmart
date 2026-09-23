@@ -139,14 +139,14 @@ def handler(event, context):
 
         highest_order = max(
             orders,
-            key=lambda order: float(order["total_amount"]),
+            key=lambda order: float(order["total_amount"]), #Compare orders using their total_amount.
             default=None
         )
 
         # -----------------------------
         # CSV GENERATION
         # -----------------------------
-
+        #This creates an in-memory text file.
         output = io.StringIO()
 
         writer = csv.writer(output)
@@ -287,7 +287,7 @@ def handler(event, context):
         s3.put_object(
             Bucket=bucket_name,
             Key=file_name,
-            Body=output.getvalue(),
+            Body=output.getvalue(),  #Gets the complete CSV content from memory.
             ContentType="text/csv"
         )
 
