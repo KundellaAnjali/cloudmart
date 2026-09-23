@@ -35,7 +35,7 @@ Resources:
         - Key: Name
           Value: CloudMartDBSubnetGroup
 
-    CloudMartRDS:
+  CloudMartRDS:
       Type: AWS::RDS::DBInstance
       Properties:
         DBInstanceIdentifier: cloudmart-db
