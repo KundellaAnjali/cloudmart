@@ -45,7 +45,7 @@ Resources:
         DBName: cloudmart
         MasterUsername: admin
         # Resolves password from SSM dynamic reference using ssm-secure
-        MasterUserPassword: !Sub '{{resolve:ssm-secure:/cloudmart/${Environment}/db/password}}'
+        MasterUserPassword: '{{resolve:ssm-secure:/cloudmart/dev/db/password:1}}'
         PubliclyAccessible: false
         MultiAZ: false
         BackupRetentionPeriod: 0
