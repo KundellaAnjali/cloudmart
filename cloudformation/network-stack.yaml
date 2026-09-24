@@ -115,7 +115,7 @@ Resources:
     Properties:
       GroupDescription: Lambda Security Group
       VpcId: !Ref CloudMartVPC
-     
+
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
@@ -123,6 +123,25 @@ Resources:
       Tags:
         - Key: Name
           Value: CloudMart-Lambda-SG
+
+  LambdaSecurityGroupIngressSelf:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref LambdaSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !Ref LambdaSecurityGroup
+
+
+  LambdaSecurityGroupHttpsFromEC2:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref LambdaSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !Ref EC2SecurityGroup
 
   RDSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
