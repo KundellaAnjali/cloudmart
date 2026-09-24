@@ -59,8 +59,6 @@ Resources:
 
 Outputs:
 
-  Outputs:
-
   SchemaInitFunctionArn:
     Value: !GetAtt SchemaInitFunction.Arn
     Export:
