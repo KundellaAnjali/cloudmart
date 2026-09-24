@@ -196,6 +196,13 @@ jobs:
             --no-fail-on-empty-changeset \
             --region ap-south-1
 
+      - name: Run Schema Initialization
+        run: |
+          aws lambda invoke \
+            --function-name cloudmart-schema-init \
+            response.json
+          cat response.json
+
   # ---------------------------
   # PRODUCT STACK
   # ---------------------------

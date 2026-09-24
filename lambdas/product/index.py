@@ -13,7 +13,6 @@ cloudwatch = boto3.client("cloudwatch")
 
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev")
 
-
 def get_parameter(name, decrypt=False):
     response = ssm.get_parameter(
         Name=name,
@@ -21,6 +20,11 @@ def get_parameter(name, decrypt=False):
     )
     return response["Parameter"]["Value"]
 
+STOCK_THRESHOLD = int(
+    get_parameter(
+        f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
+    )
+)
 
 def get_connection():
 
@@ -149,11 +153,7 @@ def create_product(connection, event):
     }))
 
     
-    threshold = int(
-        get_parameter(
-            f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
-        )
-    )
+    threshold = STOCK_THRESHOLD
     stock_count = body["stock_count"]
 
     if stock_count < 0:
@@ -242,12 +242,7 @@ def update_product(connection, product_id, event):
 
     if "stock_count" in body:
 
-        threshold = int(
-            get_parameter(
-                f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
-            )
-        )
-
+        threshold = STOCK_THRESHOLD
         if body["stock_count"] < 0:
             return {
                 "statusCode": 400,
@@ -367,24 +362,6 @@ def handler(event, context):
 
         connection = get_connection()
 
-        with connection.cursor() as cursor:
-
-            cursor.execute("""
-            CREATE TABLE IF NOT EXISTS product (
-                product_id INT AUTO_INCREMENT PRIMARY KEY,
-                product_name VARCHAR(255) NOT NULL,
-                description TEXT,
-                category VARCHAR(100),
-                price DECIMAL(10,2) NOT NULL,
-                stock_count INT DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    ON UPDATE CURRENT_TIMESTAMP,
-                is_active BOOLEAN DEFAULT TRUE
-            )
-            """)
-
-            connection.commit()
 
         http_method = event.get("httpMethod")
         path_parameters = event.get("pathParameters") or {}

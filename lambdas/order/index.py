@@ -49,31 +49,11 @@ DB_PASSWORD = ssm.get_parameter(
     WithDecryption=True
 )["Parameter"]["Value"]
 
-def initialize_schema():
-    conn = get_connection()
-    try:
-
-        schema_file = os.path.join(
-            os.path.dirname(__file__),
-            "schema.sql"
-        )
-
-        with open(schema_file, "r") as f:
-            sql_script = f.read()
-
-        with conn.cursor() as cursor:
-
-            for statement in sql_script.split(";"):
-
-                statement = statement.strip()
-
-                if statement:
-                    cursor.execute(statement)
-
-        conn.commit()
-
-    finally:
-        conn.close()
+STOCK_THRESHOLD = int(
+    ssm.get_parameter(
+    Name=f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
+    )["Parameter"]["Value"]
+)
 
 logger.info(f"DB Host loaded")
 logger.info(f"DB Name loaded")
@@ -509,13 +489,7 @@ def create_order(event):
 
                 updated_product = cursor.fetchone()
 
-                threshold = int(
-                    get_parameter(
-                        f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
-                    )
-                )
-
-                if updated_product["stock_count"] < threshold:
+                if updated_product["stock_count"] < STOCK_THRESHOLD:
 
                     log(
                         "WARNING",
@@ -523,7 +497,7 @@ def create_order(event):
                         "Product stock below threshold",
                         product_id=product["product_id"],
                         current_stock=updated_product["stock_count"],
-                        threshold=threshold
+                        threshold=STOCK_THRESHOLD
                     )
 
                     publish_metric("LowStockProducts")
@@ -541,7 +515,7 @@ def create_order(event):
                     Product ID      : {product['product_id']}
                     Product Name    : {product['product_name']}
                     Current Stock   : {updated_product['stock_count']}
-                    Threshold Value : {threshold}
+                    Threshold Value : {STOCK_THRESHOLD}
 
                     Please replenish inventory at the earliest.
 
@@ -971,7 +945,7 @@ def handler(event, context):
         "Lambda handler started"
     )
 
-    initialize_schema()
+    
     method = event["httpMethod"]
     path = event["path"]
     role = event["requestContext"]["authorizer"]["role"]  
