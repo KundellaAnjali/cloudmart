@@ -406,7 +406,7 @@ Resources:
       MetricName: CPUUtilization
       Dimensions:
         - Name: InstanceId
-          Value: !Ref Ec2DashboardV
+          Value: !Ref Ec2DashboardV1
       Statistic: Average
       Period: 300
       EvaluationPeriods: 2
