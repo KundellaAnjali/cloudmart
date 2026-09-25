@@ -172,37 +172,56 @@ def create_product(connection, event):
             })
         }
 
-    with connection.cursor() as cursor:
+    try:
 
-        cursor.execute("""
-            INSERT INTO product (
-                product_name,
-                description,
-                category,
-                price,
-                stock_count,
-                is_active
-            )
-            VALUES (%s,%s,%s,%s,%s,%s)
-        """, (
-            body["product_name"],
-            body["description"],
-            body["category"],
-            body["price"],
-            body["stock_count"],
-            True
-        ))
+        with connection.cursor() as cursor:
 
-        product_id = cursor.lastrowid
-        logger.info(json.dumps({
-            "level": "INFO",
+            cursor.execute("""
+                INSERT INTO product (
+                    product_name,
+                    description,
+                    category,
+                    price,
+                    stock_count,
+                    is_active
+                )
+                VALUES (%s,%s,%s,%s,%s,%s)
+            """, (
+                body["product_name"],
+                body["description"],
+                body["category"],
+                body["price"],
+                body["stock_count"],
+                True
+            ))
+
+            product_id = cursor.lastrowid
+
+            logger.info(json.dumps({
+                "level": "INFO",
+                "operation": "CreateProduct",
+                "message": "Product created successfully",
+                "product_id": product_id
+            }))
+
+        connection.commit()
+
+        publish_metric("ProductsCreated")
+
+    except Exception as e:
+
+        connection.rollback()
+
+        publish_metric("ProductCreationFailures")
+
+        logger.error(json.dumps({
+            "level": "ERROR",
             "operation": "CreateProduct",
-            "message": "Product created successfully",
-            "product_id": product_id
+            "message": "Product creation failed",
+            "error": repr(e)
         }))
 
-    connection.commit()
-    publish_metric("ProductsCreated")
+        raise
     return {
         "statusCode": 201,
         "body": json.dumps({
@@ -360,7 +379,20 @@ def handler(event, context):
 
     try:
 
-        connection = get_connection()
+        try:
+            connection = get_connection()
+        except Exception as e:
+
+            publish_metric("RDSConnectionFailures")
+
+            logger.error(json.dumps({
+                "level": "ERROR",
+                "operation": "DatabaseConnection",
+                "message": "Failed to connect to database",
+                "error": str(e)
+            }))
+
+            raise
 
 
         http_method = event.get("httpMethod")
@@ -414,7 +446,7 @@ def handler(event, context):
         return response
 
     except Exception as e:
-
+        publish_metric("ProductLambdaFailures")
         logger.error(json.dumps({
             "level": "ERROR",
             "operation": "ProductLambda",

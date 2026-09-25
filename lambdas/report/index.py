@@ -65,7 +65,19 @@ def handler(event, context):
 
     try:
 
-        conn = get_connection()
+        try:
+
+            conn = get_connection()
+
+        except Exception as e:
+
+            publish_metric("RDSConnectionFailures")
+
+            logger.error(
+                f"Database connection failed: {str(e)}"
+            )
+
+            raise
 
         with conn.cursor() as cursor:
 
@@ -88,7 +100,8 @@ def handler(event, context):
                     customer_id,
                     order_status,
                     total_amount
-                FROM orders
+                FROM orders 
+                WHERE DATE(order_date) = CURDATE()
             """)
 
             orders = cursor.fetchall()
@@ -316,8 +329,16 @@ def handler(event, context):
                 "ReportGenerationFailures"
             )
 
+            publish_metric(
+                "ReportLambdaFailures"
+            )
+
         except Exception:
             pass
+
+        logger.error(
+            f"Report generation failed: {str(e)}"
+        )
 
         return {
             "statusCode": 500,
@@ -327,7 +348,6 @@ def handler(event, context):
                 }
             )
         }
-
     finally:
 
         if conn:

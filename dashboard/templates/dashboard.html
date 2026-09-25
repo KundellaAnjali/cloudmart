@@ -125,6 +125,20 @@ td{
 .btn:hover{
     background:#1d4ed8;
 }
+.healthy{
+    color:green;
+    font-weight:bold;
+}
+
+.warning{
+    color:orange;
+    font-weight:bold;
+}
+
+.critical{
+    color:red;
+    font-weight:bold;
+}
 
 </style>
 
@@ -133,8 +147,24 @@ td{
 <body>
 
 <div class="header">
+
     <h1>☁️ CloudMart Operations Portal</h1>
+
+    <a href="/logout"
+       style="
+       color:white;
+       text-decoration:none;
+       position:absolute;
+       right:30px;
+       top:30px;
+       background:red;
+       padding:10px 20px;
+       border-radius:5px;">
+       Logout
+    </a>
+
 </div>
+
 
 <div class="main">
 
@@ -326,39 +356,134 @@ td{
         <div id="metrics" class="section">
             <h2>📈 CloudWatch Metrics</h2>
             <br>
+
             <div class="kpis">
+
                 <div class="kpi-card">
                     <h3>Products Created</h3>
                     <p>{{ products_created }}</p>
                 </div>
+
                 <div class="kpi-card">
                     <h3>Orders Created</h3>
                     <p>{{ orders_created }}</p>
                 </div>
+
                 <div class="kpi-card">
                     <h3>Failed Orders</h3>
                     <p>{{ failed_orders_metric }}</p>
                 </div>
+
                 <div class="kpi-card">
                     <h3>Authorized Requests</h3>
                     <p>{{ authorized_requests }}</p>
                 </div>
+
                 <div class="kpi-card">
                     <h3>Unauthorized Requests</h3>
                     <p>{{ unauthorized_requests }}</p>
                 </div>
+
                 <div class="kpi-card">
                     <h3>Reports Generated</h3>
                     <p>{{ reports_generated }}</p>
                 </div>
+
                 <div class="kpi-card">
                     <h3>Report Upload Success</h3>
                     <p>{{ report_upload_success }}</p>
                 </div>
+
                 <div class="kpi-card">
-                    <h3>Report Generation Failures</h3>
+                    <h3>Report Failures</h3>
                     <p>{{ report_generation_failures }}</p>
                 </div>
+
+                <div class="kpi-card">
+                    <h3>Authorizer Invocations</h3>
+                    <p>{{ authorizer_invocations }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>Authorizer Errors</h3>
+                    <p>{{ authorizer_errors }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>Authorizer Throttles</h3>
+                    <p>{{ authorizer_throttles }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>Product Invocations</h3>
+                    <p>{{ product_invocations }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>Product Errors</h3>
+                    <p>{{ product_errors }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>Product Throttles</h3>
+                    <p>{{ product_throttles }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>Order Invocations</h3>
+                    <p>{{ order_invocations }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>Order Errors</h3>
+                    <p>{{ order_errors }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>Order Throttles</h3>
+                    <p>{{ order_throttles }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>Report Invocations</h3>
+                    <p>{{ report_invocations }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>Report Errors</h3>
+                    <p>{{ report_errors }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>Report Throttles</h3>
+                    <p>{{ report_throttles }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>API 4XX Errors</h3>
+                    <p>{{ api_4xx }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>API 5XX Errors</h3>
+                    <p>{{ api_5xx }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>EC2 CPU %</h3>
+                    <p>{{ ec2_cpu }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>RDS CPU %</h3>
+                    <p>{{ rds_cpu }}</p>
+                </div>
+
+                <div class="kpi-card">
+                    <h3>RDS Connections</h3>
+                    <p>{{ rds_connections }}</p>
+                </div>
+
             </div>
         </div>
 
@@ -373,21 +498,83 @@ td{
                     </tr>
                     <tr>
                         <td>Failed Orders</td>
-                        <td>{{ failed_orders_alarm }}</td>
+                        <td>{% if failed_orders_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
                     </tr>
+
                     <tr>
-                        <td>Low Stock</td>
-                        <td>{{ low_stock_alarm }}</td>
+                        <td>Low Stock Products</td>
+                        <td>{% if low_stock_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
                     </tr>
+
                     <tr>
                         <td>Unauthorized Requests</td>
-                        <td>{{ unauthorized_alarm }}</td>
+                        <td>{% if unauthorized_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+                    </tr>
+
+                    <tr>
+                        <td>Report Generation Failures</td>
+                        <td>{% if report_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+                    </tr>
+
+                    <tr>
+                        <td>Authorizer Errors</td>
+                        <td>{% if authorizer_errors_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+                    </tr>
+
+                    <tr>
+                        <td>Product Errors</td>
+                        <td>{% if product_errors_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+                    </tr>
+
+                    <tr>
+                        <td>Order Errors</td>
+                        <td>{% if order_errors_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+                    </tr>
+
+                    <tr>
+                        <td>Report Errors</td>
+                        <td>{% if report_errors_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+                    </tr>
+
+                    <tr>
+                        <td>EC2 High CPU</td>
+                        <td>{% if ec2_cpu_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+                    </tr>
+
+                    <tr>
+                        <td>RDS High CPU</td>
+                        <td>{% if rds_cpu_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+                    </tr>
+
+                    <tr>
+                        <td>RDS Connections</td>
+                        <td>{% if rds_connections_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+                    </tr>
+
+                    <tr>
+                        <td>API Gateway 4XX</td>
+                        <td>{% if api_4xx_alarm %}🟡 Warning{% else %}🟢 Healthy{% endif %}</td>
+                    </tr>
+
+                    <tr>
+                        <td>API Gateway 5XX</td>
+                        <td>{% if api_5xx_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
                     </tr>
                     <tr>
-                        <td>Report Generation Failure</td>
-                        <td>{{ report_alarm }}</td>
+                        <td>Schema Init Errors</td>
+                        <td>{% if schema_init_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
                     </tr>
-                </table>
+
+                    <tr>
+                        <td>S3 Access Failures</td>
+                        <td>{% if s3_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+                    </tr>
+
+                    <tr>
+                        <td>Parameter Store Failures</td>
+                        <td>{% if parameter_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+                    </tr>
+                                    </table>
             </div>
         </div>
 
@@ -403,7 +590,17 @@ td{
                     {% for service, status in health_status.items() %}
                     <tr>
                         <td>{{ service }}</td>
-                        <td>{{ status }}</td>
+                        <td class="
+                            {% if status == 'Healthy' %}
+                            healthy
+                            {% elif status == 'Warning' %}
+                            warning
+                            {% else %}
+                            critical
+                            {% endif %}
+                            ">
+                            {{ status }}
+                            </td>
                     </tr>
                     {% endfor %}
                 </table>

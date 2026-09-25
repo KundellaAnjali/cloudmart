@@ -298,7 +298,23 @@ def create_order(event):
     if not items:
         return response(400, {"message": "items are required"})
 
-    conn = get_connection()
+    try:
+
+        conn = get_connection()
+
+    except Exception as e:
+
+        publish_metric("RDSConnectionFailures")
+
+        log(
+            "ERROR",
+            "DatabaseConnection",
+            "Failed to connect to database",
+            error=str(e)
+        )
+
+        raise
+
 
     try:
 
@@ -359,7 +375,7 @@ def create_order(event):
                 product = cursor.fetchone()
 
                 if not product:
-                    #publish_metric("FailedOrders")
+                    publish_metric("FailedOrders")
                     publish_event(
                         "OrderFailed",
                         {
@@ -634,7 +650,7 @@ def create_order(event):
     except Exception as e:
 
         conn.rollback()
-
+        publish_metric("OrderCreationFailures")
         log(
             "ERROR",
             "CreateOrder",
@@ -939,62 +955,78 @@ def cancel_order(order_id):
         conn.close()
 
 def handler(event, context):
-    log(
-        "INFO",
-        "Handler",
-        "Lambda handler started"
-    )
 
-    
-    method = event["httpMethod"]
-    path = event["path"]
-    role = event["requestContext"]["authorizer"]["role"]  
+    try:
 
-    if method == "POST" and path.endswith("/customers"):
-        return create_customer(event)
+        log(
+            "INFO",
+            "Handler",
+            "Lambda handler started"
+        )
 
-    if method == "GET":
+        method = event["httpMethod"]
+        path = event["path"]
+        role = event["requestContext"]["authorizer"]["role"]
 
-        if "/customers/" in path:
-            customer_id = path.split("/")[-1]
-            return get_customer_by_id(customer_id)
+        if method == "POST" and path.endswith("/customers"):
+            return create_customer(event)
 
-        if path.endswith("/customers"):
-            return get_customers()
+        if method == "GET":
 
-    if method == "POST" and path.endswith("/orders"):
-        return create_order(event)
+            if "/customers/" in path:
+                customer_id = path.split("/")[-1]
+                return get_customer_by_id(customer_id)
 
+            if path.endswith("/customers"):
+                return get_customers()
 
-    if method == "GET":
+        if method == "POST" and path.endswith("/orders"):
+            return create_order(event)
 
-        query = event.get("queryStringParameters") or {}
+        if method == "GET":
 
-        if "customerId" in query:
-            return get_customer_orders(
-                query["customerId"]
-            )
-        if path.endswith("/orders"):
-            return get_all_orders()
-        
+            query = event.get("queryStringParameters") or {}
 
-        parts = path.split("/")
+            if "customerId" in query:
+                return get_customer_orders(
+                    query["customerId"]
+                )
 
-        if len(parts) > 2:
+            if path.endswith("/orders"):
+                return get_all_orders()
 
-            return get_order(parts[-1])
-    
-    if method == "PATCH" and "/orders/" in path:
-        order_id = path.split("/")[-1]
+            parts = path.split("/")
 
-        return cancel_order(order_id)
+            if len(parts) > 2:
+                return get_order(parts[-1])
 
-    return response(
-        404,
-        {
-            "message": "Route not found"
-        }
-    )
+        if method == "PATCH" and "/orders/" in path:
 
+            order_id = path.split("/")[-1]
 
+            return cancel_order(order_id)
 
+        return response(
+            404,
+            {
+                "message": "Route not found"
+            }
+        )
+
+    except Exception as e:
+
+        publish_metric("OrderLambdaFailures")
+
+        log(
+            "ERROR",
+            "OrderLambda",
+            "Unhandled exception",
+            error=str(e)
+        )
+
+        return response(
+            500,
+            {
+                "message": str(e)
+            }
+        )

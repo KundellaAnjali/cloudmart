@@ -117,7 +117,19 @@ def handler(event, context):
         f"Token received: {token[:10]}..."
     )
 
-    conn = get_connection()
+    try:
+        conn = get_connection()
+    except Exception as e:
+        publish_metric("RDSConnectionFailures")
+
+        logger.error(json.dumps({
+            "level": "ERROR",
+            "operation": "DatabaseConnection",
+            "message": "Failed to connect to database",
+            "error": str(e)
+        }))
+
+        raise
 
     try:
 
@@ -146,6 +158,7 @@ def handler(event, context):
 
     if not user:
         publish_metric("UnauthorizedRequests")
+        publish_metric("AuthorizerFailures")
         logger.error(json.dumps({
             "level": "ERROR",
             "operation": "Authorizer",
