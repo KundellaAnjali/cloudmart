@@ -406,7 +406,7 @@ Resources:
       MetricName: CPUUtilization
       Dimensions:
         - Name: InstanceId
-          Value: !Ref Ec2DashboardV1
+          Value: !Ref Ec2DashboardV2
       Statistic: Average
       Period: 300
       EvaluationPeriods: 2
@@ -511,7 +511,7 @@ Resources:
       Roles:
         - CloudMart-EC2Dashboard-Role
 
-  Ec2DashboardV1:
+  Ec2DashboardV2:
     Type: AWS::EC2::Instance
 
     Properties:
@@ -531,7 +531,7 @@ Resources:
 
       Tags:
         - Key: Name
-          Value: Ec2DashboardV1
+          Value: Ec2DashboardV2
 
       UserData:
         Fn::Base64: !Sub |
@@ -617,4 +617,4 @@ Outputs:
   DashboardPublicIP:
     Description: Dashboard EC2 Public IP
 
-    Value: !GetAtt Ec2DashboardV1.PublicIp
+    Value: !GetAtt Ec2DashboardV2.PublicIp
