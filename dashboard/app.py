@@ -363,7 +363,7 @@ def dashboard():
             products = cursor.fetchall()
             for product in products:
 
-                if not product["is_active"\]:
+                if not product["is_active"]:
                     product["status"] = "Not Available"
 
                 elif product["stock_count"] < STOCK_THRESHOLD:
