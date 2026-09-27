@@ -261,12 +261,19 @@ td{
                         <td>₹{{ product.price }}</td>
                         <td>{{ product.stock_count }}</td>
                         <td>
-                        {% if product.stock_count > 0 %}
-                        ✅ Available
-                        {% else %}
-                        ❌ Out of Stock
-                        {% endif %}
-                        </td>
+
+                            {% if product.status == "Available" %}
+                            🟢 Available
+
+                            {% elif product.status == "Low Stock" %}
+                            🟡 Low Stock
+
+                            {% else %}
+                            🔴 Not Available
+
+                            {% endif %}
+
+                            </td>
                     </tr>
                     {% endfor %}
                 </table>

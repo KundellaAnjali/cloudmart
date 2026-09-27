@@ -57,7 +57,11 @@ DB_PASSWORD = ssm.get_parameter(
 REPORTS_BUCKET = ssm.get_parameter(
     Name=f"/cloudmart/{ENVIRONMENT}/s3/reports-bucket"
 )["Parameter"]["Value"]
-
+STOCK_THRESHOLD = int(
+    ssm.get_parameter(
+        Name=f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
+    )["Parameter"]["Value"]
+)
 
 def get_connection():
 
@@ -331,8 +335,9 @@ def dashboard():
             cursor.execute("""
                 SELECT COUNT(*) low_stock
                 FROM product
-                WHERE stock_count < 10
-            """)
+                WHERE stock_count < %s
+                AND is_active = TRUE
+            """, (STOCK_THRESHOLD,))
             low_stock = cursor.fetchone()["low_stock"]
 
             cursor.execute("""
@@ -350,11 +355,22 @@ def dashboard():
                     product_name,
                     category,
                     price,
-                    stock_count
+                    stock_count,
+                    is_active
                 FROM product
                 ORDER BY product_name
             """)
             products = cursor.fetchall()
+            for product in products:
+
+                if not product["is_active"\]:
+                    product["status"] = "Not Available"
+
+                elif product["stock_count"] < STOCK_THRESHOLD:
+                    product["status"] = "Low Stock"
+
+                else:
+                    product["status"] = "Available"
 
             # Orders
 

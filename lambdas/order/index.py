@@ -227,7 +227,15 @@ def get_customers():
     finally:
         conn.close()
 
-def get_customer_by_id(customer_id):
+def get_customer_by_id(customer_id,role,logged_in_customer):
+    if (role != "ADMIN" and str(customer_id) != str(logged_in_customer)):
+        return response(
+            403,
+            {
+                "message": "Access denied"
+            }
+        )
+
 
     conn = get_connection()
 
@@ -284,6 +292,25 @@ def create_order(event):
     customer_id = body.get("customerId")
    
     items = body.get("items", [])
+
+    logged_in_customer = event[
+        "requestContext"
+    ]["authorizer"]["customer_id"]
+
+    role = event[
+        "requestContext"
+    ]["authorizer"]["role"]
+
+    if (
+        role != "ADMIN"
+        and str(customer_id) != str(logged_in_customer)
+    ):
+        return response(
+            403,
+            {
+                "message": "Access denied"
+            }
+        )
 
     log(
         "INFO",
@@ -668,7 +695,11 @@ def create_order(event):
     finally:
         conn.close()
 
-def get_order(order_id):
+def get_order(
+    order_id,
+    role,
+    logged_in_customer
+):
 
     conn = get_connection()
 
@@ -700,6 +731,18 @@ def get_order(order_id):
                     404,
                     {
                         "message": "Order not found"
+                    }
+                )
+
+            if (
+                role != "ADMIN"
+                and str(order["customer_id"])
+                != str(logged_in_customer)
+            ):
+                return response(
+                    403,
+                    {
+                        "message": "Access denied"
                     }
                 )
 
@@ -799,7 +842,11 @@ def get_all_orders():
     finally:
         conn.close()
 
-def cancel_order(order_id):
+def cancel_order(
+    order_id,
+    role,
+    logged_in_customer
+):
 
     conn = get_connection()
     log(
@@ -815,13 +862,14 @@ def cancel_order(order_id):
 
             cursor.execute(
                 """
-                SELECT order_status
+                SELECT
+                    customer_id,
+                    order_status
                 FROM orders
                 WHERE order_id = %s
                 """,
                 (order_id,)
             )
-
             order = cursor.fetchone()
 
             if not order:
@@ -831,6 +879,19 @@ def cancel_order(order_id):
                         "message": "Order not found"
                     }
                 )
+
+            if (
+                role != "ADMIN"
+                and str(order["customer_id"])
+                != str(logged_in_customer)
+            ):
+                return response(
+                    403,
+                    {
+                        "message": "Access denied"
+                    }
+                )
+
 
             if order["order_status"] == "CANCELLED":
 
@@ -975,7 +1036,11 @@ def handler(event, context):
 
             if "/customers/" in path:
                 customer_id = path.split("/")[-1]
-                return get_customer_by_id(customer_id)
+                return get_customer_by_id(
+                    customer_id,
+                    role,
+                    event["requestContext"]["authorizer"]["customer_id"]
+                )
 
             if path.endswith("/customers"):
                 return get_customers()
@@ -988,8 +1053,27 @@ def handler(event, context):
             query = event.get("queryStringParameters") or {}
 
             if "customerId" in query:
+
+                requested_customer = query["customerId"]
+
+                logged_in_customer = event[
+                    "requestContext"
+                ]["authorizer"]["customer_id"]
+
+                if (
+                    role != "ADMIN"
+                    and str(requested_customer)
+                    != str(logged_in_customer)
+                ):
+                    return response(
+                        403,
+                        {
+                            "message": "Access denied"
+                        }
+                    )
+
                 return get_customer_orders(
-                    query["customerId"]
+                    requested_customer
                 )
 
             if path.endswith("/orders"):
@@ -998,13 +1082,22 @@ def handler(event, context):
             parts = path.split("/")
 
             if len(parts) > 2:
-                return get_order(parts[-1])
+                return get_order(
+                    parts[-1],
+                    role,
+                    event["requestContext"]["authorizer"]["customer_id"]
+                )
 
         if method == "PATCH" and "/orders/" in path:
 
             order_id = path.split("/")[-1]
 
-            return cancel_order(order_id)
+            return cancel_order(
+                order_id,
+                role,
+                event["requestContext"]["authorizer"]["customer_id"]
+            )
+
 
         return response(
             404,
