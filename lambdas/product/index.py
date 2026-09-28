@@ -11,7 +11,7 @@ ssm = boto3.client("ssm")
 events = boto3.client("events")
 cloudwatch = boto3.client("cloudwatch")
 
-ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev")
+ENVIRONMENT = os.environ["ENVIRONMENT"]
 
 def get_parameter(name, decrypt=False):
     response = ssm.get_parameter(

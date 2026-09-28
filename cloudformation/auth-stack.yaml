@@ -2,13 +2,19 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
 Description: CloudMart Authorizer Stack
-
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - test
+      - prod
 Resources:
 
   SchemaInitFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: cloudmart-schema-init
+      FunctionName: !Sub "cloudmart-schema-init-${Environment}"
       Runtime: python3.12
       Handler: index.handler
 
@@ -21,7 +27,7 @@ Resources:
 
       Environment:
         Variables:
-          ENVIRONMENT: dev
+          ENVIRONMENT: !Ref Environment
 
       VpcConfig:
         SecurityGroupIds:
@@ -34,7 +40,7 @@ Resources:
   LambdaAuthorizerFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: cloudmart-authorizer
+      FunctionName: !Sub "cloudmart-authorizer-${Environment}"
       Runtime: python3.12
       Handler: index.handler
 
@@ -47,7 +53,7 @@ Resources:
 
       Environment:
         Variables:
-          ENVIRONMENT: dev
+          ENVIRONMENT: !Ref Environment
 
       VpcConfig:
         SecurityGroupIds:

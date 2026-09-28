@@ -4,10 +4,12 @@ Transform: AWS::Serverless-2016-10-31
 Description: CloudMart Monitoring Stack
 
 Parameters:
-
   Environment:
     Type: String
-    Default: dev
+    AllowedValues:
+      - dev
+      - test
+      - prod
 
 Resources:
 
@@ -18,7 +20,7 @@ Resources:
 # !Sub substitutes variables into a string to create dynamic values.
     Properties:
 
-      FunctionName: !Sub cloudmart-report-function-${Environment}
+      FunctionName: !Sub "cloudmart-report-function-${Environment}"
 
       Runtime: python3.12
 
@@ -53,94 +55,17 @@ Resources:
 
           Properties:
 
-            Name: !Sub cloudmart-daily-report-${Environment}
+            Name: !Sub "cloudmart-daily-report-${Environment}"
 
             Schedule: rate(1 day)
 
             Enabled: true
 
-  CloudMartDashboard:
-    Type: AWS::CloudWatch::Dashboard
-
-    Properties:
-
-      DashboardName: cloudmart-operations
-
-      DashboardBody: !Sub |
-        {
-          "widgets": [
-            {
-              "type": "metric",
-              "x": 0,
-              "y": 0,
-              "width": 12,
-              "height": 6,
-              "properties": {
-                "title": "Product Metrics",
-                "metrics": [
-                  ["CloudMart","ProductsCreated"],
-                  ["CloudMart","InventoryUpdated"],
-                  ["CloudMart","LowStockProducts"]
-                ],
-                "region": "${AWS::Region}"
-              }
-            },
-            {
-              "type": "metric",
-              "x": 12,
-              "y": 0,
-              "width": 12,
-              "height": 6,
-              "properties": {
-                "title": "Order Metrics",
-                "metrics": [
-                  ["CloudMart","OrdersCreated"],
-                  ["CloudMart","OrderValue"],
-                  ["CloudMart","InventoryDeductions"],
-                  ["CloudMart","FailedOrders"]
-                ],
-                "region": "${AWS::Region}"
-              }
-            },
-            {
-              "type": "metric",
-              "x": 0,
-              "y": 6,
-              "width": 12,
-              "height": 6,
-              "properties": {
-                "title": "Report Metrics",
-                "metrics": [
-                  ["CloudMart","ReportsGenerated"],
-                  ["CloudMart","ReportUploadSuccess"],
-                  ["CloudMart","ReportGenerationFailures"]
-                ],
-                "region": "${AWS::Region}"
-              }
-            },
-            {
-              "type": "metric",
-              "x": 12,
-              "y": 6,
-              "width": 12,
-              "height": 6,
-              "properties": {
-                "title": "Authorization Metrics",
-                "metrics": [
-                  ["CloudMart","AuthorizedRequests"],
-                  ["CloudMart","UnauthorizedRequests"]
-                ],
-                "region": "${AWS::Region}"
-              }
-            }
-          ]
-        }
-
   AlarmNotificationTopic:
     Type: AWS::SNS::Topic
 
     Properties:
-      TopicName: cloudmart-monitoring-alerts
+      TopicName: !Sub "cloudmart-monitoring-alerts-${Environment}"
 
   AlarmNotificationSubscription:
     Type: AWS::SNS::Subscription
@@ -222,7 +147,7 @@ Resources:
       MetricName: Errors
       Dimensions:
         - Name: FunctionName
-          Value: cloudmart-authorizer
+          Value: !Sub "cloudmart-authorizer-${Environment}"
       Statistic: Sum
       Period: 300
       EvaluationPeriods: 1
@@ -239,7 +164,7 @@ Resources:
       MetricName: Errors
       Dimensions:
         - Name: FunctionName
-          Value: cloudmart-product-function
+          Value: !Sub "cloudmart-product-function-${Environment}"
       Statistic: Sum
       Period: 300
       EvaluationPeriods: 1
@@ -256,7 +181,7 @@ Resources:
       MetricName: Errors
       Dimensions:
         - Name: FunctionName
-          Value: cloudmart-order-function
+          Value: !Sub "cloudmart-order-function-${Environment}"
       Statistic: Sum
       Period: 300
       EvaluationPeriods: 1
@@ -273,7 +198,7 @@ Resources:
       MetricName: Errors
       Dimensions:
         - Name: FunctionName
-          Value: cloudmart-report-function-dev
+          Value: !Sub "cloudmart-report-function-${Environment}"
       Statistic: Sum
       Period: 300
       EvaluationPeriods: 1
@@ -290,7 +215,7 @@ Resources:
       MetricName: Errors
       Dimensions:
         - Name: FunctionName
-          Value: cloudmart-schema-init
+          Value: !Sub "cloudmart-schema-init-${Environment}"
       Statistic: Sum
       Period: 300
       EvaluationPeriods: 1
@@ -307,7 +232,7 @@ Resources:
       MetricName: Throttles
       Dimensions:
         - Name: FunctionName
-          Value: cloudmart-authorizer
+          Value: !Sub "cloudmart-authorizer-${Environment}"
       Statistic: Sum
       Period: 300
       EvaluationPeriods: 1
@@ -324,7 +249,7 @@ Resources:
       MetricName: Throttles
       Dimensions:
         - Name: FunctionName
-          Value: cloudmart-product-function
+          Value: !Sub "cloudmart-product-function-${Environment}"
       Statistic: Sum
       Period: 300
       EvaluationPeriods: 1
@@ -343,7 +268,7 @@ Resources:
       MetricName: Throttles
       Dimensions:
         - Name: FunctionName
-          Value: cloudmart-order-function
+          Value: !Sub "cloudmart-order-function-${Environment}"
       Statistic: Sum
       Period: 300
       EvaluationPeriods: 1
@@ -360,7 +285,7 @@ Resources:
       MetricName: Throttles
       Dimensions:
         - Name: FunctionName
-          Value: cloudmart-report-function-dev
+          Value: !Sub "cloudmart-report-function-${Environment}"
       Statistic: Sum
       Period: 300
       EvaluationPeriods: 1
@@ -423,7 +348,7 @@ Resources:
       MetricName: CPUUtilization
       Dimensions:
         - Name: DBInstanceIdentifier
-          Value: cloudmart-db
+          Value: !Sub "${Environment}-cloudmart-db"
       Statistic: Average
       Period: 300
       EvaluationPeriods: 2
@@ -454,7 +379,7 @@ Resources:
       MetricName: DatabaseConnections
       Dimensions:
         - Name: DBInstanceIdentifier
-          Value: cloudmart-db
+          Value: !Sub "${Environment}-cloudmart-db"
       Statistic: Average
       Period: 300
       EvaluationPeriods: 2
@@ -507,9 +432,9 @@ Resources:
     Type: AWS::IAM::InstanceProfile
 
     Properties:
-      InstanceProfileName: CloudMart-Dashboard-Profile
+      InstanceProfileName: !Sub "${Environment}-CloudMart-Dashboard-Profile"
       Roles:
-        - CloudMart-EC2Dashboard-Role
+        - !Sub "${Environment}-CloudMart-EC2Dashboard-Role"
 
   Ec2DashboardV1:
     Type: AWS::EC2::Instance
@@ -531,7 +456,7 @@ Resources:
 
       Tags:
         - Key: Name
-          Value: Ec2DashboardV1
+          Value: !Sub "${Environment}-Ec2DashboardV1"
 
       UserData:
         Fn::Base64: !Sub |
@@ -566,6 +491,7 @@ Resources:
           [Service]
           User=ubuntu
           WorkingDirectory=/home/ubuntu/cloudmart/dashboard
+          Environment=ENVIRONMENT=dev
           ExecStart=/usr/bin/python3 /home/ubuntu/cloudmart/dashboard/app.py
           Restart=always
 

@@ -30,7 +30,7 @@ ssm = boto3.client("ssm")
 events = boto3.client("events")
 cloudwatch = boto3.client("cloudwatch")
 
-ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev")
+ENVIRONMENT = os.environ["ENVIRONMENT"]
 
 DB_HOST = ssm.get_parameter(
     Name=f"/cloudmart/{ENVIRONMENT}/db/host"
@@ -677,6 +677,7 @@ def create_order(event):
     except Exception as e:
 
         conn.rollback()
+        publish_metric("DatabaseQueryFailures")
         publish_metric("OrderCreationFailures")
         log(
             "ERROR",

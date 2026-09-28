@@ -4,7 +4,6 @@ Description: CloudMart IAM Stack
 Parameters:
   Environment:
     Type: String
-    Default: dev
     AllowedValues:
       - dev
       - test
@@ -15,7 +14,7 @@ Resources:
   LambdaAuthorizerRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: CloudMart-LambdaAuthorizer-Role
+      RoleName: !Sub "${Environment}-CloudMart-LambdaAuthorizer-Role"
 
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -59,7 +58,7 @@ Resources:
   ProductLambdaRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: CloudMart-ProductLambda-Role
+      RoleName: !Sub "${Environment}-CloudMart-ProductLambda-Role"
 
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -109,7 +108,7 @@ Resources:
   OrderProcessorRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: CloudMart-OrderProcessor-Role
+      RoleName: !Sub "${Environment}-CloudMart-OrderProcessor-Role"
 
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -159,7 +158,7 @@ Resources:
   ReportLambdaRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: CloudMart-ReportLambda-Role
+      RoleName: !Sub "${Environment}-CloudMart-ReportLambda-Role"
 
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -195,13 +194,13 @@ Resources:
                   - s3:GetObject
                   - s3:PutObject
                 Resource:
-                  - !Sub arn:aws:s3:::cloudmart-reports-${AWS::AccountId}/*
+                  - !Sub arn:aws:s3:::${Environment}-cloudmart-reports-${AWS::AccountId}/*
 
               - Effect: Allow
                 Action:
                   - s3:ListBucket
                 Resource:
-                  - !Sub arn:aws:s3:::cloudmart-reports-${AWS::AccountId}
+                  - !Sub arn:aws:s3:::${Environment}-cloudmart-reports-${AWS::AccountId}
 
               - Effect: Allow
                 Action:
@@ -214,7 +213,7 @@ Resources:
   EC2DashboardRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: CloudMart-EC2Dashboard-Role
+      RoleName: !Sub "${Environment}-CloudMart-EC2Dashboard-Role"
 
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -247,7 +246,7 @@ Resources:
                 Action:
                   - s3:GetObject
                 Resource:
-                  - !Sub arn:aws:s3:::cloudmart-reports-${AWS::AccountId}/*
+                  - !Sub arn:aws:s3:::${Environment}-cloudmart-reports-${AWS::AccountId}/*
 
               - Effect: Allow
                 Action:
@@ -258,7 +257,7 @@ Resources:
                 Action:
                   - s3:ListBucket
                 Resource:
-                  - !Sub arn:aws:s3:::cloudmart-reports-${AWS::AccountId}
+                  - !Sub arn:aws:s3:::${Environment}-cloudmart-reports-${AWS::AccountId}
 
               - Effect: Allow
                 Action:

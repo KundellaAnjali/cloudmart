@@ -1,6 +1,12 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: CloudMart Network Stack
-
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - test
+      - prod
 Resources:
 
   CloudMartVPC:
@@ -11,7 +17,7 @@ Resources:
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: CloudMart-VPC
+          Value: !Sub "${Environment}-CloudMart-VPC"
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
@@ -31,7 +37,7 @@ Resources:
       AvailabilityZone: !Select [0, !GetAZs '']
       Tags:
         - Key: Name
-          Value: CloudMart-Public-Subnet
+          Value: !Sub "${Environment}-CloudMart-Public-Subnet"
 
   PrivateSubnetA:
     Type: AWS::EC2::Subnet
@@ -41,7 +47,8 @@ Resources:
       AvailabilityZone: !Select [0, !GetAZs '']
       Tags:
         - Key: Name
-          Value: CloudMart-Private-Subnet-A
+          Value: !Sub "${Environment}-CloudMart-Private-Subnet-A"
+
 
   PrivateSubnetB:
     Type: AWS::EC2::Subnet
@@ -51,7 +58,7 @@ Resources:
       AvailabilityZone: !Select [1, !GetAZs '']
       Tags:
         - Key: Name
-          Value: CloudMart-Private-Subnet-B
+          Value: !Sub "${Environment}-CloudMart-Private-Subnet-B"
 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
@@ -108,7 +115,7 @@ Resources:
 
       Tags:
         - Key: Name
-          Value: CloudMart-EC2-SG
+          Value: !Sub "${Environment}-CloudMart-EC2-SG"
 
   LambdaSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -122,7 +129,7 @@ Resources:
 
       Tags:
         - Key: Name
-          Value: CloudMart-Lambda-SG
+          Value: !Sub "${Environment}-CloudMart-Lambda-SG"
 
   LambdaSecurityGroupIngressSelf:
     Type: AWS::EC2::SecurityGroupIngress
@@ -162,7 +169,7 @@ Resources:
 
       Tags:
         - Key: Name
-          Value: CloudMart-RDS-SG
+          Value: !Sub "${Environment}-CloudMart-RDS-SG"
 
   S3VPCEndpoint:
     Type: AWS::EC2::VPCEndpoint

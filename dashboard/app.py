@@ -8,6 +8,7 @@ from flask import (
     session,
     url_for
 )
+import os
 import boto3
 import pymysql
 from datetime import datetime, timedelta
@@ -15,7 +16,7 @@ from datetime import datetime, timedelta
 app = Flask(__name__)
 app.secret_key = "cloudmart-dashboard-secret"
 
-ENVIRONMENT = "dev"
+ENVIRONMENT = os.environ["ENVIRONMENT"]
 
 # AWS Clients
 
@@ -79,7 +80,7 @@ def get_dashboard_instance_id():
         Filters=[
             {
                 "Name": "tag:Name",
-                "Values": ["Ec2DashboardV"]
+                "Values": [f"{ENVIRONMENT}-Ec2DashboardV1"]
             },
             {
                 "Name": "instance-state-name",
@@ -152,7 +153,7 @@ def get_rds_metric(metric_name):
         Dimensions=[
             {
                 "Name": "DBInstanceIdentifier",
-                "Value": "cloudmart-db"
+                "Value": f"{ENVIRONMENT}-cloudmart-db"
             }
         ],
         StartTime=datetime.utcnow() - timedelta(hours=1),
@@ -530,45 +531,46 @@ def dashboard():
         report_generation_failures = get_metric_value(
             "ReportGenerationFailures"
         )
-        authorizer_errors = get_lambda_metric(
-            "cloudmart-authorizer",
+        authorizer_errors =get_lambda_metric(
+            f"cloudmart-authorizer-{ENVIRONMENT}",
             "Errors"
+
         )
 
         product_errors = get_lambda_metric(
-            "cloudmart-product-function",
+            f"cloudmart-product-function-{ENVIRONMENT}",
             "Errors"
         )
 
         order_errors = get_lambda_metric(
-            "cloudmart-order-function",
+            f"cloudmart-order-function-{ENVIRONMENT}",
             "Errors"
         )
 
         report_errors = get_lambda_metric(
-            "cloudmart-report-function-dev",
+            f"cloudmart-report-function-{ENVIRONMENT}",
             "Errors"
         )
 
         authorizer_invocations = get_lambda_metric(
-            "cloudmart-authorizer",
+            f"cloudmart-authorizer-{ENVIRONMENT}",
             "Invocations"
         )
-
         product_invocations = get_lambda_metric(
-            "cloudmart-product-function",
+            f"cloudmart-product-function-{ENVIRONMENT}",
             "Invocations"
         )
 
         order_invocations = get_lambda_metric(
-            "cloudmart-order-function",
+            f"cloudmart-order-function-{ENVIRONMENT}",
             "Invocations"
         )
 
         report_invocations = get_lambda_metric(
-            "cloudmart-report-function-dev",
+            f"cloudmart-report-function-{ENVIRONMENT}",
             "Invocations"
         )
+                
         rds_cpu = get_rds_metric(
             "CPUUtilization"
         )
@@ -647,25 +649,23 @@ def dashboard():
             "CloudMart-ApiGateway5XX"
         )
         authorizer_throttles = get_lambda_metric(
-            "cloudmart-authorizer",
+            f"cloudmart-authorizer-{ENVIRONMENT}",
             "Throttles"
         )
 
         product_throttles = get_lambda_metric(
-            "cloudmart-product-function",
+            f"cloudmart-product-function-{ENVIRONMENT}",
             "Throttles"
         )
 
         order_throttles = get_lambda_metric(
-            "cloudmart-order-function",
+            f"cloudmart-order-function-{ENVIRONMENT}",
             "Throttles"
         )
-
         report_throttles = get_lambda_metric(
-            "cloudmart-report-function-dev",
+            f"cloudmart-report-function-{ENVIRONMENT}",
             "Throttles"
         )
-
         api_4xx = get_api_metric("4XXError")
         api_5xx = get_api_metric("5XXError")  
         

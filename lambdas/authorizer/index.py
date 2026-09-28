@@ -6,7 +6,7 @@ import logging
 ssm = boto3.client("ssm")
 cloudwatch = boto3.client("cloudwatch") # used for custom metrics
 
-ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev")
+ENVIRONMENT = os.environ["ENVIRONMENT"]
 logger = logging.getLogger() #gets the root logger.
 logger.setLevel(logging.INFO)
 def get_connection():
@@ -128,15 +128,14 @@ def handler(event, context):
             "message": "Failed to connect to database",
             "error": str(e)
         }))
-
         raise
-
     try:
 
         with conn.cursor() as cursor:
             logger.info(
                 "Validating token against customer table"
             )
+
             cursor.execute(
                 """
                 SELECT
@@ -151,14 +150,26 @@ def handler(event, context):
                 (token,)
             )
 
-            user = cursor.fetchone()  # get details of customer if match occurs
+            user = cursor.fetchone()
+
+    except Exception as e:
+
+        publish_metric("DatabaseQueryFailures")
+
+        logger.error(json.dumps({
+            "level": "ERROR",
+            "operation": "DatabaseQuery",
+            "message": "Query execution failed",
+            "error": str(e)
+        }))
+
+        raise
 
     finally:
         conn.close()
 
     if not user:
         publish_metric("UnauthorizedRequests")
-        publish_metric("AuthorizerFailures")
         logger.error(json.dumps({
             "level": "ERROR",
             "operation": "Authorizer",

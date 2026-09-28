@@ -8,7 +8,7 @@ logger.setLevel(logging.INFO)
 
 ssm = boto3.client("ssm")
 
-ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev")
+ENVIRONMENT = os.environ["ENVIRONMENT"]
 
 
 def get_parameter(name, decrypt=False):
@@ -255,6 +255,125 @@ def handler(event, context):
             """)
 
             logger.info("Sample users inserted successfully")
+
+            logger.info("Inserting sample products")
+
+            cursor.execute("""
+            INSERT IGNORE INTO product
+            (
+                
+                product_name,
+                description,
+                category,
+                price,
+                stock_count,
+                is_active
+            )
+            VALUES
+            (
+                
+                'Laptop',
+                'Dell Inspiron 15 Laptop',
+                'Electronics',
+                55000.00,
+                50,
+                TRUE
+            )
+            """)
+
+            cursor.execute("""
+            INSERT IGNORE INTO product
+            (
+                
+                product_name,
+                description,
+                category,
+                price,
+                stock_count,
+                is_active
+            )
+            VALUES
+            (
+                
+                'Wireless Mouse',
+                'Logitech Wireless Mouse',
+                'Accessories',
+                799.00,
+                100,
+                TRUE
+            )
+            """)
+
+            cursor.execute("""
+            INSERT IGNORE INTO product
+            (
+               
+                product_name,
+                description,
+                category,
+                price,
+                stock_count,
+                is_active
+            )
+            VALUES
+            (
+               
+                'Mechanical Keyboard',
+                'RGB Mechanical Keyboard',
+                'Accessories',
+                2499.00,
+                75,
+                TRUE
+            )
+            """)
+
+            cursor.execute("""
+            INSERT IGNORE INTO product
+            (
+                
+                product_name,
+                description,
+                category,
+                price,
+                stock_count,
+                is_active
+            )
+            VALUES
+            (
+              
+                'Monitor',
+                '24 Inch Full HD Monitor',
+                'Electronics',
+                8999.00,
+                40,
+                TRUE
+            )
+            """)
+
+            cursor.execute("""
+            INSERT IGNORE INTO product
+            (
+               
+                product_name,
+                description,
+                category,
+                price,
+                stock_count,
+                is_active
+            )
+            VALUES
+            (
+               
+                'USB-C Charger',
+                '65W Fast Charging Adapter',
+                'Accessories',
+                1499.00,
+                60,
+                TRUE
+            )
+            """)
+
+            logger.info("Sample products inserted successfully")
 
         conn.commit()
 
