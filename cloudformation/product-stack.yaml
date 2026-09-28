@@ -32,7 +32,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "cloudmart-product-function-${Environment}"
-      Runtime: python3.11
+      Runtime: python3.12
       Handler: index.handler
       CodeUri: ../lambdas/product/
       Role:
@@ -89,7 +89,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "cloudmart-order-function-${Environment}"
-      Runtime: python3.11
+      Runtime: python3.12
       Handler: index.handler
       CodeUri: ../lambdas/order/
       Role:
