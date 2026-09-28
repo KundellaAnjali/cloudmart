@@ -100,7 +100,7 @@ def publish_metric(metric_name, value=1):
     )
 
 def create_customer(event):
-    token = secrets.token_hex(32)
+    token = secrets.token_hex(16)
 
     body = json.loads(event.get("body", "{}"))
 
