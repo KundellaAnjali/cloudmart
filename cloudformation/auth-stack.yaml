@@ -15,7 +15,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "cloudmart-schema-init-${Environment}"
-      Runtime: python3.12
+      Runtime: python3.11
       Handler: index.handler
 
       CodeUri: ../lambdas/schema-init/
@@ -41,7 +41,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "cloudmart-authorizer-${Environment}"
-      Runtime: python3.12
+      Runtime: python3.11
       Handler: index.handler
 
       CodeUri: ../lambdas/authorizer/
