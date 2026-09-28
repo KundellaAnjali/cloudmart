@@ -46,7 +46,7 @@
 
         - name: Load Parameters
           run: |
-            echo "ENVIRONMENT=$(jq -r '.Environment' $PARAM_FILE)" >> $GITHUB_ENV
+            echo "ENVIRONMENT=$(jq -r '.[0].ParameterValue' parameters/dev-parameters.json)" >> $GITHUB_ENV
 
         - name: Validate Network Stack
           run: |
@@ -95,7 +95,7 @@
 
         - name: Load Parameters
           run: |
-            echo "ENVIRONMENT=$(jq -r '.Environment' $PARAM_FILE)" >> $GITHUB_ENV
+            echo "ENVIRONMENT=$(jq -r '.[0].ParameterValue' parameters/dev-parameters.json)" >> $GITHUB_ENV
 
         - name: Validate Data Stack
           run: |
@@ -144,7 +144,7 @@
 
         - name: Load Parameters
           run: |
-            echo "ENVIRONMENT=$(jq -r '.Environment' $PARAM_FILE)" >> $GITHUB_ENV
+            echo "ENVIRONMENT=$(jq -r '.[0].ParameterValue' parameters/dev-parameters.json)" >> $GITHUB_ENV
 
         - name: Validate IAM Stack
           run: |
@@ -196,7 +196,7 @@
 
         - name: Load Parameters
           run: |
-            echo "ENVIRONMENT=$(jq -r '.Environment' $PARAM_FILE)" >> $GITHUB_ENV
+            echo "ENVIRONMENT=$(jq -r '.[0].ParameterValue' parameters/dev-parameters.json)" >> $GITHUB_ENV
 
         - name: Validate Auth Stack
           run: |
@@ -259,7 +259,7 @@
           
         - name: Load Parameters
           run: |
-            echo "ENVIRONMENT=$(jq -r '.Environment' $PARAM_FILE)" >> $GITHUB_ENV
+            echo "ENVIRONMENT=$(jq -r '.[0].ParameterValue' parameters/dev-parameters.json)" >> $GITHUB_ENV
 
         - name: Setup SAM CLI
           uses: aws-actions/setup-sam@v2
@@ -318,7 +318,7 @@
 
         - name: Load Parameters
           run: |
-            echo "ENVIRONMENT=$(jq -r '.Environment' $PARAM_FILE)" >> $GITHUB_ENV
+            echo "ENVIRONMENT=$(jq -r '.[0].ParameterValue' parameters/dev-parameters.json)" >> $GITHUB_ENV
 
         - name: Setup SAM CLI
           uses: aws-actions/setup-sam@v2
@@ -377,7 +377,7 @@
 
         - name: Load Parameters
           run: |
-            echo "ENVIRONMENT=$(jq -r '.Environment' $PARAM_FILE)" >> $GITHUB_ENV
+            echo "ENVIRONMENT=$(jq -r '.[0].ParameterValue' parameters/dev-parameters.json)" >> $GITHUB_ENV
 
         - name: Setup SAM CLI
           uses: aws-actions/setup-sam@v2
