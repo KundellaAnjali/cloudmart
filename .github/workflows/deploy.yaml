@@ -3,7 +3,7 @@
   on:
     push:
       branches:
-        - main
+        - monitor
 
   permissions:
     id-token: write
