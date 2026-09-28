@@ -16,13 +16,13 @@ Resources:
   ReportLambdaFunction:
     Type: AWS::Serverless::Function
     Metadata:
-      BuildMethod: python3.12
+      BuildMethod: python3.11
 # !Sub substitutes variables into a string to create dynamic values.
     Properties:
 
       FunctionName: !Sub "cloudmart-report-function-${Environment}"
 
-      Runtime: python3.12
+      Runtime: python3.11
 
       Handler: index.handler
 
