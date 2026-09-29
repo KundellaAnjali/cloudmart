@@ -109,11 +109,12 @@ Resources:
         CreateCustomer:
           Type: Api
           Properties:
+            RestApiId: !Ref ProductApi
             Path: /customers
             Method: post
             Auth:
               Authorizer: NONE
-              
+
         GetCustomers:
           Type: Api
           Properties:
