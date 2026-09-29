@@ -402,7 +402,7 @@ def create_order(event):
                 product = cursor.fetchone()
 
                 if not product:
-                    publish_metric("FailedOrders")
+                    publish_metric("OrderFailures")
                     publish_event(
                         "OrderFailed",
                         {
@@ -421,7 +421,7 @@ def create_order(event):
                     )
 
                 if quantity > product["stock_count"]:
-                    publish_metric("FailedOrders")
+                    publish_metric("OrderFailures")
                     publish_event(
                         "OrderFailed",
                         {
@@ -678,7 +678,7 @@ def create_order(event):
 
         conn.rollback()
         publish_metric("DatabaseQueryFailures")
-        publish_metric("OrderCreationFailures")
+        publish_metric("OrderFailures")
         log(
             "ERROR",
             "CreateOrder",
