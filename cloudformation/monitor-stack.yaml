@@ -61,6 +61,273 @@ Resources:
 
             Enabled: true
 
+  CloudMartDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: CloudMart-All-Metrics
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "ProductsCreated",
+                "metrics": [
+                  ["CloudMart", "ProductsCreated"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "OrdersCreated",
+                "metrics": [
+                  ["CloudMart", "OrdersCreated"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 6,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "FailedOrders",
+                "metrics": [
+                  ["CloudMart", "FailedOrders"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 6,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "LowStockProducts",
+                "metrics": [
+                  ["CloudMart", "LowStockProducts"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 12,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "AuthorizedRequests",
+                "metrics": [
+                  ["CloudMart", "AuthorizedRequests"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 12,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "UnauthorizedRequests",
+                "metrics": [
+                  ["CloudMart", "UnauthorizedRequests"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 18,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "ReportsGenerated",
+                "metrics": [
+                  ["CloudMart", "ReportsGenerated"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 18,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "ReportGenerationFailures",
+                "metrics": [
+                  ["CloudMart", "ReportGenerationFailures"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 24,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "ReportUploadSuccess",
+                "metrics": [
+                  ["CloudMart", "ReportUploadSuccess"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 24,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "RDSConnectionFailures",
+                "metrics": [
+                  ["CloudMart", "RDSConnectionFailures"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 30,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "S3AccessFailures",
+                "metrics": [
+                  ["CloudMart", "S3AccessFailures"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 30,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "ParameterAccessFailures",
+                "metrics": [
+                  ["CloudMart", "ParameterAccessFailures"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 36,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "API Gateway Latency",
+                "metrics": [
+                  ["AWS/ApiGateway", "Latency"]
+                ],
+                "stat": "Average",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 36,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "API Gateway Errors",
+                "metrics": [
+                  ["AWS/ApiGateway", "4XXError"],
+                  [".", "5XXError"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 42,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "RDS CPU",
+                "metrics": [
+                  ["AWS/RDS","CPUUtilization","DBInstanceIdentifier","${Environment}-cloudmart-db"]
+                ],
+                "stat": "Average",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 42,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "RDS Connections",
+                "metrics": [
+                  ["AWS/RDS","DatabaseConnections","DBInstanceIdentifier","${Environment}-cloudmart-db"]
+                ],
+                "stat": "Average",
+                "region": "ap-south-1"
+              }
+            }
+          ]
+        }
+
   AlarmNotificationTopic:
     Type: AWS::SNS::Topic
 
@@ -88,6 +355,20 @@ Resources:
       Threshold: 5
       ComparisonOperator: GreaterThanThreshold
 
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  DatabaseQueryFailuresAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CloudMart-DatabaseQueryFailures
+      Namespace: CloudMart
+      MetricName: DatabaseQueryFailures
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
       AlarmActions:
         - !Ref AlarmNotificationTopic
 
@@ -331,7 +612,7 @@ Resources:
       MetricName: CPUUtilization
       Dimensions:
         - Name: InstanceId
-          Value: !Ref Ec2DashboardV1
+          Value: !Ref Ec2DashboardV2
       Statistic: Average
       Period: 300
       EvaluationPeriods: 2
@@ -436,7 +717,7 @@ Resources:
       Roles:
         - !Sub "${Environment}-CloudMart-EC2Dashboard-Role"
 
-  Ec2DashboardV1:
+  Ec2DashboardV2:
     Type: AWS::EC2::Instance
 
     Properties:
@@ -456,7 +737,7 @@ Resources:
 
       Tags:
         - Key: Name
-          Value: !Sub "${Environment}-Ec2DashboardV1"
+          Value: !Sub "${Environment}-Ec2DashboardV2"
 
       UserData:
         Fn::Base64: !Sub |
@@ -543,4 +824,4 @@ Outputs:
   DashboardPublicIP:
     Description: Dashboard EC2 Public IP
 
-    Value: !GetAtt Ec2DashboardV1.PublicIp
+    Value: !GetAtt Ec2DashboardV2.PublicIp

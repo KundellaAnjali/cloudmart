@@ -12,14 +12,16 @@ ENVIRONMENT = os.environ["ENVIRONMENT"]
 
 
 def get_parameter(name, decrypt=False):
-    logger.info(f"Fetching parameter: {name}")
+    try:
+        response = ssm.get_parameter(
+            Name=name,
+            WithDecryption=decrypt
+        )
+        return response["Parameter"]["Value"]
 
-    response = ssm.get_parameter(
-        Name=name,
-        WithDecryption=decrypt
-    )
-
-    return response["Parameter"]["Value"]
+    except Exception:
+        publish_metric("ParameterAccessFailures")
+        raise
 
 
 def get_connection():

@@ -12,13 +12,18 @@ events = boto3.client("events")
 cloudwatch = boto3.client("cloudwatch")
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
-
 def get_parameter(name, decrypt=False):
-    response = ssm.get_parameter(
-        Name=name,
-        WithDecryption=decrypt
-    )
-    return response["Parameter"]["Value"]
+    try:
+        response = ssm.get_parameter(
+            Name=name,
+            WithDecryption=decrypt
+        )
+
+        return response["Parameter"]["Value"]
+
+    except Exception:
+        publish_metric("ParameterAccessFailures")
+        raise
 
 STOCK_THRESHOLD = int(
     get_parameter(
@@ -122,6 +127,7 @@ def get_product_by_id(connection, product_id):
         product = cursor.fetchone()
 
     if product is None:
+        publish_metric("ProductNotFound")
         logger.warning(json.dumps({
             "level": "WARNING",
             "operation": "GetProductById",

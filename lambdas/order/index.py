@@ -9,7 +9,18 @@ import logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+def publish_metric(metric_name, value=1):
 
+    cloudwatch.put_metric_data(
+        Namespace="CloudMart",
+        MetricData=[
+            {
+                "MetricName": metric_name,
+                "Value": value,
+                "Unit": "Count"
+            }
+        ]
+    )
 def log(level, operation, message, **kwargs): #**kwargs allows you to pass additional named information.
     log_data = {
         "level": level,
@@ -31,29 +42,32 @@ events = boto3.client("events")
 cloudwatch = boto3.client("cloudwatch")
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
-
-DB_HOST = ssm.get_parameter(
-    Name=f"/cloudmart/{ENVIRONMENT}/db/host"
-)["Parameter"]["Value"]
-
-DB_NAME = ssm.get_parameter(
-    Name=f"/cloudmart/{ENVIRONMENT}/db/name"
-)["Parameter"]["Value"]
-
-DB_USER = ssm.get_parameter(
-    Name=f"/cloudmart/{ENVIRONMENT}/db/username"
-)["Parameter"]["Value"]
-
-DB_PASSWORD = ssm.get_parameter(
-    Name=f"/cloudmart/{ENVIRONMENT}/db/password",
-    WithDecryption=True
-)["Parameter"]["Value"]
-
-STOCK_THRESHOLD = int(
-    ssm.get_parameter(
-    Name=f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
+try: 
+    DB_HOST = ssm.get_parameter(
+        Name=f"/cloudmart/{ENVIRONMENT}/db/host"
     )["Parameter"]["Value"]
-)
+
+    DB_NAME = ssm.get_parameter(
+        Name=f"/cloudmart/{ENVIRONMENT}/db/name"
+    )["Parameter"]["Value"]
+
+    DB_USER = ssm.get_parameter(
+        Name=f"/cloudmart/{ENVIRONMENT}/db/username"
+    )["Parameter"]["Value"]
+
+    DB_PASSWORD = ssm.get_parameter(
+        Name=f"/cloudmart/{ENVIRONMENT}/db/password",
+        WithDecryption=True
+    )["Parameter"]["Value"]
+
+    STOCK_THRESHOLD = int(
+        ssm.get_parameter(
+        Name=f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
+        )["Parameter"]["Value"]
+    )
+except Exception:
+    publish_metric("ParameterAccessFailures")
+    raise
 
 logger.info(f"DB Host loaded")
 logger.info(f"DB Name loaded")
@@ -86,18 +100,7 @@ def publish_event(detail_type, detail, source="cloudmart.orders"):
         ]
     )
 
-def publish_metric(metric_name, value=1):
 
-    cloudwatch.put_metric_data(
-        Namespace="CloudMart",
-        MetricData=[
-            {
-                "MetricName": metric_name,
-                "Value": value,
-                "Unit": "Count"
-            }
-        ]
-    )
 
 def create_customer(event):
     token = secrets.token_hex(16)
@@ -402,7 +405,7 @@ def create_order(event):
                 product = cursor.fetchone()
 
                 if not product:
-                    publish_metric("OrderFailures")
+                    publish_metric("FailedOrders")
                     publish_event(
                         "OrderFailed",
                         {
@@ -421,7 +424,7 @@ def create_order(event):
                     )
 
                 if quantity > product["stock_count"]:
-                    publish_metric("OrderFailures")
+                    publish_metric("FailedOrders")
                     publish_event(
                         "OrderFailed",
                         {
@@ -619,37 +622,15 @@ def create_order(event):
 
             conn.commit()
             publish_metric("OrdersCreated")
-            
-
             publish_event(
                 "OrderConfirmed",
                 {
-                    "subject": "CloudMart Order Confirmation",
-                    "message": f"""
-            Dear {customer['customer_name']},
-
-            Your order has been successfully confirmed.
-
-            Order Details
-            ----------------------------------------
-            Order ID      : {order_id}
-            Customer ID   : {customer_id}
-            Status        : CONFIRMED
-            Total Amount  : ₹{total_amount}
-
-            Products Ordered:
-            {chr(10).join([
-                f"• {item['product']['product_name']}\n"
-                f"  Quantity   : {item['quantity']}\n"
-                f"  Unit Price : ₹{item['product']['price']}"
-                for item in product_details
-            ])}
-
-            Thank you for shopping with CloudMart.
-
-            Regards,
-            CloudMart Team
-            """
+                    "customerId": customer_id,
+                    "customerName": customer["customer_name"],
+                    "orderId": order_id,
+                    "orderStatus": "CONFIRMED",
+                    "totalAmount": total_amount,
+                    "message": "Order confirmed successfully"
                 }
             )
 
@@ -678,7 +659,7 @@ def create_order(event):
 
         conn.rollback()
         publish_metric("DatabaseQueryFailures")
-        publish_metric("OrderFailures")
+        publish_metric("FailedOrders")
         log(
             "ERROR",
             "CreateOrder",
@@ -966,7 +947,7 @@ def cancel_order(
             )
 
             conn.commit()
-
+            publish_metric("OrdersCancelled")
             publish_event(
                 "OrderCancelled",
                 {
@@ -1028,10 +1009,10 @@ def handler(event, context):
 
         method = event["httpMethod"]
         path = event["path"]
-        role = event["requestContext"]["authorizer"]["role"]
 
         if method == "POST" and path.endswith("/customers"):
             return create_customer(event)
+        role = event["requestContext"]["authorizer"]["role"]
 
         if method == "GET":
 

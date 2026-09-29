@@ -15,14 +15,6 @@ cloudwatch = boto3.client("cloudwatch")
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
 
-def get_parameter(name, decrypt=False):
-
-    response = ssm.get_parameter(
-        Name=name,
-        WithDecryption=decrypt
-    )
-
-    return response["Parameter"]["Value"]
 
 def publish_metric(metric_name, value=1):
 
@@ -36,6 +28,19 @@ def publish_metric(metric_name, value=1):
             }
         ]
     )
+
+def get_parameter(name, decrypt=False):
+    try:
+        response = ssm.get_parameter(
+            Name=name,
+            WithDecryption=decrypt
+        )
+
+        return response["Parameter"]["Value"]
+
+    except Exception:
+        publish_metric("ParameterAccessFailures")
+        raise
 
 def get_connection():
 
@@ -297,16 +302,21 @@ def handler(event, context):
             f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.csv"
         )
 
-        s3.put_object(
-            Bucket=bucket_name,
-            Key=file_name,
-            Body=output.getvalue(),  #Gets the complete CSV content from memory.
-            ContentType="text/csv"
-        )
+        try:
+            s3.put_object(
+                Bucket=bucket_name,
+                Key=file_name,
+                Body=output.getvalue(),
+                ContentType="text/csv"
+            )
 
-        publish_metric(
-            "ReportUploadSuccess"
-        )
+            publish_metric("ReportUploadSuccess")
+
+        except Exception:
+            publish_metric("S3AccessFailures")
+            publish_metric("ReportUploadFailures")
+            raise
+
 
         output.close()
 

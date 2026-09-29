@@ -9,32 +9,53 @@ cloudwatch = boto3.client("cloudwatch") # used for custom metrics
 ENVIRONMENT = os.environ["ENVIRONMENT"]
 logger = logging.getLogger() #gets the root logger.
 logger.setLevel(logging.INFO)
+def publish_metric(metric_name):
+
+    logger.info(
+        f"Publishing metric: {metric_name}"
+    )
+
+    cloudwatch.put_metric_data(
+        Namespace="CloudMart",
+        MetricData=[
+            {
+                "MetricName": metric_name,
+                "Value": 1,
+                "Unit": "Count"
+            }
+        ]
+    )
 def get_connection():
     logger.info("Creating database connection")
+    try:
+        db_host = get_parameter(
+            f"/cloudmart/{ENVIRONMENT}/db/host"
+        )
 
-    db_host = get_parameter(
-        f"/cloudmart/{ENVIRONMENT}/db/host"
-    )
+        db_name = get_parameter(
+            f"/cloudmart/{ENVIRONMENT}/db/name"
+        )
 
-    db_name = get_parameter(
-        f"/cloudmart/{ENVIRONMENT}/db/name"
-    )
+        db_user = get_parameter(
+            f"/cloudmart/{ENVIRONMENT}/db/username"
+        )
 
-    db_user = get_parameter(
-        f"/cloudmart/{ENVIRONMENT}/db/username"
-    )
+        db_password = get_parameter(
+            f"/cloudmart/{ENVIRONMENT}/db/password",
+            decrypt=True
+        )
+    except Exception:
+        publish_metric("ParameterAccessFailures")
+        raise
 
-    db_password = get_parameter(
-        f"/cloudmart/{ENVIRONMENT}/db/password",
-        decrypt=True
-    )
     #Lambda connects to RDS.
+#Lambda connects to RDS.
     return pymysql.connect(
         host=db_host,
         user=db_user,
         password=db_password,
         database=db_name,
-        cursorclass=pymysql.cursors.DictCursor
+        cursorclass=pymysql.cursors.DictCursor  
     )
 
 def get_parameter(name, decrypt=False):
@@ -72,22 +93,7 @@ def generate_policy(
         }
     }
 
-def publish_metric(metric_name):
 
-    logger.info(
-        f"Publishing metric: {metric_name}"
-    )
-
-    cloudwatch.put_metric_data(
-        Namespace="CloudMart",
-        MetricData=[
-            {
-                "MetricName": metric_name,
-                "Value": 1,
-                "Unit": "Count"
-            }
-        ]
-    )
 
 def handler(event, context):
     logger.info(
