@@ -47,6 +47,7 @@ def get_connection():
     return pymysql.connect(
         host=get_parameter(
             f"/cloudmart/{ENVIRONMENT}/db/host"
+            #f"/cloudmart/{ENVIRONMENT}/db/host1"
         ),
         user=get_parameter(
             f"/cloudmart/{ENVIRONMENT}/db/username"
@@ -65,6 +66,7 @@ def get_connection():
 
     
 def handler(event, context):
+    #raise Exception("Test Report Failure")
     logger.info("Report generation started")
     conn = None
 

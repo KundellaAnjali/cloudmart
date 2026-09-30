@@ -169,47 +169,28 @@ Resources:
               "type": "metric",
               "x": 0,
               "y": 18,
-              "width": 12,
+              "width": 24,
               "height": 6,
               "properties": {
-                "title": "ReportsGenerated",
+                "title": "Report Metrics",
                 "metrics": [
-                  ["CloudMart", "ReportsGenerated"]
+                  [
+                    "CloudMart",
+                    "ReportsGenerated"
+                  ],
+                  [
+                    ".",
+                    "ReportGenerationFailures"
+                  ],
+                  [
+                    ".",
+                    "ReportUploadSuccess"
+                  ]
                 ],
                 "stat": "Sum",
-                "region": "ap-south-1"
-              }
-            },
-
-            {
-              "type": "metric",
-              "x": 12,
-              "y": 18,
-              "width": 12,
-              "height": 6,
-              "properties": {
-                "title": "ReportGenerationFailures",
-                "metrics": [
-                  ["CloudMart", "ReportGenerationFailures"]
-                ],
-                "stat": "Sum",
-                "region": "ap-south-1"
-              }
-            },
-
-            {
-              "type": "metric",
-              "x": 0,
-              "y": 24,
-              "width": 12,
-              "height": 6,
-              "properties": {
-                "title": "ReportUploadSuccess",
-                "metrics": [
-                  ["CloudMart", "ReportUploadSuccess"]
-                ],
-                "stat": "Sum",
-                "region": "ap-south-1"
+                "period": 300,
+                "region": "ap-south-1",
+                "view": "timeSeries"
               }
             },
 
@@ -270,9 +251,15 @@ Resources:
               "properties": {
                 "title": "API Gateway Latency",
                 "metrics": [
-                  ["AWS/ApiGateway", "Latency"]
+                  [
+                    "AWS/ApiGateway",
+                    "Latency",
+                    "ApiName",
+                    "cloudmart-product-api-${Environment}"
+                  ]
                 ],
                 "stat": "Average",
+                "period": 300,
                 "region": "ap-south-1"
               }
             },
@@ -286,8 +273,8 @@ Resources:
               "properties": {
                 "title": "API Gateway Errors",
                 "metrics": [
-                  ["AWS/ApiGateway", "4XXError"],
-                  [".", "5XXError"]
+                  ["AWS/ApiGateway", "4XXError","ApiName","cloudmart-product-api-${Environment}"],
+                  [".", "5XXError","ApiName","cloudmart-product-api-${Environment}"]
                 ],
                 "stat": "Sum",
                 "region": "ap-south-1"
@@ -309,6 +296,27 @@ Resources:
                 "region": "ap-south-1"
               }
             },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 48,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "EC2 CPU",
+                "metrics": [
+                  [
+                    "AWS/EC2",
+                    "CPUUtilization",
+                    "InstanceId",
+                    "${Ec2DashboardV1}"
+                  ]
+                ],
+                "stat": "Average",
+                "period": 300,
+                "region": "ap-south-1"
+              }
+            },
 
             {
               "type": "metric",
@@ -324,9 +332,172 @@ Resources:
                 "stat": "Average",
                 "region": "ap-south-1"
               }
+            },
+          
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 54,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Authorizer Lambda Health",
+                "metrics": [
+                  [
+                    "AWS/Lambda",
+                    "Invocations",
+                    "FunctionName",
+                    "cloudmart-authorizer-${Environment}"
+                  ],
+                  [
+                    ".",
+                    "Errors",
+                    ".",
+                    "."
+                  ],
+                  [
+                    ".",
+                    "Throttles",
+                    ".",
+                    "."
+                  ],
+                  [
+                    ".",
+                    "Duration",
+                    ".",
+                    "."
+                  ]
+                ],
+                "view": "timeSeries",
+                "stat": "Average",
+                "period": 300,
+                "region": "ap-south-1"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 54,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Product Lambda Health",
+                "metrics": [
+                  [
+                    "AWS/Lambda",
+                    "Invocations",
+                    "FunctionName",
+                    "cloudmart-product-function-${Environment}"
+                  ],
+                  [
+                    ".",
+                    "Errors",
+                    ".",
+                    "."
+                  ],
+                  [
+                    ".",
+                    "Throttles",
+                    ".",
+                    "."
+                  ],
+                  [
+                    ".",
+                    "Duration",
+                    ".",
+                    "."
+                  ]
+                ],
+                "view": "timeSeries",
+                "stat": "Average",
+                "period": 300,
+                "region": "ap-south-1"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 60,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Order Lambda Health",
+                "metrics": [
+                  [
+                    "AWS/Lambda",
+                    "Invocations",
+                    "FunctionName",
+                    "cloudmart-order-function-${Environment}"
+                  ],
+                  [
+                    ".",
+                    "Errors",
+                    ".",
+                    "."
+                  ],
+                  [
+                    ".",
+                    "Throttles",
+                    ".",
+                    "."
+                  ],
+                  [
+                    ".",
+                    "Duration",
+                    ".",
+                    "."
+                  ]
+                ],
+                "view": "timeSeries",
+                "stat": "Average",
+                "period": 300,
+                "region": "ap-south-1"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 60,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Report Lambda Health",
+                "metrics": [
+                  [
+                    "AWS/Lambda",
+                    "Invocations",
+                    "FunctionName",
+                    "cloudmart-report-function-${Environment}"
+                  ],
+                  [
+                    ".",
+                    "Errors",
+                    ".",
+                    "."
+                  ],
+                  [
+                    ".",
+                    "Throttles",
+                    ".",
+                    "."
+                  ],
+                  [
+                    ".",
+                    "Duration",
+                    ".",
+                    "."
+                  ]
+                ],
+                "view": "timeSeries",
+                "stat": "Average",
+                "period": 300,
+                "region": "ap-south-1"
+              }
+            }
             }
           ]
         }
+
 
   AlarmNotificationTopic:
     Type: AWS::SNS::Topic
@@ -612,7 +783,7 @@ Resources:
       MetricName: CPUUtilization
       Dimensions:
         - Name: InstanceId
-          Value: !Ref Ec2DashboardV2
+          Value: !Ref Ec2DashboardV1
       Statistic: Average
       Period: 300
       EvaluationPeriods: 2
@@ -717,7 +888,7 @@ Resources:
       Roles:
         - !Sub "${Environment}-CloudMart-EC2Dashboard-Role"
 
-  Ec2DashboardV2:
+  Ec2DashboardV1:
     Type: AWS::EC2::Instance
 
     Properties:
@@ -737,7 +908,7 @@ Resources:
 
       Tags:
         - Key: Name
-          Value: !Sub "${Environment}-Ec2DashboardV2"
+          Value: !Sub "${Environment}-Ec2DashboardV1"
 
       UserData:
         Fn::Base64: !Sub |
@@ -772,7 +943,7 @@ Resources:
           [Service]
           User=ubuntu
           WorkingDirectory=/home/ubuntu/cloudmart/dashboard
-          Environment=ENVIRONMENT=dev
+          Environment=ENVIRONMENT=${Environment}
           ExecStart=/usr/bin/python3 /home/ubuntu/cloudmart/dashboard/app.py
           Restart=always
 
@@ -824,4 +995,4 @@ Outputs:
   DashboardPublicIP:
     Description: Dashboard EC2 Public IP
 
-    Value: !GetAtt Ec2DashboardV2.PublicIp
+    Value: !GetAtt Ec2DashboardV1.PublicIp

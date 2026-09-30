@@ -382,7 +382,7 @@ def delete_product(connection, product_id):
 
 
 def handler(event, context):
-
+    #raise Exception("Test 5XX")
     try:
 
         try:

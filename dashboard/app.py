@@ -80,7 +80,7 @@ def get_dashboard_instance_id():
         Filters=[
             {
                 "Name": "tag:Name",
-                "Values": [f"{ENVIRONMENT}-Ec2DashboardV2"]
+                "Values": [f"{ENVIRONMENT}-Ec2DashboardV1"]
             },
             {
                 "Name": "instance-state-name",
