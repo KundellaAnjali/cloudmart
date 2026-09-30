@@ -601,6 +601,26 @@ def dashboard():
         rds_connections = get_rds_metric(
             "DatabaseConnections"
         )
+        authorizer_throttles = get_lambda_metric(
+            f"cloudmart-authorizer-{ENVIRONMENT}",
+            "Throttles"
+        )
+
+        product_throttles = get_lambda_metric(
+            f"cloudmart-product-function-{ENVIRONMENT}",
+            "Throttles"
+        )
+
+        order_throttles = get_lambda_metric(
+            f"cloudmart-order-function-{ENVIRONMENT}",
+            "Throttles"
+        )
+        report_throttles = get_lambda_metric(
+            f"cloudmart-report-function-{ENVIRONMENT}",
+            "Throttles"
+        )
+        api_4xx = get_api_metric("4XXError")
+        api_5xx = get_api_metric("5XXError")
         
         instance_id = get_dashboard_instance_id()
 
@@ -671,38 +691,17 @@ def dashboard():
         api_5xx_alarm = get_alarm_state(
             "CloudMart-ApiGateway5XX"
         )
-        authorizer_throttles = get_lambda_metric(
-            f"cloudmart-authorizer-{ENVIRONMENT}",
-            "Throttles"
+        schema_init_alarm = get_alarm_state(
+            "CloudMart-SchemaInitErrors"
         )
 
-        product_throttles = get_lambda_metric(
-            f"cloudmart-product-function-{ENVIRONMENT}",
-            "Throttles"
-        )
-
-        order_throttles = get_lambda_metric(
-            f"cloudmart-order-function-{ENVIRONMENT}",
-            "Throttles"
-        )
-        report_throttles = get_lambda_metric(
-            f"cloudmart-report-function-{ENVIRONMENT}",
-            "Throttles"
-        )
-        api_4xx = get_api_metric("4XXError")
-        api_5xx = get_api_metric("5XXError")  
+         
+         
         
 
         # Health
 
         health_status = {}
-
-        try:
-            test_conn = get_connection()
-            test_conn.close()
-            health_status["RDS"] = "Healthy"
-        except:
-            health_status["RDS"] = "Unhealthy"
 
         health_status["S3"] = (
             "Critical"
@@ -745,33 +744,6 @@ def dashboard():
             else "Healthy"
         )
 
-        health_status["Authorizer Lambda"] = (
-            "Critical"
-            if authorizer_errors_alarm
-            else "Healthy"
-        )
-
-        health_status["Product Lambda"] = (
-            "Critical"
-            if product_errors_alarm
-            else "Healthy"
-        )
-
-        health_status["Order Lambda"] = (
-            "Critical"
-            if order_errors_alarm
-            else "Healthy"
-        )
-
-        health_status["Report Lambda"] = (
-            "Critical"
-            if report_errors_alarm
-            else "Healthy"
-        )
-        schema_init_alarm = get_alarm_state(
-            "CloudMart-SchemaInitErrors"
-        )
-
         health_status["Schema Init Lambda"] = (
             "Critical"
             if schema_init_alarm
@@ -784,6 +756,7 @@ def dashboard():
             if authorizer_throttles > 0
             else "Healthy"
         )
+
         health_status["Product Lambda"] = (
             "Critical"
             if product_errors_alarm
@@ -791,6 +764,7 @@ def dashboard():
             if product_throttles > 0
             else "Healthy"
         )
+
         health_status["Order Lambda"] = (
             "Critical"
             if order_errors_alarm
@@ -798,6 +772,7 @@ def dashboard():
             if order_throttles > 0
             else "Healthy"
         )
+
         health_status["Report Lambda"] = (
             "Critical"
             if report_errors_alarm
@@ -805,6 +780,21 @@ def dashboard():
             if report_throttles > 0
             else "Healthy"
         )
+        
+        # Calculate overall health percentage
+
+        total_services = len(health_status)
+
+        healthy_services = sum(
+            1
+            for status in health_status.values()
+            if status == "Healthy"
+        )
+
+        health_percentage = round(
+            (healthy_services / total_services) * 100
+        )
+
 
 
         return render_template(
@@ -855,8 +845,8 @@ def dashboard():
             order_throttles=order_throttles,
             report_throttles=report_throttles,
 
-            api_4xx=api_4xx,
-            api_5xx=api_5xx,
+            api_4xx_errors=api_4xx,
+            api_5xx_errors=api_5xx,
 
             ec2_cpu=ec2_cpu,
 
@@ -890,7 +880,8 @@ def dashboard():
             top_spender=top_spender,
             top_customer=top_customer,
 
-            health_status=health_status
+            health_status=health_status,
+            health_percentage=health_percentage
         )
     finally:
 

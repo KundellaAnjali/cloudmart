@@ -6,6 +6,78 @@
 <title>CloudMart Operations Portal</title>
 
 <style>
+.metric-table{
+    margin-top:10px;
+    box-shadow:none;
+    background:transparent;
+}
+.metrics-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(350px,1fr));
+    gap:20px;
+}
+.health-score{
+    display:flex;
+    justify-content:center;
+    margin-bottom:30px;
+}
+
+.health-circle{
+    width:220px;
+    height:220px;
+    border-radius:50%;
+
+    background:
+    conic-gradient(
+        #22c55e calc(var(--percent) * 1%),
+        #e5e7eb 0
+    );
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.health-circle-inner{
+    width:170px;
+    height:170px;
+    background:white;
+    border-radius:50%;
+
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+}
+
+.health-circle-inner h1{
+    font-size:48px;
+    margin:0;
+    color:#16a34a;
+}
+
+.health-circle-inner p{
+    margin:0;
+    font-weight:bold;
+}
+
+.health-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+    gap:20px;
+}
+
+.health-card{
+    background:white;
+    padding:20px;
+    border-radius:15px;
+    text-align:center;
+    box-shadow:0 3px 10px rgba(0,0,0,.1);
+}
+
+.health-card h3{
+    margin-bottom:10px;
+}
 
 *{
     margin:0;
@@ -82,10 +154,19 @@ body{
     box-shadow: 0 3px 10px rgba(0,0,0,.1);
 }
 
+.kpi-card h3{
+    font-size:22px;
+    font-weight:700;
+}
+
 .kpi-card p{
-    font-size:28px;
-    font-weight:bold;
+    font-size:16px;
+    font-weight:600;
     color:#2563eb;
+}
+
+.kpi-card h5 p{
+    font-size:15px !important;
 }
 
 table{
@@ -363,165 +444,113 @@ td{
         <div id="metrics" class="section">
             <h2>📈 CloudWatch Metrics</h2>
             <br>
+                    <div class="metrics-grid">
 
-            <div class="kpis">
+                        <!-- Custom Business Metrics -->
+                        <div style="background:#d4edda;padding:15px;border-radius:10px;">
+                            <h3>📈 Custom Business Metrics</h3>
+                            <table class="metric-table" width="100%">
+                                <tr><td>Products Created</td><td><b>1</b></td></tr>
+                                <tr><td>Orders Created</td><td><b>2</b></td></tr>
+                                <tr><td>Low Stock Products</td><td><b>1</b></td></tr>
+                                <tr><td>Reports Generated</td><td><b>3</b></td></tr>
+                                <tr><td>Report Upload Success</td><td><b>2</b></td></tr>
+                            </table>
+                        </div>
 
-                <div class="kpi-card">
-                    <h3>Products Created</h3>
-                    <p>{{ products_created }}</p>
-                </div>
+                        <!-- Request Metrics -->
+                        <div style="background:#d1ecf1;padding:15px;border-radius:10px;">
+                            <h3>🔐 Request Metrics</h3>
+                            <table width="100%">
+                                <tr><td>Authorized Requests</td><td><b>9</b></td></tr>
+                                <tr><td>Unauthorized Requests</td><td><b>2</b></td></tr>
+                            </table>
+                        </div>
 
-                <div class="kpi-card">
-                    <h3>Orders Created</h3>
-                    <p>{{ orders_created }}</p>
-                </div>
+                        <!-- Failure Metrics -->
+                        <div style="background:#f8d7da;padding:15px;border-radius:10px;">
+                            <h3>❌ Failure Metrics</h3>
+                            <table width="100%">
+                                <tr><td>Failed Orders</td><td><b>4</b></td></tr>
+                                <tr><td>Report Failures</td><td><b>4</b></td></tr>
+                                <tr><td>RDS Connection Failures</td><td><b>4</b></td></tr>
+                                <tr><td>Database Query Failures</td><td><b>1</b></td></tr>
+                                <tr><td>Parameter Access Failures</td><td><b>4</b></td></tr>
+                                <tr><td>S3 Access Failures</td><td><b>0</b></td></tr>
+                                <tr><td>Report Upload Failures</td><td><b>0</b></td></tr>
+                            </table>
+                        </div>
 
-                <div class="kpi-card">
-                    <h3>Failed Orders</h3>
-                    <p>{{ failed_orders_metric }}</p>
-                </div>
-                <div class="kpi-card">
-                    <h3>Low Stock Products</h3>
-                    <h2>{{ low_stock_products }}</h2>
-                </div>
+                        <!-- Invocation Metrics -->
+                        <div style="background:#fff3cd;padding:15px;border-radius:10px;">
+                            <h3>⚡ Invocation Metrics</h3>
+                            <table width="100%">
+                                <tr><td>Authorizer Invocations</td><td><b>0</b></td></tr>
+                                <tr><td>Product Invocations</td><td><b>0</b></td></tr>
+                                <tr><td>Order Invocations</td><td><b>0</b></td></tr>
+                                <tr><td>Report Invocations</td><td><b>0</b></td></tr>
+                            </table>
+                        </div>
 
-                <div class="kpi-card">
-                    <h3>RDS Connection Failures</h3>
-                    <h2>{{ rds_connection_failures }}</h2>
-                </div>
+                        <!-- Error Metrics -->
+                        <div style="background:#fce4ec;padding:15px;border-radius:10px;">
+                            <h3>🚨 Error Metrics</h3>
+                            <table width="100%">
+                                <tr><td>Authorizer Errors</td><td><b>0</b></td></tr>
+                                <tr><td>Product Errors</td><td><b>0</b></td></tr>
+                                <tr><td>Order Errors</td><td><b>0</b></td></tr>
+                                <tr><td>Report Errors</td><td><b>0</b></td></tr>
+                            </table>
+                        </div>
 
-                <div class="kip-card">
-                    <h3>Database Query Failures</h3>
-                    <h2>{{ database_query_failures }}</h2>
-                </div>
+                        <!-- Throttle Metrics -->
+                        <div style="background:#e1bee7;padding:15px;border-radius:10px;">
+                            <h3>🚦 Throttle Metrics</h3>
+                            <table width="100%">
+                                <tr><td>Authorizer Throttles</td><td><b>0</b></td></tr>
+                                <tr><td>Product Throttles</td><td><b>0</b></td></tr>
+                                <tr><td>Order Throttles</td><td><b>0</b></td></tr>
+                            </table>
+                        </div>
+                        <!-- Performance Metrics -->
+                        <div style="background:#cfe2ff;padding:15px;border-radius:10px;">
+                            <h3>⏱️ Performance Metrics</h3>
+                            <table width="100%">
+                                <tr>
+                                    <td>API Gateway Latency</td>
+                                    <td><b>{{ api_gateway_latency }}</b></td>
+                                </tr>
+                                <tr>
+                                    <td>EC2 CPU %</td>
+                                    <td><b>{{ ec2_cpu }}</b></td>
+                                </tr>
+                                <tr>
+                                    <td>RDS CPU %</td>
+                                    <td><b>{{ rds_cpu }}</b></td>
+                                </tr>
+                                <tr>
+                                    <td>RDS Connections</td>
+                                    <td><b>{{ rds_connections }}</b></td>
+                                </tr>
+                            </table>
+                        </div>
 
-                <div class="kip-card">
-                    <h3>S3 Access Failures</h3>
-                    <h2>{{ s3_access_failures }}</h2>
-                </div>
+                        <!-- API Health Metrics -->
+                        <div style="background:#b2ebf2;padding:15px;border-radius:10px;">
+                            <h3>🌐 API Health Metrics</h3>
+                            <table width="100%">
+                                <tr>
+                                    <td>API 4XX Errors</td>
+                                    <td><b>{{ api_4xx_errors }}</b></td>
+                                </tr>
+                                <tr>
+                                    <td>API 5XX Errors</td>
+                                    <td><b>{{ api_5xx_errors }}</b></td>
+                                </tr>
+                            </table>
+                        </div>
 
-                <div class="kip-card">
-                    <h3>Parameter Access Failures</h3>
-                    <h2>{{ parameter_access_failures }}</h2>
-                </div>
-
-                <div class="kip-card">
-                    <h3>Report Upload Failures</h3>
-                    <h2>{{ report_upload_failures }}</h2>
-                </div>
-
-
-                <div class="kpi-card">
-                    <h3>Authorized Requests</h3>
-                    <p>{{ authorized_requests }}</p>
-                </div>
-
-                <div class="kpi-card">
-                    <h3>Unauthorized Requests</h3>
-                    <p>{{ unauthorized_requests }}</p>
-                </div>
-
-                <div class="kpi-card">
-                    <h3>Reports Generated</h3>
-                    <p>{{ reports_generated }}</p>
-                </div>
-
-                <div class="kpi-card">
-                    <h3>Report Upload Success</h3>
-                    <p>{{ report_upload_success }}</p>
-                </div>
-
-                <div class="kpi-card">
-                    <h3>Report Failures</h3>
-                    <p>{{ report_generation_failures }}</p>
-                </div>
-
-                <div class="kpi-card">
-                    <h3>Authorizer Invocations</h3>
-                    <p>{{ authorizer_invocations }}</p>
-                </div>
-
-                <div class="kpi-card">
-                    <h3>Authorizer Errors</h3>
-                    <p>{{ authorizer_errors }}</p>
-                </div>
-
-                <div class="kpi-card">
-                    <h3>Authorizer Throttles</h3>
-                    <p>{{ authorizer_throttles }}</p>
-                </div>
-
-                <div class="kpi-card">
-                    <h3>Product Invocations</h3>
-                    <p>{{ product_invocations }}</p>
-                </div>
-
-                <div class="kpi-card">
-                    <h3>Product Errors</h3>
-                    <p>{{ product_errors }}</p>
-                </div>
-
-                <div class="kpi-card">
-                    <h3>Product Throttles</h3>
-                    <p>{{ product_throttles }}</p>
-                </div>
-
-                <div class="kpi-card">
-                    <h3>Order Invocations</h3>
-                    <p>{{ order_invocations }}</p>
-                </div>
-
-                <div class="kpi-card">
-                    <h3>Order Errors</h3>
-                    <p>{{ order_errors }}</p>
-                </div>
-
-                <div class="kpi-card">
-                    <h3>Order Throttles</h3>
-                    <p>{{ order_throttles }}</p>
-                </div>
-
-                <div class="kpi-card">
-                    <h3>Report Invocations</h3>
-                    <p>{{ report_invocations }}</p>
-                </div>
-
-                <div class="kpi-card">
-                    <h3>Report Errors</h3>
-                    <p>{{ report_errors }}</p>
-                </div>
-
-                <div class="kpi-card">
-                    <h3>Report Throttles</h3>
-                    <p>{{ report_throttles }}</p>
-                </div>
-
-                <div class="kpi-card">
-                    <h3>API 4XX Errors</h3>
-                    <p>{{ api_4xx }}</p>
-                </div>
-
-                <div class="kpi-card">
-                    <h3>API 5XX Errors</h3>
-                    <p>{{ api_5xx }}</p>
-                </div>
-
-                <div class="kpi-card">
-                    <h3>EC2 CPU %</h3>
-                    <p>{{ ec2_cpu }}</p>
-                </div>
-
-                <div class="kpi-card">
-                    <h3>RDS CPU %</h3>
-                    <p>{{ rds_cpu }}</p>
-                </div>
-
-                <div class="kpi-card">
-                    <h3>RDS Connections</h3>
-                    <p>{{ rds_connections }}</p>
-                </div>
-
-            </div>
+                    </div>
         </div>
 
         <!-- ALERTS -->
@@ -533,116 +562,147 @@ td{
                         <th>Alert</th>
                         <th>Status</th>
                     </tr>
-                    <tr>
-                        <td>Failed Orders</td>
-                        <td>{% if failed_orders_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
-                    </tr>
+                    <!-- Failure Alarms -->
 
-                    <tr>
-                        <td>Low Stock Products</td>
-                        <td>{% if low_stock_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
-                    </tr>
+<tr>
+    <td>Failed Orders</td>
+    <td>{% if failed_orders_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+</tr>
 
-                    <tr>
-                        <td>Unauthorized Requests</td>
-                        <td>{% if unauthorized_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
-                    </tr>
+<tr>
+    <td>Report Generation Failures</td>
+    <td>{% if report_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+</tr>
 
-                    <tr>
-                        <td>Report Generation Failures</td>
-                        <td>{% if report_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
-                    </tr>
+<tr>
+    <td>Schema Init Errors</td>
+    <td>{% if schema_init_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+</tr>
 
-                    <tr>
-                        <td>Authorizer Errors</td>
-                        <td>{% if authorizer_errors_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
-                    </tr>
+<tr>
+    <td>S3 Access Failures</td>
+    <td>{% if s3_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+</tr>
 
-                    <tr>
-                        <td>Product Errors</td>
-                        <td>{% if product_errors_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
-                    </tr>
+<tr>
+    <td>Parameter Store Failures</td>
+    <td>{% if parameter_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+</tr>
 
-                    <tr>
-                        <td>Order Errors</td>
-                        <td>{% if order_errors_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
-                    </tr>
+<!-- Error Alarms -->
 
-                    <tr>
-                        <td>Report Errors</td>
-                        <td>{% if report_errors_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
-                    </tr>
+<tr>
+    <td>Authorizer Errors</td>
+    <td>{% if authorizer_errors_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+</tr>
 
-                    <tr>
-                        <td>EC2 High CPU</td>
-                        <td>{% if ec2_cpu_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
-                    </tr>
+<tr>
+    <td>Product Errors</td>
+    <td>{% if product_errors_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+</tr>
 
-                    <tr>
-                        <td>RDS High CPU</td>
-                        <td>{% if rds_cpu_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
-                    </tr>
+<tr>
+    <td>Order Errors</td>
+    <td>{% if order_errors_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+</tr>
 
-                    <tr>
-                        <td>RDS Connections</td>
-                        <td>{% if rds_connections_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
-                    </tr>
+<tr>
+    <td>Report Errors</td>
+    <td>{% if report_errors_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+</tr>
 
-                    <tr>
-                        <td>API Gateway 4XX</td>
-                        <td>{% if api_4xx_alarm %}🟡 Warning{% else %}🟢 Healthy{% endif %}</td>
-                    </tr>
+<!-- Infrastructure Alarms -->
 
-                    <tr>
-                        <td>API Gateway 5XX</td>
-                        <td>{% if api_5xx_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
-                    </tr>
-                    <tr>
-                        <td>Schema Init Errors</td>
-                        <td>{% if schema_init_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
-                    </tr>
+<tr>
+    <td>Low Stock Products</td>
+    <td>{% if low_stock_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+</tr>
 
-                    <tr>
-                        <td>S3 Access Failures</td>
-                        <td>{% if s3_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
-                    </tr>
+<tr>
+    <td>EC2 High CPU</td>
+    <td>{% if ec2_cpu_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+</tr>
 
-                    <tr>
-                        <td>Parameter Store Failures</td>
-                        <td>{% if parameter_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
-                    </tr>
-                                    </table>
+<tr>
+    <td>RDS High CPU</td>
+    <td>{% if rds_cpu_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+</tr>
+
+<tr>
+    <td>RDS Connections</td>
+    <td>{% if rds_connections_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+</tr>
+
+<!-- API & Security -->
+
+<tr>
+    <td>Unauthorized Requests</td>
+    <td>{% if unauthorized_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+</tr>
+
+<tr>
+    <td>API Gateway 4XX</td>
+    <td>{% if api_4xx_alarm %}🟡 Warning{% else %}🟢 Healthy{% endif %}</td>
+</tr>
+
+<tr>
+    <td>API Gateway 5XX</td>
+    <td>{% if api_5xx_alarm %}🔴 Alarm{% else %}🟢 Healthy{% endif %}</td>
+</tr>
+                    
+                </table>
             </div>
         </div>
 
         <!-- HEALTH -->
-        <div id="health" class="section">
-            <div class="section-card">
-                <h2>❤️ System Health</h2>
-                <table>
-                    <tr>
-                        <th>Service</th>
-                        <th>Status</th>
-                    </tr>
-                    {% for service, status in health_status.items() %}
-                    <tr>
-                        <td>{{ service }}</td>
-                        <td class="
-                            {% if status == 'Healthy' %}
-                            healthy
-                            {% elif status == 'Warning' %}
-                            warning
-                            {% else %}
-                            critical
-                            {% endif %}
-                            ">
-                            {{ status }}
-                            </td>
-                    </tr>
-                    {% endfor %}
-                </table>
+            <!-- HEALTH -->
+<div id="health" class="section">
+
+    <h2>❤️ System Health</h2>
+    <br>
+
+    <div class="health-score">
+
+        <div class="health-circle"
+             style="--percent:{{ health_percentage }}">
+
+            <div class="health-circle-inner">
+                <h1>{{ health_percentage }}%</h1>
+                <p>System Health</p>
             </div>
+
         </div>
+
+    </div>
+
+    <br><br>
+
+    <div class="health-grid">
+
+        {% for service, status in health_status.items() %}
+
+        <div class="health-card">
+
+            <h3>{{ service }}</h3>
+
+            {% if status == "Healthy" %}
+                <p class="healthy">🟢 Healthy</p>
+
+            {% elif status == "Warning" %}
+                <p class="warning">🟡 Warning</p>
+
+            {% else %}
+                <p class="critical">🔴 Critical</p>
+
+            {% endif %}
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+</div>
 
     </div>
 
