@@ -510,6 +510,29 @@ def dashboard():
         failed_orders_metric = get_metric_value(
             "FailedOrders"
         )
+        low_stock_products = get_metric_value(
+            "LowStockProducts"
+        )
+
+        rds_connection_failures = get_metric_value(
+            "RDSConnectionFailures"
+        )
+
+        database_query_failures = get_metric_value(
+            "DatabaseQueryFailures"
+        )
+
+        s3_access_failures = get_metric_value(
+            "S3AccessFailures"
+        )
+
+        parameter_access_failures = get_metric_value(
+            "ParameterAccessFailures"
+        )
+
+        report_upload_failures = get_metric_value(
+            "ReportUploadFailures"
+        )
 
         authorized_requests = get_metric_value(
             "AuthorizedRequests"
@@ -805,6 +828,13 @@ def dashboard():
             failed_orders_metric=failed_orders_metric,
             authorized_requests=authorized_requests,
             unauthorized_requests=unauthorized_requests,
+
+            low_stock_products=low_stock_products,
+            rds_connection_failures=rds_connection_failures,
+            database_query_failures=database_query_failures,
+            s3_access_failures=s3_access_failures,
+            parameter_access_failures=parameter_access_failures,
+            report_upload_failures=report_upload_failures,
 
             reports_generated=reports_generated,
             report_upload_success=report_upload_success,

@@ -188,54 +188,54 @@ td{
             <div class="kpis">
                 <div class="kpi-card">
                     <h3>Total Products</h3>
-                    <p>{{ total_products }}</p>
+                    <h4><p>{{ total_products }}</p></h4>
                 </div>
                 <div class="kpi-card">
                     <h3>Total Orders</h3>
-                    <p>{{ total_orders }}</p>
+                    <h4><p>{{ total_orders }}</p></h4>
                 </div>
                 <div class="kpi-card">
                     <h3>Total Customers</h3>
-                    <p>{{ total_customers }}</p>
+                    <h4><p>{{ total_customers }}</p></h4>
                 </div>
                 <div class="kpi-card">
                     <h3>Total Sales</h3>
-                    <p>₹{{ revenue }}</p>
+                    <h4><p>₹{{ revenue }}</p></h4>
                 </div>
                 <div class="kpi-card">
                     <h3>Low Stock</h3>
-                    <p>{{ low_stock }}</p>
+                    <h4><p>{{ low_stock }}</p></h4>
                 </div>
                 <div class="kpi-card">
                     <h3>Failed Orders</h3>
-                    <p>{{ failed_orders }}</p>
+                    <h4><p>{{ failed_orders }}</p></h4>
                 </div>
             </div>
             <br><br>
             <div class="kpis">
                 <div class="kpi-card">
                     <h3>🏆 Best Selling Product</h3>
-                    <p>{{ best_product.product_name if best_product else 'N/A' }}</p>
+                    <h5><p>{{ best_product.product_name if best_product else 'N/A' }}</p></h5>
                 </div>
                 <div class="kpi-card">
                     <h3>📉 Lowest Selling Product</h3>
-                    <p>{{ lowest_product.product_name if lowest_product else 'N/A' }}</p>
+                    <h5><p>{{ lowest_product.product_name if lowest_product else 'N/A' }}</p></h5>
                 </div>
                 <div class="kpi-card">
                     <h3>💰 Highest Spending Customer</h3>
-                    <p>
+                    <h5><p>
                         {{ top_spender.customer_name if top_spender else 'N/A' }}
                         <br>
                         {% if top_spender %}(ID: {{ top_spender.customer_id }}){% endif %}
-                    </p>
+                    </p></h5>
                 </div>
                 <div class="kpi-card">
                     <h3>👤 Customer With Most Orders</h3>
-                    <p>
+                    <h5><p>
                         {{ top_customer.customer_name if top_customer else 'N/A' }}
                         <br>
                         {% if top_customer %}(ID: {{ top_customer.customer_id }}){% endif %}
-                    </p>
+                    </p></h5>
                 </div>
             </div>
         </div>
@@ -380,6 +380,36 @@ td{
                     <h3>Failed Orders</h3>
                     <p>{{ failed_orders_metric }}</p>
                 </div>
+                <div class="metric-card">
+                    <h3>Low Stock Products</h3>
+                    <h2>{{ low_stock_products }}</h2>
+                </div>
+
+                <div class="metric-card">
+                    <h3>RDS Connection Failures</h3>
+                    <h2>{{ rds_connection_failures }}</h2>
+                </div>
+
+                <div class="metric-card">
+                    <h3>Database Query Failures</h3>
+                    <h2>{{ database_query_failures }}</h2>
+                </div>
+
+                <div class="metric-card">
+                    <h3>S3 Access Failures</h3>
+                    <h2>{{ s3_access_failures }}</h2>
+                </div>
+
+                <div class="metric-card">
+                    <h3>Parameter Access Failures</h3>
+                    <h2>{{ parameter_access_failures }}</h2>
+                </div>
+
+                <div class="metric-card">
+                    <h3>Report Upload Failures</h3>
+                    <h2>{{ report_upload_failures }}</h2>
+                </div>
+
 
                 <div class="kpi-card">
                     <h3>Authorized Requests</h3>
