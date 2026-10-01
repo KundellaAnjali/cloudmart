@@ -17,7 +17,6 @@ Resources:
     Type: AWS::Serverless::Function
     Metadata:
       BuildMethod: python3.12
-# !Sub substitutes variables into a string to create dynamic values.
     Properties:
 
       FunctionName: !Sub "cloudmart-report-function-${Environment}"
@@ -29,7 +28,7 @@ Resources:
       CodeUri: ../lambdas/report/
 
       Role:
-        Fn::ImportValue: ReportLambdaRoleArn
+        Fn::ImportValue: !Sub "${Environment}-CloudMart-ReportLambdaRoleArn"
 
       Timeout: 60
 
@@ -41,11 +40,11 @@ Resources:
 
       VpcConfig:
         SecurityGroupIds:
-          - Fn::ImportValue: CloudMart-Lambda-SG
+          - Fn::ImportValue: !Sub "${Environment}-CloudMart-Lambda-SG"
 
         SubnetIds:
-          - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
-          - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
+          - Fn::ImportValue: !Sub "${Environment}-CloudMart-Private-Subnet-A-ID"
+          - Fn::ImportValue: !Sub "${Environment}-CloudMart-Private-Subnet-B-ID"
 
       Events:
 
@@ -64,7 +63,7 @@ Resources:
   CloudMartDashboard:
     Type: AWS::CloudWatch::Dashboard
     Properties:
-      DashboardName: CloudMart-All-Metrics
+      DashboardName: !Sub "CloudMart-All-Metrics-${Environment}"
       DashboardBody: !Sub |
         {
           "widgets": [
@@ -516,7 +515,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
 
     Properties:
-      AlarmName: CloudMart-FailedOrders
+      AlarmName: !Sub "CloudMart-FailedOrders-${Environment}"
       Namespace: CloudMart
       MetricName: FailedOrders
       Statistic: Sum
@@ -531,7 +530,7 @@ Resources:
   DatabaseQueryFailuresAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: CloudMart-DatabaseQueryFailures
+      AlarmName: !Sub "CloudMart-DatabaseQueryFailures-${Environment}"
       Namespace: CloudMart
       MetricName: DatabaseQueryFailures
       Statistic: Sum
@@ -546,7 +545,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
 
     Properties:
-      AlarmName: CloudMart-UnauthorizedRequests
+      AlarmName: !Sub "CloudMart-UnauthorizedRequests-${Environment}"
       Namespace: CloudMart
       MetricName: UnauthorizedRequests
       Statistic: Sum
@@ -562,7 +561,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
 
     Properties:
-      AlarmName: CloudMart-ReportGenerationFailures
+      AlarmName: !Sub "CloudMart-ReportGenerationFailures-${Environment}"
       Namespace: CloudMart
       MetricName: ReportGenerationFailures
       Statistic: Sum
@@ -578,7 +577,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
 
     Properties:
-      AlarmName: CloudMart-LowStockProducts
+      AlarmName: !Sub "CloudMart-LowStockProducts-${Environment}"
       Namespace: CloudMart
       MetricName: LowStockProducts
       Statistic: Sum
@@ -593,7 +592,7 @@ Resources:
   AuthorizerErrorsAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: CloudMart-AuthorizerErrors
+      AlarmName: !Sub "CloudMart-AuthorizerErrors-${Environment}"
       Namespace: AWS/Lambda
       MetricName: Errors
       Dimensions:
@@ -610,7 +609,7 @@ Resources:
   ProductErrorsAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: CloudMart-ProductErrors
+      AlarmName: !Sub "CloudMart-ProductErrors-${Environment}"
       Namespace: AWS/Lambda
       MetricName: Errors
       Dimensions:
@@ -627,7 +626,7 @@ Resources:
   OrderErrorsAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: CloudMart-OrderErrors
+      AlarmName: !Sub "CloudMart-OrderErrors-${Environment}"
       Namespace: AWS/Lambda
       MetricName: Errors
       Dimensions:
@@ -644,7 +643,7 @@ Resources:
   ReportErrorsAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: CloudMart-ReportErrors
+      AlarmName: !Sub "CloudMart-ReportErrors-${Environment}"
       Namespace: AWS/Lambda
       MetricName: Errors
       Dimensions:
@@ -661,7 +660,7 @@ Resources:
   SchemaInitErrorsAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: CloudMart-SchemaInitErrors
+      AlarmName: !Sub "CloudMart-SchemaInitErrors-${Environment}"
       Namespace: AWS/Lambda
       MetricName: Errors
       Dimensions:
@@ -678,7 +677,7 @@ Resources:
   AuthorizerThrottlesAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: CloudMart-AuthorizerThrottles
+      AlarmName: !Sub "CloudMart-AuthorizerThrottles-${Environment}"
       Namespace: AWS/Lambda
       MetricName: Throttles
       Dimensions:
@@ -695,7 +694,7 @@ Resources:
   ProductThrottlesAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: CloudMart-ProductThrottles
+      AlarmName: !Sub "CloudMart-ProductThrottles-${Environment}"
       Namespace: AWS/Lambda
       MetricName: Throttles
       Dimensions:
@@ -709,12 +708,10 @@ Resources:
       AlarmActions:
         - !Ref AlarmNotificationTopic
 
-  
-
   OrderLambdaThrottlesAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: CloudMart-OrderThrottles
+      AlarmName: !Sub "CloudMart-OrderThrottles-${Environment}"
       Namespace: AWS/Lambda
       MetricName: Throttles
       Dimensions:
@@ -731,7 +728,7 @@ Resources:
   ReportThrottlesAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: CloudMart-ReportThrottles
+      AlarmName: !Sub "CloudMart-ReportThrottles-${Environment}"
       Namespace: AWS/Lambda
       MetricName: Throttles
       Dimensions:
@@ -745,12 +742,10 @@ Resources:
       AlarmActions:
         - !Ref AlarmNotificationTopic
 
-  
-
   ApiGateway4XXAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: CloudMart-ApiGateway4XX
+      AlarmName: !Sub "CloudMart-ApiGateway4XX-${Environment}"
       Namespace: AWS/ApiGateway
       MetricName: 4XXError
       Statistic: Sum
@@ -760,10 +755,11 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       AlarmActions:
         - !Ref AlarmNotificationTopic
+
   ApiGateway5XXAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: CloudMart-ApiGateway5XX
+      AlarmName: !Sub "CloudMart-ApiGateway5XX-${Environment}"
       Namespace: AWS/ApiGateway
       MetricName: 5XXError
       Statistic: Sum
@@ -777,7 +773,7 @@ Resources:
   EC2HighCPUAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: CloudMart-EC2HighCPU
+      AlarmName: !Sub "CloudMart-EC2HighCPU-${Environment}"
       Namespace: AWS/EC2
       MetricName: CPUUtilization
       Dimensions:
@@ -794,7 +790,7 @@ Resources:
   RDSHighCPUAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: CloudMart-RDSHighCPU
+      AlarmName: !Sub "CloudMart-RDSHighCPU-${Environment}"
       Namespace: AWS/RDS
       MetricName: CPUUtilization
       Dimensions:
@@ -811,7 +807,7 @@ Resources:
   RDSConnectionFailuresAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: CloudMart-RDSConnectionFailures
+      AlarmName: !Sub "CloudMart-RDSConnectionFailures-${Environment}"
       Namespace: CloudMart
       MetricName: RDSConnectionFailures
       Statistic: Sum
@@ -825,7 +821,7 @@ Resources:
   RDSConnectionsAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: CloudMart-RDSConnections
+      AlarmName: !Sub "CloudMart-RDSConnections-${Environment}"
       Namespace: AWS/RDS
       MetricName: DatabaseConnections
       Dimensions:
@@ -842,7 +838,7 @@ Resources:
   S3AccessFailuresAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: CloudMart-S3AccessFailures
+      AlarmName: !Sub "CloudMart-S3AccessFailures-${Environment}"
       Namespace: CloudMart
       MetricName: S3AccessFailures
       Statistic: Sum
@@ -852,10 +848,11 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
       AlarmActions:
         - !Ref AlarmNotificationTopic
+
   ReportUploadFailuresAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: CloudMart-ReportUploadFailures
+      AlarmName: !Sub "CloudMart-ReportUploadFailures-${Environment}"
       Namespace: CloudMart
       MetricName: ReportUploadFailures
       Statistic: Sum
@@ -865,10 +862,11 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
       AlarmActions:
         - !Ref AlarmNotificationTopic
+
   ParameterAccessFailuresAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: CloudMart-ParameterAccessFailures
+      AlarmName: !Sub "CloudMart-ParameterAccessFailures-${Environment}"
       Namespace: CloudMart
       MetricName: ParameterAccessFailures
       Statistic: Sum
@@ -894,16 +892,15 @@ Resources:
 
       InstanceType: t3.micro
 
-      #serve as blueprint to luanch ec2 instance
       ImageId: ami-0e35ddab05955cf57
 
       IamInstanceProfile: !Ref DashboardInstanceProfile
 
       SecurityGroupIds:
-        - Fn::ImportValue: CloudMart-EC2-SG
+        - Fn::ImportValue: !Sub "${Environment}-CloudMart-EC2-SG"
 
       SubnetId:
-        Fn::ImportValue: CloudMart-Public-Subnet-ID
+        Fn::ImportValue: !Sub "${Environment}-CloudMart-Public-Subnet-ID"
 
       Tags:
         - Key: Name
@@ -987,9 +984,8 @@ Outputs:
     Description: Report Lambda ARN
     Value: !GetAtt ReportLambdaFunction.Arn
     Export:
-      Name: CloudMart-Report-Lambda-Arn
+      Name: !Sub "${Environment}-CloudMart-Report-Lambda-Arn"
 
   DashboardPublicIP:
     Description: Dashboard EC2 Public IP
-
     Value: !GetAtt Ec2DashboardV1.PublicIp

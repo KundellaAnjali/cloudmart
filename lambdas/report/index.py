@@ -116,7 +116,7 @@ def handler(event, context):
         # -----------------------------
         # BUSINESS METRICS
         # -----------------------------
-
+        stock_threshold = int(get_parameter(f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"))
         total_products = len(products)
 
         total_orders = len(orders)
@@ -147,7 +147,7 @@ def handler(event, context):
             [
                 product
                 for product in products
-                if product["stock_count"] < 10
+                if product["stock_count"] < stock_threshold
             ]
         )
 

@@ -45,7 +45,7 @@ Resources:
                 Action:
                   - kms:Decrypt
                 Resource:
-                  - Fn::ImportValue: CloudMart-KMS-Key-Arn
+                  - Fn::ImportValue: !Sub "${Environment}-CloudMart-KMS-Key-Arn"
 
               - Effect: Allow
                 Action:
@@ -89,7 +89,7 @@ Resources:
                 Action:
                   - kms:Decrypt
                 Resource:
-                  - Fn::ImportValue: CloudMart-KMS-Key-Arn
+                  - Fn::ImportValue: !Sub "${Environment}-CloudMart-KMS-Key-Arn"
 
               - Effect: Allow
                 Action:
@@ -139,7 +139,7 @@ Resources:
                 Action:
                   - kms:Decrypt
                 Resource:
-                  - Fn::ImportValue: CloudMart-KMS-Key-Arn
+                  - Fn::ImportValue: !Sub "${Environment}-CloudMart-KMS-Key-Arn"
 
               - Effect: Allow
                 Action:
@@ -187,7 +187,7 @@ Resources:
                 Action:
                   - kms:Decrypt
                 Resource:
-                  - Fn::ImportValue: CloudMart-KMS-Key-Arn
+                  - Fn::ImportValue: !Sub "${Environment}-CloudMart-KMS-Key-Arn"
 
               - Effect: Allow
                 Action:
@@ -240,7 +240,7 @@ Resources:
                 Action:
                   - kms:Decrypt
                 Resource:
-                  - Fn::ImportValue: CloudMart-KMS-Key-Arn
+                  - Fn::ImportValue: !Sub "${Environment}-CloudMart-KMS-Key-Arn"
 
               - Effect: Allow
                 Action:
@@ -266,34 +266,35 @@ Resources:
                   - cloudwatch:GetMetricData
                   - cloudwatch:ListMetrics
                 Resource: "*"
+
 Outputs:
 
   LambdaAuthorizerRoleArn:
     Description: Lambda Authorizer Role ARN
     Value: !GetAtt LambdaAuthorizerRole.Arn
     Export:
-      Name: LambdaAuthorizerRoleArn
+      Name: !Sub "${Environment}-CloudMart-LambdaAuthorizerRoleArn"
 
   ProductLambdaRoleArn:
     Description: Product Lambda Role ARN
     Value: !GetAtt ProductLambdaRole.Arn
     Export:
-      Name: ProductLambdaRoleArn
+      Name: !Sub "${Environment}-CloudMart-ProductLambdaRoleArn"
 
   OrderProcessorRoleArn:
     Description: Order Processor Role ARN
     Value: !GetAtt OrderProcessorRole.Arn
     Export:
-      Name: OrderProcessorRoleArn
+      Name: !Sub "${Environment}-CloudMart-OrderProcessorRoleArn"
 
   ReportLambdaRoleArn:
     Description: Report Lambda Role ARN
     Value: !GetAtt ReportLambdaRole.Arn
     Export:
-      Name: ReportLambdaRoleArn
+      Name: !Sub "${Environment}-CloudMart-ReportLambdaRoleArn"
 
   EC2DashboardRoleArn:
     Description: EC2 Dashboard Role ARN
     Value: !GetAtt EC2DashboardRole.Arn
     Export:
-      Name: EC2DashboardRoleArn
+      Name: !Sub "${Environment}-CloudMart-EC2DashboardRoleArn"

@@ -59,14 +59,10 @@ Resources:
 
           InputTransformer:
             InputPathsMap:
-              subject: "$.detail.subject"
               message: "$.detail.message"
 
             InputTemplate: |
-              {
-                "Subject": "<subject>",
-                "Message": "<message>"
-              }
+              <message>
 
   LowStockEventRule:
     Type: AWS::Events::Rule
@@ -88,16 +84,10 @@ Resources:
 
           InputTransformer:
             InputPathsMap:
-              subject: "$.detail.subject"
               message: "$.detail.message"
 
             InputTemplate: |
-              {
-                "Subject": "<subject>",
-                "Message": "<message>"
-              }
-
-
+              <message>
 
   CustomerTopicPolicy:
     Type: AWS::SNS::TopicPolicy
@@ -161,10 +151,10 @@ Outputs:
     Description: Customer Notification Topic ARN
     Value: !Ref CustomerNotificationsTopic
     Export:
-      Name: CloudMart-Customer-Topic-Arn
+      Name: !Sub "${Environment}-CloudMart-Customer-Topic-Arn"
 
   OwnerTopicArn:
     Description: Owner Notification Topic ARN
     Value: !Ref OwnerNotificationsTopic
     Export:
-      Name: CloudMart-Owner-Topic-Arn
+      Name: !Sub "${Environment}-CloudMart-Owner-Topic-Arn"

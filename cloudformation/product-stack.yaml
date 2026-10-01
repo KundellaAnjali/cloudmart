@@ -22,7 +22,7 @@ Resources:
         Authorizers:
           CloudMartAuthorizer:
             FunctionArn:
-              Fn::ImportValue: LambdaAuthorizerArn
+              Fn::ImportValue: !Sub "${Environment}-CloudMart-LambdaAuthorizerArn"
             FunctionPayloadType: TOKEN
             Identity:
               Header: Authorization
@@ -36,7 +36,7 @@ Resources:
       Handler: index.handler
       CodeUri: ../lambdas/product/
       Role:
-        Fn::ImportValue: ProductLambdaRoleArn
+        Fn::ImportValue: !Sub "${Environment}-CloudMart-ProductLambdaRoleArn"
       Timeout: 30
       MemorySize: 256
       Environment:
@@ -44,10 +44,10 @@ Resources:
           ENVIRONMENT: !Ref Environment
       VpcConfig:
         SecurityGroupIds:
-          - Fn::ImportValue: CloudMart-Lambda-SG
+          - Fn::ImportValue: !Sub "${Environment}-CloudMart-Lambda-SG"
         SubnetIds:
-          - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
-          - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
+          - Fn::ImportValue: !Sub "${Environment}-CloudMart-Private-Subnet-A-ID"
+          - Fn::ImportValue: !Sub "${Environment}-CloudMart-Private-Subnet-B-ID"
       Events:
         GetProducts:
           Type: Api
@@ -88,7 +88,6 @@ Resources:
             Path: /products/{id}
             Method: DELETE
 
-
   OrderLambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -97,7 +96,7 @@ Resources:
       Handler: index.handler
       CodeUri: ../lambdas/order/
       Role:
-        Fn::ImportValue: OrderProcessorRoleArn
+        Fn::ImportValue: !Sub "${Environment}-CloudMart-OrderProcessorRoleArn"
       Timeout: 30
       MemorySize: 256
       Environment:
@@ -105,10 +104,10 @@ Resources:
           ENVIRONMENT: !Ref Environment
       VpcConfig:
         SecurityGroupIds:
-          - Fn::ImportValue: CloudMart-Lambda-SG
+          - Fn::ImportValue: !Sub "${Environment}-CloudMart-Lambda-SG"
         SubnetIds:
-          - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
-          - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
+          - Fn::ImportValue: !Sub "${Environment}-CloudMart-Private-Subnet-A-ID"
+          - Fn::ImportValue: !Sub "${Environment}-CloudMart-Private-Subnet-B-ID"
       Events:
         CreateCustomer:
           Type: Api
@@ -163,12 +162,11 @@ Resources:
 
 Outputs:
 
-
   ProductLambdaArn:
     Description: Product Lambda ARN
     Value: !GetAtt ProductLambdaFunction.Arn
     Export:
-      Name: ProductLambdaArn
+      Name: !Sub "${Environment}-CloudMart-ProductLambdaArn"
 
   ProductApiUrl:
     Description: API Gateway URL
@@ -178,12 +176,10 @@ Outputs:
     Description: API Gateway ID
     Value: !Ref ProductApi
     Export:
-      Name: ProductApiId
-
- 
+      Name: !Sub "${Environment}-CloudMart-ProductApiId"
 
   OrderLambdaArn:
     Description: Order Lambda ARN
     Value: !GetAtt OrderLambdaFunction.Arn
     Export:
-      Name: CloudMart-Order-Lambda-Arn
+      Name: !Sub "${Environment}-CloudMart-OrderLambdaArn"

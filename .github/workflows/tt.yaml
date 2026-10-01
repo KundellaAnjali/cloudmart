@@ -3,7 +3,7 @@ name: Monitor Stack Deploy
 on:
   push:
     branches:
-      - main
+      - mon
 
 permissions:
   id-token: write

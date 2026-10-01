@@ -21,7 +21,7 @@ Resources:
       CodeUri: ../lambdas/schema-init/
 
       Role:
-        Fn::ImportValue: LambdaAuthorizerRoleArn
+        Fn::ImportValue: !Sub "${Environment}-CloudMart-LambdaAuthorizerRoleArn"
 
       Timeout: 60
 
@@ -31,11 +31,11 @@ Resources:
 
       VpcConfig:
         SecurityGroupIds:
-          - Fn::ImportValue: CloudMart-Lambda-SG
+          - Fn::ImportValue: !Sub "${Environment}-CloudMart-Lambda-SG"
 
         SubnetIds:
-          - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
-          - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
+          - Fn::ImportValue: !Sub "${Environment}-CloudMart-Private-Subnet-A-ID"
+          - Fn::ImportValue: !Sub "${Environment}-CloudMart-Private-Subnet-B-ID"
 
   LambdaAuthorizerFunction:
     Type: AWS::Serverless::Function
@@ -47,7 +47,7 @@ Resources:
       CodeUri: ../lambdas/authorizer/
       
       Role:
-        Fn::ImportValue: LambdaAuthorizerRoleArn
+        Fn::ImportValue: !Sub "${Environment}-CloudMart-LambdaAuthorizerRoleArn"
 
       Timeout: 30
 
@@ -57,20 +57,20 @@ Resources:
 
       VpcConfig:
         SecurityGroupIds:
-          - Fn::ImportValue: CloudMart-Lambda-SG
+          - Fn::ImportValue: !Sub "${Environment}-CloudMart-Lambda-SG"
 
         SubnetIds:
-          - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
-          - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
+          - Fn::ImportValue: !Sub "${Environment}-CloudMart-Private-Subnet-A-ID"
+          - Fn::ImportValue: !Sub "${Environment}-CloudMart-Private-Subnet-B-ID"
 
 Outputs:
 
   SchemaInitFunctionArn:
     Value: !GetAtt SchemaInitFunction.Arn
     Export:
-      Name: SchemaInitFunctionArn
+      Name: !Sub "${Environment}-CloudMart-SchemaInitFunctionArn"
 
   LambdaAuthorizerArn:
     Value: !GetAtt LambdaAuthorizerFunction.Arn
     Export:
-      Name: LambdaAuthorizerArn
+      Name: !Sub "${Environment}-CloudMart-LambdaAuthorizerArn"
