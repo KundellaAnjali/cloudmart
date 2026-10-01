@@ -1,0 +1,997 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: CloudMart Monitoring Stack
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - test
+      - prod
+
+Resources:
+
+  ReportLambdaFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: python3.12
+# !Sub substitutes variables into a string to create dynamic values.
+    Properties:
+
+      FunctionName: !Sub "cloudmart-report-function-${Environment}"
+
+      Runtime: python3.12
+
+      Handler: index.handler
+
+      CodeUri: ../lambdas/report/
+
+      Role:
+        Fn::ImportValue: ReportLambdaRoleArn
+
+      Timeout: 60
+
+      MemorySize: 512
+
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+
+      VpcConfig:
+        SecurityGroupIds:
+          - Fn::ImportValue: CloudMart-Lambda-SG
+
+        SubnetIds:
+          - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
+          - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
+
+      Events:
+
+        DailyReport:
+
+          Type: Schedule
+
+          Properties:
+
+            Name: !Sub "cloudmart-daily-report-${Environment}"
+
+            Schedule: rate(1 day)
+
+            Enabled: true
+
+  CloudMartDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: CloudMart-All-Metrics
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "ProductsCreated",
+                "metrics": [
+                  ["CloudMart", "ProductsCreated"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "OrdersCreated",
+                "metrics": [
+                  ["CloudMart", "OrdersCreated"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 6,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "FailedOrders",
+                "metrics": [
+                  ["CloudMart", "FailedOrders"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 6,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "LowStockProducts",
+                "metrics": [
+                  ["CloudMart", "LowStockProducts"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 12,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "AuthorizedRequests",
+                "metrics": [
+                  ["CloudMart", "AuthorizedRequests"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 12,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "UnauthorizedRequests",
+                "metrics": [
+                  ["CloudMart", "UnauthorizedRequests"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 18,
+              "width": 24,
+              "height": 6,
+              "properties": {
+                "title": "Report Metrics",
+                "metrics": [
+                  [
+                    "CloudMart",
+                    "ReportsGenerated"
+                  ],
+                  [
+                    ".",
+                    "ReportGenerationFailures"
+                  ],
+                  [
+                    ".",
+                    "ReportUploadSuccess"
+                  ]
+                ],
+                "stat": "Sum",
+                "period": 300,
+                "region": "ap-south-1",
+                "view": "timeSeries"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 24,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "RDSConnectionFailures",
+                "metrics": [
+                  ["CloudMart", "RDSConnectionFailures"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 30,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "S3AccessFailures",
+                "metrics": [
+                  ["CloudMart", "S3AccessFailures"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 30,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "ParameterAccessFailures",
+                "metrics": [
+                  ["CloudMart", "ParameterAccessFailures"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 36,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "API Gateway Latency",
+                "metrics": [
+                  [
+                    "AWS/ApiGateway",
+                    "Latency",
+                    "ApiName",
+                    "cloudmart-product-api-${Environment}"
+                  ]
+                ],
+                "stat": "Average",
+                "period": 300,
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 36,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "API Gateway Errors",
+                "metrics": [
+                  ["AWS/ApiGateway", "4XXError","ApiName","cloudmart-product-api-${Environment}"],
+                  [".", "5XXError","ApiName","cloudmart-product-api-${Environment}"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 42,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "RDS CPU",
+                "metrics": [
+                  ["AWS/RDS","CPUUtilization","DBInstanceIdentifier","${Environment}-cloudmart-db"]
+                ],
+                "stat": "Average",
+                "region": "ap-south-1"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 48,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "EC2 CPU",
+                "metrics": [
+                  [
+                    "AWS/EC2",
+                    "CPUUtilization",
+                    "InstanceId",
+                    "${Ec2DashboardV1}"
+                  ]
+                ],
+                "stat": "Average",
+                "period": 300,
+                "region": "ap-south-1"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 42,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "RDS Connections",
+                "metrics": [
+                  ["AWS/RDS","DatabaseConnections","DBInstanceIdentifier","${Environment}-cloudmart-db"]
+                ],
+                "stat": "Average",
+                "region": "ap-south-1"
+              }
+            },
+          
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 54,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Authorizer Lambda Health",
+                "metrics": [
+                  [
+                    "AWS/Lambda",
+                    "Invocations",
+                    "FunctionName",
+                    "cloudmart-authorizer-${Environment}"
+                  ],
+                  [
+                    ".",
+                    "Errors",
+                    ".",
+                    "."
+                  ],
+                  [
+                    ".",
+                    "Throttles",
+                    ".",
+                    "."
+                  ],
+                  [
+                    ".",
+                    "Duration",
+                    ".",
+                    "."
+                  ]
+                ],
+                "view": "timeSeries",
+                "stat": "Average",
+                "period": 300,
+                "region": "ap-south-1"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 54,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Product Lambda Health",
+                "metrics": [
+                  [
+                    "AWS/Lambda",
+                    "Invocations",
+                    "FunctionName",
+                    "cloudmart-product-function-${Environment}"
+                  ],
+                  [
+                    ".",
+                    "Errors",
+                    ".",
+                    "."
+                  ],
+                  [
+                    ".",
+                    "Throttles",
+                    ".",
+                    "."
+                  ],
+                  [
+                    ".",
+                    "Duration",
+                    ".",
+                    "."
+                  ]
+                ],
+                "view": "timeSeries",
+                "stat": "Average",
+                "period": 300,
+                "region": "ap-south-1"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 60,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Order Lambda Health",
+                "metrics": [
+                  [
+                    "AWS/Lambda",
+                    "Invocations",
+                    "FunctionName",
+                    "cloudmart-order-function-${Environment}"
+                  ],
+                  [
+                    ".",
+                    "Errors",
+                    ".",
+                    "."
+                  ],
+                  [
+                    ".",
+                    "Throttles",
+                    ".",
+                    "."
+                  ],
+                  [
+                    ".",
+                    "Duration",
+                    ".",
+                    "."
+                  ]
+                ],
+                "view": "timeSeries",
+                "stat": "Average",
+                "period": 300,
+                "region": "ap-south-1"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 60,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Report Lambda Health",
+                "metrics": [
+                  [
+                    "AWS/Lambda",
+                    "Invocations",
+                    "FunctionName",
+                    "cloudmart-report-function-${Environment}"
+                  ],
+                  [
+                    ".",
+                    "Errors",
+                    ".",
+                    "."
+                  ],
+                  [
+                    ".",
+                    "Throttles",
+                    ".",
+                    "."
+                  ],
+                  [
+                    ".",
+                    "Duration",
+                    ".",
+                    "."
+                  ]
+                ],
+                "view": "timeSeries",
+                "stat": "Average",
+                "period": 300,
+                "region": "ap-south-1"
+              }
+            }
+          ]
+        }
+
+
+  AlarmNotificationTopic:
+    Type: AWS::SNS::Topic
+
+    Properties:
+      TopicName: !Sub "cloudmart-monitoring-alerts-${Environment}"
+
+  AlarmNotificationSubscription:
+    Type: AWS::SNS::Subscription
+
+    Properties:
+      Protocol: email
+      Endpoint: kundella.anjali@omc.com
+      TopicArn: !Ref AlarmNotificationTopic
+
+  FailedOrdersAlarm:
+    Type: AWS::CloudWatch::Alarm
+
+    Properties:
+      AlarmName: CloudMart-FailedOrders
+      Namespace: CloudMart
+      MetricName: FailedOrders
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  DatabaseQueryFailuresAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CloudMart-DatabaseQueryFailures
+      Namespace: CloudMart
+      MetricName: DatabaseQueryFailures
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  UnauthorizedRequestsAlarm:
+    Type: AWS::CloudWatch::Alarm
+
+    Properties:
+      AlarmName: CloudMart-UnauthorizedRequests
+      Namespace: CloudMart
+      MetricName: UnauthorizedRequests
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  ReportGenerationFailuresAlarm:
+    Type: AWS::CloudWatch::Alarm
+
+    Properties:
+      AlarmName: CloudMart-ReportGenerationFailures
+      Namespace: CloudMart
+      MetricName: ReportGenerationFailures
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  LowStockProductsAlarm:
+    Type: AWS::CloudWatch::Alarm
+
+    Properties:
+      AlarmName: CloudMart-LowStockProducts
+      Namespace: CloudMart
+      MetricName: LowStockProducts
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  AuthorizerErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CloudMart-AuthorizerErrors
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Sub "cloudmart-authorizer-${Environment}"
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  ProductErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CloudMart-ProductErrors
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Sub "cloudmart-product-function-${Environment}"
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  OrderErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CloudMart-OrderErrors
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Sub "cloudmart-order-function-${Environment}"
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  ReportErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CloudMart-ReportErrors
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Sub "cloudmart-report-function-${Environment}"
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  SchemaInitErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CloudMart-SchemaInitErrors
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Sub "cloudmart-schema-init-${Environment}"
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  AuthorizerThrottlesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CloudMart-AuthorizerThrottles
+      Namespace: AWS/Lambda
+      MetricName: Throttles
+      Dimensions:
+        - Name: FunctionName
+          Value: !Sub "cloudmart-authorizer-${Environment}"
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+  
+  ProductThrottlesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CloudMart-ProductThrottles
+      Namespace: AWS/Lambda
+      MetricName: Throttles
+      Dimensions:
+        - Name: FunctionName
+          Value: !Sub "cloudmart-product-function-${Environment}"
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  
+
+  OrderLambdaThrottlesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CloudMart-OrderThrottles
+      Namespace: AWS/Lambda
+      MetricName: Throttles
+      Dimensions:
+        - Name: FunctionName
+          Value: !Sub "cloudmart-order-function-${Environment}"
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  ReportThrottlesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CloudMart-ReportThrottles
+      Namespace: AWS/Lambda
+      MetricName: Throttles
+      Dimensions:
+        - Name: FunctionName
+          Value: !Sub "cloudmart-report-function-${Environment}"
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  
+
+  ApiGateway4XXAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CloudMart-ApiGateway4XX
+      Namespace: AWS/ApiGateway
+      MetricName: 4XXError
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+  ApiGateway5XXAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CloudMart-ApiGateway5XX
+      Namespace: AWS/ApiGateway
+      MetricName: 5XXError
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic 
+
+  EC2HighCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CloudMart-EC2HighCPU
+      Namespace: AWS/EC2
+      MetricName: CPUUtilization
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref Ec2DashboardV1
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  RDSHighCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CloudMart-RDSHighCPU
+      Namespace: AWS/RDS
+      MetricName: CPUUtilization
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Sub "${Environment}-cloudmart-db"
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  RDSConnectionFailuresAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CloudMart-RDSConnectionFailures
+      Namespace: CloudMart
+      MetricName: RDSConnectionFailures
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  RDSConnectionsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CloudMart-RDSConnections
+      Namespace: AWS/RDS
+      MetricName: DatabaseConnections
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Sub "${Environment}-cloudmart-db"
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 50
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  S3AccessFailuresAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CloudMart-S3AccessFailures
+      Namespace: CloudMart
+      MetricName: S3AccessFailures
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+  ReportUploadFailuresAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CloudMart-ReportUploadFailures
+      Namespace: CloudMart
+      MetricName: ReportUploadFailures
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+  ParameterAccessFailuresAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CloudMart-ParameterAccessFailures
+      Namespace: CloudMart
+      MetricName: ParameterAccessFailures
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  DashboardInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+
+    Properties:
+      InstanceProfileName: !Sub "${Environment}-CloudMart-Dashboard-Profile"
+      Roles:
+        - !Sub "${Environment}-CloudMart-EC2Dashboard-Role"
+
+  Ec2DashboardV1:
+    Type: AWS::EC2::Instance
+
+    Properties:
+
+      InstanceType: t3.micro
+
+      #serve as blueprint to luanch ec2 instance
+      ImageId: ami-0e35ddab05955cf57
+
+      IamInstanceProfile: !Ref DashboardInstanceProfile
+
+      SecurityGroupIds:
+        - Fn::ImportValue: CloudMart-EC2-SG
+
+      SubnetId:
+        Fn::ImportValue: CloudMart-Public-Subnet-ID
+
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-Ec2DashboardV1"
+
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+
+          apt update -y
+
+          apt install -y \
+            git \
+            nginx \
+            python3 \
+            python3-pip \
+            mariadb-client
+
+          cd /home/ubuntu
+
+          git clone https://github.com/KundellaAnjali/cloudmart.git
+
+          cd cloudmart
+
+          git checkout monitor
+
+          cd dashboard
+
+          pip3 install --break-system-packages -r requirements.txt
+
+          cat > /etc/systemd/system/cloudmart-dashboard.service << 'EOF'
+          [Unit]
+          Description=CloudMart Dashboard
+          After=network.target
+
+          [Service]
+          User=ubuntu
+          WorkingDirectory=/home/ubuntu/cloudmart/dashboard
+          Environment=ENVIRONMENT=${Environment}
+          ExecStart=/usr/bin/python3 /home/ubuntu/cloudmart/dashboard/app.py
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+
+          systemctl daemon-reload
+          systemctl enable cloudmart-dashboard
+          systemctl start cloudmart-dashboard
+
+          cat > /etc/nginx/sites-available/cloudmart << 'EOF'
+          server {
+
+              listen 80;
+
+              server_name _;
+
+              location / {
+
+                  proxy_pass http://127.0.0.1:5000;
+
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+
+              }
+
+          }
+          EOF
+
+          rm -f /etc/nginx/sites-enabled/default
+
+          ln -s /etc/nginx/sites-available/cloudmart \
+          /etc/nginx/sites-enabled/cloudmart
+
+          systemctl enable nginx
+
+          systemctl restart nginx
+Outputs:
+
+  ReportLambdaArn:
+    Description: Report Lambda ARN
+    Value: !GetAtt ReportLambdaFunction.Arn
+    Export:
+      Name: CloudMart-Report-Lambda-Arn
+
+  DashboardPublicIP:
+    Description: Dashboard EC2 Public IP
+
+    Value: !GetAtt Ec2DashboardV1.PublicIp

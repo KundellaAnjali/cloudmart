@@ -2,18 +2,50 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
 Description: CloudMart Authorizer Stack
-
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - test
+      - prod
 Resources:
+
+  SchemaInitFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "cloudmart-schema-init-${Environment}"
+      Runtime: python3.12
+      Handler: index.handler
+
+      CodeUri: ../lambdas/schema-init/
+
+      Role:
+        Fn::ImportValue: LambdaAuthorizerRoleArn
+
+      Timeout: 60
+
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+
+      VpcConfig:
+        SecurityGroupIds:
+          - Fn::ImportValue: CloudMart-Lambda-SG
+
+        SubnetIds:
+          - Fn::ImportValue: CloudMart-Private-Subnet-A-ID
+          - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
 
   LambdaAuthorizerFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: cloudmart-authorizer
+      FunctionName: !Sub "cloudmart-authorizer-${Environment}"
       Runtime: python3.12
       Handler: index.handler
 
       CodeUri: ../lambdas/authorizer/
-
+      
       Role:
         Fn::ImportValue: LambdaAuthorizerRoleArn
 
@@ -21,7 +53,7 @@ Resources:
 
       Environment:
         Variables:
-          ENVIRONMENT: dev
+          ENVIRONMENT: !Ref Environment
 
       VpcConfig:
         SecurityGroupIds:
@@ -32,6 +64,11 @@ Resources:
           - Fn::ImportValue: CloudMart-Private-Subnet-B-ID
 
 Outputs:
+
+  SchemaInitFunctionArn:
+    Value: !GetAtt SchemaInitFunction.Arn
+    Export:
+      Name: SchemaInitFunctionArn
 
   LambdaAuthorizerArn:
     Value: !GetAtt LambdaAuthorizerFunction.Arn

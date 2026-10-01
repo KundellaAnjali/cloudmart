@@ -3,14 +3,25 @@ import uuid
 import pymysql
 import boto3
 import os
-import secrets
+import secrets #module for generating cryptographically secure random values.
 import logging
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+def publish_metric(metric_name, value=1):
 
-def log(level, operation, message, **kwargs):
+    cloudwatch.put_metric_data(
+        Namespace="CloudMart",
+        MetricData=[
+            {
+                "MetricName": metric_name,
+                "Value": value,
+                "Unit": "Count"
+            }
+        ]
+    )
+def log(level, operation, message, **kwargs): #**kwargs allows you to pass additional named information.
     log_data = {
         "level": level,
         "operation": operation,
@@ -28,54 +39,38 @@ def log(level, operation, message, **kwargs):
 
 ssm = boto3.client("ssm")
 events = boto3.client("events")
+cloudwatch = boto3.client("cloudwatch")
 
-ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev")
+ENVIRONMENT = os.environ["ENVIRONMENT"]
+try: 
+    DB_HOST = ssm.get_parameter(
+        Name=f"/cloudmart/{ENVIRONMENT}/db/host"
+    )["Parameter"]["Value"]
 
-DB_HOST = ssm.get_parameter(
-    Name=f"/cloudmart/{ENVIRONMENT}/db/host"
-)["Parameter"]["Value"]
+    DB_NAME = ssm.get_parameter(
+        Name=f"/cloudmart/{ENVIRONMENT}/db/name"
+    )["Parameter"]["Value"]
 
-DB_NAME = ssm.get_parameter(
-    Name=f"/cloudmart/{ENVIRONMENT}/db/name"
-)["Parameter"]["Value"]
+    DB_USER = ssm.get_parameter(
+        Name=f"/cloudmart/{ENVIRONMENT}/db/username"
+    )["Parameter"]["Value"]
 
-DB_USER = ssm.get_parameter(
-    Name=f"/cloudmart/{ENVIRONMENT}/db/username"
-)["Parameter"]["Value"]
+    DB_PASSWORD = ssm.get_parameter(
+        Name=f"/cloudmart/{ENVIRONMENT}/db/password",
+        WithDecryption=True
+    )["Parameter"]["Value"]
 
-DB_PASSWORD = ssm.get_parameter(
-    Name=f"/cloudmart/{ENVIRONMENT}/db/password",
-    WithDecryption=True
-)["Parameter"]["Value"]
+    STOCK_THRESHOLD = int(
+        ssm.get_parameter(
+        Name=f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
+        )["Parameter"]["Value"]
+    )
+except Exception:
+    publish_metric("ParameterAccessFailures")
+    raise
 
-def initialize_schema():
-    conn = get_connection()
-    try:
-
-        schema_file = os.path.join(
-            os.path.dirname(__file__),
-            "schema.sql"
-        )
-
-        with open(schema_file, "r") as f:
-            sql_script = f.read()
-
-        with conn.cursor() as cursor:
-
-            for statement in sql_script.split(";"):
-
-                statement = statement.strip()
-
-                if statement:
-                    cursor.execute(statement)
-
-        conn.commit()
-
-    finally:
-        conn.close()
-
-print("DB_HOST:", DB_HOST)
-print("DB_NAME:", DB_NAME)
+logger.info(f"DB Host loaded")
+logger.info(f"DB Name loaded")
 def get_connection():
     return pymysql.connect(
         host=DB_HOST,
@@ -91,7 +86,7 @@ def response(status, body):
         "headers": {
             "Content-Type": "application/json"
         },
-        "body": json.dumps(body, default=str)
+        "body": json.dumps(body, default=str) #default str : Some Python objects cannot directly be converted to JSON.
     }
 
 def publish_event(detail_type, detail, source="cloudmart.orders"):
@@ -104,8 +99,11 @@ def publish_event(detail_type, detail, source="cloudmart.orders"):
             }
         ]
     )
+
+
+
 def create_customer(event):
-    token = secrets.token_hex(32)
+    token = secrets.token_hex(16)
 
     body = json.loads(event.get("body", "{}"))
 
@@ -232,7 +230,15 @@ def get_customers():
     finally:
         conn.close()
 
-def get_customer_by_id(customer_id):
+def get_customer_by_id(customer_id,role,logged_in_customer):
+    if (role != "ADMIN" and str(customer_id) != str(logged_in_customer)):
+        return response(
+            403,
+            {
+                "message": "Access denied"
+            }
+        )
+
 
     conn = get_connection()
 
@@ -287,8 +293,27 @@ def create_order(event):
     body = json.loads(event.get("body", "{}"))
 
     customer_id = body.get("customerId")
-    #customer_id = event["requestContext"]["authorizer"]["customer_id"]
+   
     items = body.get("items", [])
+
+    logged_in_customer = event[
+        "requestContext"
+    ]["authorizer"]["customer_id"]
+
+    role = event[
+        "requestContext"
+    ]["authorizer"]["role"]
+
+    if (
+        role != "ADMIN"
+        and str(customer_id) != str(logged_in_customer)
+    ):
+        return response(
+            403,
+            {
+                "message": "Access denied"
+            }
+        )
 
     log(
         "INFO",
@@ -303,7 +328,23 @@ def create_order(event):
     if not items:
         return response(400, {"message": "items are required"})
 
-    conn = get_connection()
+    try:
+
+        conn = get_connection()
+
+    except Exception as e:
+
+        publish_metric("RDSConnectionFailures")
+
+        log(
+            "ERROR",
+            "DatabaseConnection",
+            "Failed to connect to database",
+            error=str(e)
+        )
+
+        raise
+
 
     try:
 
@@ -364,7 +405,7 @@ def create_order(event):
                 product = cursor.fetchone()
 
                 if not product:
-
+                    publish_metric("FailedOrders")
                     publish_event(
                         "OrderFailed",
                         {
@@ -383,7 +424,7 @@ def create_order(event):
                     )
 
                 if quantity > product["stock_count"]:
-
+                    publish_metric("FailedOrders")
                     publish_event(
                         "OrderFailed",
                         {
@@ -458,6 +499,7 @@ def create_order(event):
                         product["product_id"]
                     )
                 )
+                
 
                 cursor.execute(
                     """
@@ -493,10 +535,18 @@ def create_order(event):
 
                 updated_product = cursor.fetchone()
 
-                threshold = 10
+                if updated_product["stock_count"] < STOCK_THRESHOLD:
 
-                if updated_product["stock_count"] < threshold:
+                    log(
+                        "WARNING",
+                        "LowStock",
+                        "Product stock below threshold",
+                        product_id=product["product_id"],
+                        current_stock=updated_product["stock_count"],
+                        threshold=STOCK_THRESHOLD
+                    )
 
+                    publish_metric("LowStockProducts")
                     publish_event(
                         "LowStock",
                         {
@@ -511,7 +561,7 @@ def create_order(event):
                     Product ID      : {product['product_id']}
                     Product Name    : {product['product_name']}
                     Current Stock   : {updated_product['stock_count']}
-                    Threshold Value : {threshold}
+                    Threshold Value : {STOCK_THRESHOLD}
 
                     Please replenish inventory at the earliest.
 
@@ -571,37 +621,16 @@ def create_order(event):
             )
 
             conn.commit()
-            
-
+            publish_metric("OrdersCreated")
             publish_event(
                 "OrderConfirmed",
                 {
-                    "subject": "CloudMart Order Confirmation",
-                    "message": f"""
-            Dear {customer['customer_name']},
-
-            Your order has been successfully confirmed.
-
-            Order Details
-            ----------------------------------------
-            Order ID      : {order_id}
-            Customer ID   : {customer_id}
-            Status        : CONFIRMED
-            Total Amount  : ₹{total_amount}
-
-            Products Ordered:
-            {chr(10).join([
-                f"• {item['product']['product_name']}\n"
-                f"  Quantity   : {item['quantity']}\n"
-                f"  Unit Price : ₹{item['product']['price']}"
-                for item in product_details
-            ])}
-
-            Thank you for shopping with CloudMart.
-
-            Regards,
-            CloudMart Team
-            """
+                    "customerId": customer_id,
+                    "customerName": customer["customer_name"],
+                    "orderId": order_id,
+                    "orderStatus": "CONFIRMED",
+                    "totalAmount": total_amount,
+                    "message": "Order confirmed successfully"
                 }
             )
 
@@ -629,12 +658,13 @@ def create_order(event):
     except Exception as e:
 
         conn.rollback()
-
+        publish_metric("DatabaseQueryFailures")
+        publish_metric("FailedOrders")
         log(
-            "INFO",
-            "CancelOrder",
-            "Order cancelled successfully",
-            order_id=order_id
+            "ERROR",
+            "CreateOrder",
+            "Order creation failed",
+            error=str(e)
         )
 
         return response(
@@ -647,7 +677,11 @@ def create_order(event):
     finally:
         conn.close()
 
-def get_order(order_id):
+def get_order(
+    order_id,
+    role,
+    logged_in_customer
+):
 
     conn = get_connection()
 
@@ -679,6 +713,18 @@ def get_order(order_id):
                     404,
                     {
                         "message": "Order not found"
+                    }
+                )
+
+            if (
+                role != "ADMIN"
+                and str(order["customer_id"])
+                != str(logged_in_customer)
+            ):
+                return response(
+                    403,
+                    {
+                        "message": "Access denied"
                     }
                 )
 
@@ -778,7 +824,11 @@ def get_all_orders():
     finally:
         conn.close()
 
-def cancel_order(order_id):
+def cancel_order(
+    order_id,
+    role,
+    logged_in_customer
+):
 
     conn = get_connection()
     log(
@@ -794,13 +844,14 @@ def cancel_order(order_id):
 
             cursor.execute(
                 """
-                SELECT order_status
+                SELECT
+                    customer_id,
+                    order_status
                 FROM orders
                 WHERE order_id = %s
                 """,
                 (order_id,)
             )
-
             order = cursor.fetchone()
 
             if not order:
@@ -811,12 +862,25 @@ def cancel_order(order_id):
                     }
                 )
 
+            if (
+                role != "ADMIN"
+                and str(order["customer_id"])
+                != str(logged_in_customer)
+            ):
+                return response(
+                    403,
+                    {
+                        "message": "Access denied"
+                    }
+                )
+
+
             if order["order_status"] == "CANCELLED":
 
                 log(
                     "INFO",
                     "CancelOrder",
-                    "Order cancelled successfully",
+                    "Order is already cancelled successfully",
                     order_id=order_id
                 )
                 return response(
@@ -883,7 +947,7 @@ def cancel_order(order_id):
             )
 
             conn.commit()
-
+            publish_metric("OrdersCancelled")
             publish_event(
                 "OrderCancelled",
                 {
@@ -905,12 +969,11 @@ def cancel_order(order_id):
             )
 
             log(
-                "ERROR",
+                "INFO",
                 "CancelOrder",
-                "Order cancellation failed",
+                "Order cancelled successfully",
                 order_id=order_id
             )
-
             return response(
                 200,
                 {
@@ -935,62 +998,110 @@ def cancel_order(order_id):
         conn.close()
 
 def handler(event, context):
-    log(
-        "INFO",
-        "Handler",
-        "Lambda handler started"
-    )
 
-    initialize_schema()
-    method = event["httpMethod"]
-    path = event["path"]
-    role = event["requestContext"]["authorizer"]["role"]  
+    try:
 
-    if method == "POST" and path.endswith("/customers"):
-        return create_customer(event)
+        log(
+            "INFO",
+            "Handler",
+            "Lambda handler started"
+        )
 
-    if method == "GET":
+        method = event["httpMethod"]
+        path = event["path"]
 
-        if "/customers/" in path:
-            customer_id = path.split("/")[-1]
-            return get_customer_by_id(customer_id)
+        if method == "POST" and path.endswith("/customers"):
+            return create_customer(event)
+        role = event["requestContext"]["authorizer"]["role"]
 
-        if path.endswith("/customers"):
-            return get_customers()
+        if method == "GET":
 
-    if method == "POST" and path.endswith("/orders"):
-        return create_order(event)
+            if "/customers/" in path:
+                customer_id = path.split("/")[-1]
+                return get_customer_by_id(
+                    customer_id,
+                    role,
+                    event["requestContext"]["authorizer"]["customer_id"]
+                )
 
+            if path.endswith("/customers"):
+                return get_customers()
 
-    if method == "GET":
+        if method == "POST" and path.endswith("/orders"):
+            return create_order(event)
 
-        query = event.get("queryStringParameters") or {}
+        if method == "GET":
 
-        if "customerId" in query:
-            return get_customer_orders(
-                query["customerId"]
+            query = event.get("queryStringParameters") or {}
+
+            if "customerId" in query:
+
+                requested_customer = query["customerId"]
+
+                logged_in_customer = event[
+                    "requestContext"
+                ]["authorizer"]["customer_id"]
+
+                if (
+                    role != "ADMIN"
+                    and str(requested_customer)
+                    != str(logged_in_customer)
+                ):
+                    return response(
+                        403,
+                        {
+                            "message": "Access denied"
+                        }
+                    )
+
+                return get_customer_orders(
+                    requested_customer
+                )
+
+            if path.endswith("/orders"):
+                return get_all_orders()
+
+            parts = path.split("/")
+
+            if len(parts) > 2:
+                return get_order(
+                    parts[-1],
+                    role,
+                    event["requestContext"]["authorizer"]["customer_id"]
+                )
+
+        if method == "PATCH" and "/orders/" in path:
+
+            order_id = path.split("/")[-1]
+
+            return cancel_order(
+                order_id,
+                role,
+                event["requestContext"]["authorizer"]["customer_id"]
             )
-        if path.endswith("/orders"):
-            return get_all_orders()
-        
-
-        parts = path.split("/")
-
-        if len(parts) > 2:
-
-            return get_order(parts[-1])
-    
-    if method == "PATCH" and "/orders/" in path:
-        order_id = path.split("/")[-1]
-
-        return cancel_order(order_id)
-
-    return response(
-        404,
-        {
-            "message": "Route not found"
-        }
-    )
 
 
+        return response(
+            404,
+            {
+                "message": "Route not found"
+            }
+        )
 
+    except Exception as e:
+
+        publish_metric("OrderLambdaFailures")
+
+        log(
+            "ERROR",
+            "OrderLambda",
+            "Unhandled exception",
+            error=str(e)
+        )
+
+        return response(
+            500,
+            {
+                "message": str(e)
+            }
+        )

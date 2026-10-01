@@ -5,7 +5,6 @@ Description: CloudMart Product Stack
 Parameters:
   Environment:
     Type: String
-    Default: dev
     AllowedValues:
       - dev
       - test
@@ -16,7 +15,7 @@ Resources:
   ProductApi:
     Type: AWS::Serverless::Api
     Properties:
-      Name: cloudmart-product-api
+      Name: !Sub "cloudmart-product-api-${Environment}"
       StageName: !Ref Environment
       Auth:
         DefaultAuthorizer: CloudMartAuthorizer
@@ -32,7 +31,7 @@ Resources:
   ProductLambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: cloudmart-product-function
+      FunctionName: !Sub "cloudmart-product-function-${Environment}"
       Runtime: python3.12
       Handler: index.handler
       CodeUri: ../lambdas/product/
@@ -89,7 +88,7 @@ Resources:
   OrderLambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: cloudmart-order-function
+      FunctionName: !Sub "cloudmart-order-function-${Environment}"
       Runtime: python3.12
       Handler: index.handler
       CodeUri: ../lambdas/order/
@@ -112,7 +111,9 @@ Resources:
           Properties:
             RestApiId: !Ref ProductApi
             Path: /customers
-            Method: POST
+            Method: post
+            Auth:
+              Authorizer: NONE
 
         GetCustomers:
           Type: Api

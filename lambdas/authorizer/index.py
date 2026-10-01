@@ -2,47 +2,72 @@ import boto3
 import os
 import pymysql
 import json
-
+import logging
 ssm = boto3.client("ssm")
+cloudwatch = boto3.client("cloudwatch") # used for custom metrics
 
-ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev")
+ENVIRONMENT = os.environ["ENVIRONMENT"]
+logger = logging.getLogger() #gets the root logger.
+logger.setLevel(logging.INFO)
+def publish_metric(metric_name):
 
+    logger.info(
+        f"Publishing metric: {metric_name}"
+    )
+
+    cloudwatch.put_metric_data(
+        Namespace="CloudMart",
+        MetricData=[
+            {
+                "MetricName": metric_name,
+                "Value": 1,
+                "Unit": "Count"
+            }
+        ]
+    )
 def get_connection():
+    logger.info("Creating database connection")
+    try:
+        db_host = get_parameter(
+            f"/cloudmart/{ENVIRONMENT}/db/host"
+        )
 
-    db_host = get_parameter(
-        f"/cloudmart/{ENVIRONMENT}/db/host"
-    )
+        db_name = get_parameter(
+            f"/cloudmart/{ENVIRONMENT}/db/name"
+        )
 
-    db_name = get_parameter(
-        f"/cloudmart/{ENVIRONMENT}/db/name"
-    )
+        db_user = get_parameter(
+            f"/cloudmart/{ENVIRONMENT}/db/username"
+        )
 
-    db_user = get_parameter(
-        f"/cloudmart/{ENVIRONMENT}/db/username"
-    )
+        db_password = get_parameter(
+            f"/cloudmart/{ENVIRONMENT}/db/password",
+            decrypt=True
+        )
+    except Exception:
+        publish_metric("ParameterAccessFailures")
+        raise
 
-    db_password = get_parameter(
-        f"/cloudmart/{ENVIRONMENT}/db/password",
-        decrypt=True
-    )
-
+    #Lambda connects to RDS.
+#Lambda connects to RDS.
     return pymysql.connect(
         host=db_host,
         user=db_user,
         password=db_password,
         database=db_name,
-        cursorclass=pymysql.cursors.DictCursor
+        cursorclass=pymysql.cursors.DictCursor  
     )
 
 def get_parameter(name, decrypt=False):
+    logger.info(f"Fetching parameter: {name}")
     response = ssm.get_parameter(
         Name=name,
         WithDecryption=decrypt
     )
     return response["Parameter"]["Value"]
-
+# creates authorization response to understand to the api gateway
 def generate_policy(
-    principal_id,
+    principal_id, # indentify the authonticated user
     role,
     customer_id,
     customer_name,
@@ -60,18 +85,39 @@ def generate_policy(
                     "Resource": resources
                 }
             ]
-        },
+        }, # it is sending additional data from authorizer to api gateway
         "context": {
             "role": role,
             "customer_id": str(customer_id),
             "customer_name": customer_name
         }
     }
+
+
+
 def handler(event, context):
+    logger.info(
+        f"Authorization request received. "
+        f"Method ARN: {event['methodArn']}"
+    )
 
     token = event.get("authorizationToken", "")
     method_arn = event["methodArn"]
     print("METHOD ARN:", method_arn)
+    
+    token = token.replace("Bearer ", "")
+# Allow customer creation without token
+    if (not token and "/POST/customers" in method_arn):
+        return generate_policy(
+            "public",
+            "PUBLIC",
+            0,
+            "Public User",
+            "Allow",
+            method_arn
+        )
+
+
 
     arn_parts = method_arn.split(":")
     api_gateway_part = arn_parts[5]
@@ -86,13 +132,29 @@ def handler(event, context):
         f"{api_id}/{stage}"
     )
 
-    token = token.replace("Bearer ", "")
+   
+    logger.info(
+        f"Token received: {token[:10]}..."
+    )
 
-    conn = get_connection()
+    try:
+        conn = get_connection()
+    except Exception as e:
+        publish_metric("RDSConnectionFailures")
 
+        logger.error(json.dumps({
+            "level": "ERROR",
+            "operation": "DatabaseConnection",
+            "message": "Failed to connect to database",
+            "error": str(e)
+        }))
+        raise
     try:
 
         with conn.cursor() as cursor:
+            logger.info(
+                "Validating token against customer table"
+            )
 
             cursor.execute(
                 """
@@ -110,11 +172,25 @@ def handler(event, context):
 
             user = cursor.fetchone()
 
+    except Exception as e:
+
+        publish_metric("DatabaseQueryFailures")
+
+        logger.error(json.dumps({
+            "level": "ERROR",
+            "operation": "DatabaseQuery",
+            "message": "Query execution failed",
+            "error": str(e)
+        }))
+
+        raise
+
     finally:
         conn.close()
 
     if not user:
-        print(json.dumps({
+        publish_metric("UnauthorizedRequests")
+        logger.error(json.dumps({
             "level": "ERROR",
             "operation": "Authorizer",
             "message": "Invalid token",
@@ -122,12 +198,9 @@ def handler(event, context):
         }))
         raise Exception("Unauthorized")
 
-    #if not user["is_active"]:
-    #    raise Exception("Unauthorized")
-
     role = user["role"]
-
-    print(json.dumps({
+    publish_metric("AuthorizedRequests")
+    logger.info(json.dumps({
         "level": "INFO",
         "operation": "Authorizer",
         "message": "Token validated successfully",
@@ -137,6 +210,10 @@ def handler(event, context):
     }))
 
     if role == "ADMIN":
+        logger.info(
+            f"Generating ADMIN policy "
+            f"for {user['customer_name']}"
+        )
 
         return generate_policy(
             str(user["customer_id"]),
@@ -148,7 +225,10 @@ def handler(event, context):
         )
 
     elif role == "PRODUCT":
-
+        logger.info(
+            f"Generating PRODUCT policy "
+            f"for {user['customer_name']}"
+        )
         return generate_policy(
             str(user["customer_id"]),
             role,
@@ -167,7 +247,10 @@ def handler(event, context):
 
 
     elif role == "CUSTOMER":
-
+        logger.info(
+            f"Generating CUSTOMER policy "
+            f"for {user['customer_name']}"
+        )
         return generate_policy(
             str(user["customer_id"]),
             role,

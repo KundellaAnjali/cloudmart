@@ -9,17 +9,27 @@ logger.setLevel(logging.INFO)
 
 ssm = boto3.client("ssm")
 events = boto3.client("events")
+cloudwatch = boto3.client("cloudwatch")
 
-ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev")
-
-
+ENVIRONMENT = os.environ["ENVIRONMENT"]
 def get_parameter(name, decrypt=False):
-    response = ssm.get_parameter(
-        Name=name,
-        WithDecryption=decrypt
-    )
-    return response["Parameter"]["Value"]
+    try:
+        response = ssm.get_parameter(
+            Name=name,
+            WithDecryption=decrypt
+        )
 
+        return response["Parameter"]["Value"]
+
+    except Exception:
+        publish_metric("ParameterAccessFailures")
+        raise
+
+STOCK_THRESHOLD = int(
+    get_parameter(
+        f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
+    )
+)
 
 def get_connection():
 
@@ -61,6 +71,19 @@ def get_connection():
     }))
 
     return connection
+
+def publish_metric(metric_name, value=1):
+
+    cloudwatch.put_metric_data(
+        Namespace="CloudMart",
+        MetricData=[
+            {
+                "MetricName": metric_name,
+                "Value": value,
+                "Unit": "Count"
+            }
+        ]
+    )
 
 
 def get_all_products(connection):
@@ -104,6 +127,7 @@ def get_product_by_id(connection, product_id):
         product = cursor.fetchone()
 
     if product is None:
+        publish_metric("ProductNotFound")
         logger.warning(json.dumps({
             "level": "WARNING",
             "operation": "GetProductById",
@@ -135,11 +159,7 @@ def create_product(connection, event):
     }))
 
     
-    threshold = int(
-        get_parameter(
-            f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
-        )
-    )
+    threshold = STOCK_THRESHOLD
     stock_count = body["stock_count"]
 
     if stock_count < 0:
@@ -158,37 +178,56 @@ def create_product(connection, event):
             })
         }
 
-    with connection.cursor() as cursor:
+    try:
 
-        cursor.execute("""
-            INSERT INTO product (
-                product_name,
-                description,
-                category,
-                price,
-                stock_count,
-                is_active
-            )
-            VALUES (%s,%s,%s,%s,%s,%s)
-        """, (
-            body["product_name"],
-            body["description"],
-            body["category"],
-            body["price"],
-            body["stock_count"],
-            True
-        ))
+        with connection.cursor() as cursor:
 
-        product_id = cursor.lastrowid
-        logger.info(json.dumps({
-            "level": "INFO",
+            cursor.execute("""
+                INSERT INTO product (
+                    product_name,
+                    description,
+                    category,
+                    price,
+                    stock_count,
+                    is_active
+                )
+                VALUES (%s,%s,%s,%s,%s,%s)
+            """, (
+                body["product_name"],
+                body["description"],
+                body["category"],
+                body["price"],
+                body["stock_count"],
+                True
+            ))
+
+            product_id = cursor.lastrowid
+
+            logger.info(json.dumps({
+                "level": "INFO",
+                "operation": "CreateProduct",
+                "message": "Product created successfully",
+                "product_id": product_id
+            }))
+
+        connection.commit()
+
+        publish_metric("ProductsCreated")
+
+    except Exception as e:
+
+        connection.rollback()
+
+        publish_metric("ProductCreationFailures")
+
+        logger.error(json.dumps({
+            "level": "ERROR",
             "operation": "CreateProduct",
-            "message": "Product created successfully",
-            "product_id": product_id
+            "message": "Product creation failed",
+            "error": repr(e)
         }))
 
-    connection.commit()
-
+        raise
     return {
         "statusCode": 201,
         "body": json.dumps({
@@ -228,12 +267,7 @@ def update_product(connection, product_id, event):
 
     if "stock_count" in body:
 
-        threshold = int(
-            get_parameter(
-                f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
-            )
-        )
-
+        threshold = STOCK_THRESHOLD
         if body["stock_count"] < 0:
             return {
                 "statusCode": 400,
@@ -243,6 +277,7 @@ def update_product(connection, product_id, event):
             }
 
         if body["stock_count"] < threshold:
+            
             return {
                 "statusCode": 400,
                 "body": json.dumps({
@@ -272,7 +307,7 @@ def update_product(connection, product_id, event):
             }
 
     connection.commit()
-
+    publish_metric("InventoryUpdated")
     events.put_events(
         Entries=[
             {
@@ -347,29 +382,24 @@ def delete_product(connection, product_id):
 
 
 def handler(event, context):
-
+    #raise Exception("Test 5XX")
     try:
 
-        connection = get_connection()
+        try:
+            connection = get_connection()
+        except Exception as e:
 
-        with connection.cursor() as cursor:
+            publish_metric("RDSConnectionFailures")
 
-            cursor.execute("""
-            CREATE TABLE IF NOT EXISTS product (
-                product_id INT AUTO_INCREMENT PRIMARY KEY,
-                product_name VARCHAR(255) NOT NULL,
-                description TEXT,
-                category VARCHAR(100),
-                price DECIMAL(10,2) NOT NULL,
-                stock_count INT DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    ON UPDATE CURRENT_TIMESTAMP,
-                is_active BOOLEAN DEFAULT TRUE
-            )
-            """)
+            logger.error(json.dumps({
+                "level": "ERROR",
+                "operation": "DatabaseConnection",
+                "message": "Failed to connect to database",
+                "error": str(e)
+            }))
 
-            connection.commit()
+            raise
+
 
         http_method = event.get("httpMethod")
         path_parameters = event.get("pathParameters") or {}
@@ -422,7 +452,7 @@ def handler(event, context):
         return response
 
     except Exception as e:
-
+        publish_metric("ProductLambdaFailures")
         logger.error(json.dumps({
             "level": "ERROR",
             "operation": "ProductLambda",

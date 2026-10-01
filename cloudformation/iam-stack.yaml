@@ -4,7 +4,6 @@ Description: CloudMart IAM Stack
 Parameters:
   Environment:
     Type: String
-    Default: dev
     AllowedValues:
       - dev
       - test
@@ -15,7 +14,7 @@ Resources:
   LambdaAuthorizerRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: CloudMart-LambdaAuthorizer-Role
+      RoleName: !Sub "${Environment}-CloudMart-LambdaAuthorizer-Role"
 
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -48,10 +47,18 @@ Resources:
                 Resource:
                   - Fn::ImportValue: CloudMart-KMS-Key-Arn
 
+              - Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricData
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    cloudwatch:namespace: CloudMart
+
   ProductLambdaRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: CloudMart-ProductLambda-Role
+      RoleName: !Sub "${Environment}-CloudMart-ProductLambda-Role"
 
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -90,10 +97,18 @@ Resources:
                 Resource:
                   - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
 
+              - Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricData
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    cloudwatch:namespace: CloudMart
+
   OrderProcessorRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: CloudMart-OrderProcessor-Role
+      RoleName: !Sub "${Environment}-CloudMart-OrderProcessor-Role"
 
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -118,6 +133,7 @@ Resources:
                   - ssm:GetParameters
                 Resource:
                   - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/${Environment}/db/*
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/${Environment}/inventory/*
 
               - Effect: Allow
                 Action:
@@ -131,10 +147,18 @@ Resources:
                 Resource:
                   - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
 
+              - Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricData
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    cloudwatch:namespace: CloudMart
+
   ReportLambdaRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: CloudMart-ReportLambda-Role
+      RoleName: !Sub "${Environment}-CloudMart-ReportLambda-Role"
 
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -170,18 +194,26 @@ Resources:
                   - s3:GetObject
                   - s3:PutObject
                 Resource:
-                  - !Sub arn:aws:s3:::cloudmart-reports-${AWS::AccountId}/*
+                  - !Sub arn:aws:s3:::${Environment}-cloudmart-reports-${AWS::AccountId}/*
 
               - Effect: Allow
                 Action:
                   - s3:ListBucket
                 Resource:
-                  - !Sub arn:aws:s3:::cloudmart-reports-${AWS::AccountId}
+                  - !Sub arn:aws:s3:::${Environment}-cloudmart-reports-${AWS::AccountId}
+
+              - Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricData
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    cloudwatch:namespace: CloudMart
 
   EC2DashboardRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: CloudMart-EC2Dashboard-Role
+      RoleName: !Sub "${Environment}-CloudMart-EC2Dashboard-Role"
 
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -199,22 +231,41 @@ Resources:
 
               - Effect: Allow
                 Action:
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudmart/${Environment}/*
+
+              - Effect: Allow
+                Action:
+                  - kms:Decrypt
+                Resource:
+                  - Fn::ImportValue: CloudMart-KMS-Key-Arn
+
+              - Effect: Allow
+                Action:
                   - s3:GetObject
                 Resource:
-                  - !Sub arn:aws:s3:::cloudmart-reports-${AWS::AccountId}/*
+                  - !Sub arn:aws:s3:::${Environment}-cloudmart-reports-${AWS::AccountId}/*
+
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeInstances
+                Resource: "*"
 
               - Effect: Allow
                 Action:
                   - s3:ListBucket
                 Resource:
-                  - !Sub arn:aws:s3:::cloudmart-reports-${AWS::AccountId}
+                  - !Sub arn:aws:s3:::${Environment}-cloudmart-reports-${AWS::AccountId}
 
               - Effect: Allow
                 Action:
+                  - cloudwatch:GetMetricStatistics
+                  - cloudwatch:DescribeAlarms
                   - cloudwatch:GetMetricData
                   - cloudwatch:ListMetrics
                 Resource: "*"
-
 Outputs:
 
   LambdaAuthorizerRoleArn:

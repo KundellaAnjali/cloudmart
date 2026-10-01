@@ -6,7 +6,6 @@ Description: CloudMart Orders Stack
 Parameters:
   Environment:
     Type: String
-    Default: dev
     AllowedValues:
       - dev
       - test
@@ -17,12 +16,12 @@ Resources:
   CustomerNotificationsTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: cloudmart-customer-notifications
+      TopicName: !Sub "cloudmart-customer-notifications-${Environment}"
 
   OwnerNotificationsTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: cloudmart-owner-notifications
+      TopicName: !Sub "cloudmart-owner-notifications-${Environment}"
 
   CustomerEmailSubscription:
     Type: AWS::SNS::Subscription
@@ -41,7 +40,7 @@ Resources:
   CustomerOrderEventRule:
     Type: AWS::Events::Rule
     Properties:
-      Name: cloudmart-customer-order-events
+      Name: !Sub "cloudmart-customer-order-events-${Environment}"
 
       EventPattern:
         source:
@@ -72,7 +71,7 @@ Resources:
   LowStockEventRule:
     Type: AWS::Events::Rule
     Properties:
-      Name: cloudmart-low-stock-events
+      Name: !Sub "cloudmart-low-stock-events-${Environment}"
 
       EventPattern:
         source:

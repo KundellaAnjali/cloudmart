@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS customers (
     customer_name VARCHAR(100) NOT NULL,
     customer_email VARCHAR(255) NOT NULL UNIQUE,
 
-    auth_token VARCHAR(255) UNIQUE,
+    auth_token VARCHAR(255),
     role VARCHAR(20) DEFAULT 'CUSTOMER',
     is_active BOOLEAN DEFAULT TRUE,
 
@@ -11,6 +11,19 @@ CREATE TABLE IF NOT EXISTS customers (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS product (
+    product_id INT AUTO_INCREMENT PRIMARY KEY,
+    product_name VARCHAR(255) NOT NULL,
+    description TEXT,
+    category VARCHAR(100),
+    price DECIMAL(10,2) NOT NULL,
+    stock_count INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE
+            );
 
 CREATE TABLE IF NOT EXISTS orders (
     order_id VARCHAR(50) PRIMARY KEY,
