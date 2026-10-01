@@ -55,6 +55,8 @@ Resources:
             RestApiId: !Ref ProductApi
             Path: /products
             Method: GET
+            Auth:
+              Authorizer: NONE
 
         GetProductById:
           Type: Api
@@ -62,6 +64,8 @@ Resources:
             RestApiId: !Ref ProductApi
             Path: /products/{id}
             Method: GET
+            Auth:
+              Authorizer: NONE
 
         CreateProduct:
           Type: Api

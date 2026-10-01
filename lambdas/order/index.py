@@ -100,9 +100,21 @@ def publish_event(detail_type, detail, source="cloudmart.orders"):
         ]
     )
 
-
-
 def create_customer(event):
+
+    headers = event.get("headers") or {}
+
+    if (
+        headers.get("Authorization")
+        or headers.get("authorization")
+    ):
+        return response(
+            403,
+            {
+                "message": "Customer creation is allowed only without token"
+            }
+        )
+
     token = secrets.token_hex(16)
 
     body = json.loads(event.get("body", "{}"))

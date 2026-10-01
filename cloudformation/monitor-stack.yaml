@@ -928,8 +928,6 @@ Resources:
 
           cd cloudmart
 
-          git checkout monitor
-
           cd dashboard
 
           pip3 install --break-system-packages -r requirements.txt

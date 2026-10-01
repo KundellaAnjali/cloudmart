@@ -107,17 +107,6 @@ def handler(event, context):
     
     token = token.replace("Bearer ", "")
 # Allow customer creation without token
-    if (not token and "/POST/customers" in method_arn):
-        return generate_policy(
-            "public",
-            "PUBLIC",
-            0,
-            "Public User",
-            "Allow",
-            method_arn
-        )
-
-
 
     arn_parts = method_arn.split(":")
     api_gateway_part = arn_parts[5]
@@ -261,7 +250,6 @@ def handler(event, context):
                 f"{base_arn}/GET/products",
                 f"{base_arn}/GET/products/*",
 
-                f"{base_arn}/POST/customers",
                 f"{base_arn}/GET/customers/*",
 
                 f"{base_arn}/POST/orders",
