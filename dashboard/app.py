@@ -27,7 +27,7 @@ ssm = boto3.client(
 )
 s3 = boto3.client(
     "s3",
-    region_name=AWS_REGION,
+    region_name="ap-south-1",
     config=Config(
         signature_version="s3v4",
         s3={
