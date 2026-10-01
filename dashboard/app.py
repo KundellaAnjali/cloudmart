@@ -12,6 +12,7 @@ import os
 import boto3
 import pymysql
 from datetime import datetime, timedelta
+from botocore.config import Config
 
 app = Flask(__name__)
 app.secret_key = "cloudmart-dashboard-secret"
@@ -26,7 +27,13 @@ ssm = boto3.client(
 )
 s3 = boto3.client(
     "s3",
-    region_name="ap-south-1"
+    region_name=AWS_REGION,
+    config=Config(
+        signature_version="s3v4",
+        s3={
+            "addressing_style": "path"
+        }
+    )
 )
 cloudwatch = boto3.client(
     "cloudwatch",
