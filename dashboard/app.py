@@ -913,7 +913,7 @@ def download_report(key):
             "Bucket": REPORTS_BUCKET,
             "Key": key,
             "ResponseContentDisposition":
-                f'attachment; filename="{key.split("/")[-1]}"'
+                f'attachment; filename="{os.path.basename(key)}"'
         },
         ExpiresIn=3600
     )
