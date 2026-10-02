@@ -1,4 +1,3 @@
-```python
 import boto3
 import pymysql
 import os
