@@ -253,7 +253,6 @@ def handler(event, context):
                 f"{base_arn}/GET/customers/*",
 
                 f"{base_arn}/POST/orders",
-                f"{base_arn}/GET/orders",
                 f"{base_arn}/GET/orders/*",
                 f"{base_arn}/PATCH/orders/*"
             ]

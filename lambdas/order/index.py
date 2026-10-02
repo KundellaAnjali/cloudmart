@@ -1015,6 +1015,15 @@ def handler(event, context):
                 )
 
             if path.endswith("/orders"):
+
+                if role != "ADMIN":
+                    return response(
+                        403,
+                        {
+                            "message": "Only admin can view all orders"
+                        }
+                    )
+
                 return get_all_orders()
 
             parts = path.split("/")

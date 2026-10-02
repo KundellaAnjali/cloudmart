@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html>
 
@@ -551,9 +550,13 @@
 
                                 🟡 Low Stock
 
-                            {% else %}
+                            {% elif product.status == "Out Of Stock" %}
 
-                                🔴 Not Available
+                                🔴 Out Of Stock
+
+                            {% elif product.status == "Inactive" %}
+
+                                ⚫ Inactive
 
                             {% endif %}
 

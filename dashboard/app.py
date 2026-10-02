@@ -306,6 +306,33 @@ def get_api_metric(metric_name):
         )[-1]["Sum"]
     )
 
+# ============================================================
+# API Gateway Latency
+# ============================================================
+
+def get_api_latency():
+
+    response = cloudwatch.get_metric_statistics(
+        Namespace="AWS/ApiGateway",
+        MetricName="Latency",
+        StartTime=datetime.utcnow() - timedelta(hours=1),
+        EndTime=datetime.utcnow(),
+        Period=300,
+        Statistics=["Average"]
+    )
+
+    datapoints = response["Datapoints"]
+
+    if not datapoints:
+        return 0
+
+    return round(
+        sorted(
+            datapoints,
+            key=lambda x: x["Timestamp"]
+        )[-1]["Average"],
+        2
+    )
 
 # ============================================================
 # CloudWatch Alarm State
@@ -475,11 +502,13 @@ def dashboard():
                 """
                 SELECT COUNT(*) low_stock
                 FROM product
-                WHERE stock_count < %s
+                WHERE stock_count > 0
+                AND stock_count < %s
                 AND is_active = TRUE
                 """,
                 (STOCK_THRESHOLD,)
             )
+
 
             low_stock = (
                 cursor.fetchone()["low_stock"]
@@ -533,10 +562,10 @@ def dashboard():
 
             for product in products:
 
-                if not product["is_active"]:
+                if not product["is_active"\]:
 
                     product["status"] = (
-                        "Not Available"
+                        "Inactive"
                     )
 
                 elif product["stock_count"] == 0:
@@ -545,10 +574,7 @@ def dashboard():
                         "Out Of Stock"
                     )
 
-                elif (
-                    product["stock_count"]
-                    < STOCK_THRESHOLD
-                ):
+                elif product["stock_count"] < STOCK_THRESHOLD:
 
                     product["status"] = (
                         "Low Stock"
@@ -883,7 +909,7 @@ def dashboard():
         api_5xx = get_api_metric(
             "5XXError"
         )
-
+        api_gateway_latency = get_api_latency()
 
         # ========================================================
         # EC2 Metrics
@@ -1232,7 +1258,7 @@ def dashboard():
 
             api_4xx_errors=api_4xx,
             api_5xx_errors=api_5xx,
-
+            api_gateway_latency=api_gateway_latency,
 
             # ----------------------------------------------------
             # EC2
