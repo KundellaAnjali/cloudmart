@@ -85,6 +85,34 @@ def publish_metric(metric_name, value=1):
         ]
     )
 
+def send_stock_alert(product_id, product_name, stock_count):
+
+    detail_type = (
+        "OutOfStock"
+        if stock_count == 0
+        else "LowStock"
+    )
+
+    events.put_events(
+        Entries=[
+            {
+                "Source": "cloudmart.inventory",
+                "DetailType": detail_type,
+                "Detail": json.dumps({
+                    "subject": (
+                        "CloudMart Out Of Stock Alert"
+                        if stock_count == 0
+                        else "CloudMart Low Stock Alert"
+                    ),
+                    "message": (
+                        f"Product {product_name} is out of stock."
+                        if stock_count == 0
+                        else f"Product {product_name} has low stock. Current stock: {stock_count}"
+                    )
+                })
+            }
+        ]
+    )
 
 def get_all_products(connection):
 
@@ -170,14 +198,6 @@ def create_product(connection, event):
             })
         }
 
-    if stock_count < threshold:
-        return {
-            "statusCode": 400,
-            "body": json.dumps({
-                "message": f"Stock count cannot be less than threshold value ({threshold})"
-            })
-        }
-
     try:
 
         with connection.cursor() as cursor:
@@ -213,6 +233,26 @@ def create_product(connection, event):
         connection.commit()
 
         publish_metric("ProductsCreated")
+
+        if stock_count == 0:
+
+            send_stock_alert(
+                product_id,
+                body["product_name"],
+                stock_count
+            )
+
+            publish_metric("OutOfStockProducts")
+
+        elif 0 < stock_count < STOCK_THRESHOLD:
+
+            send_stock_alert(
+                product_id,
+                body["product_name"],
+                stock_count
+            )
+
+            publish_metric("LowStockProducts")
 
     except Exception as e:
 
@@ -276,15 +316,6 @@ def update_product(connection, product_id, event):
                 })
             }
 
-        if body["stock_count"] < threshold:
-            
-            return {
-                "statusCode": 400,
-                "body": json.dumps({
-                    "message": f"Stock count must be greater than or equal to threshold value ({threshold})"
-                })
-            }
-
     values.append(product_id)
 
     query = f"""
@@ -308,6 +339,33 @@ def update_product(connection, product_id, event):
 
     connection.commit()
     publish_metric("InventoryUpdated")
+
+    if "stock_count" in body:
+
+        stock_count = body["stock_count"]
+
+        if stock_count == 0:
+
+            send_stock_alert(
+                product_id,
+                body.get("product_name", "Unknown Product"),
+                stock_count
+            )
+
+            publish_metric("OutOfStockProducts")
+
+        elif 0 < stock_count < STOCK_THRESHOLD:
+
+            send_stock_alert(
+                product_id,
+                body.get("product_name", "Unknown Product"),
+                stock_count
+            )
+
+            publish_metric("LowStockProducts")
+
+
+
     events.put_events(
         Entries=[
             {

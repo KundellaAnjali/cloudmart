@@ -131,6 +131,21 @@ Resources:
                 "region": "ap-south-1"
               }
             },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 66,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "OutOfStockProducts",
+                "metrics": [
+                  ["CloudMart", "OutOfStockProducts"]
+                ],
+                "stat": "Sum",
+                "region": "ap-south-1"
+              }
+            },
 
             {
               "type": "metric",
@@ -584,6 +599,29 @@ Resources:
       Period: 300
       EvaluationPeriods: 1
       Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  OutOfStockProductsAlarm:
+    Type: AWS::CloudWatch::Alarm
+
+    Properties:
+      AlarmName: !Sub "CloudMart-OutOfStockProducts-${Environment}"
+
+      Namespace: CloudMart
+
+      MetricName: OutOfStockProducts
+
+      Statistic: Sum
+
+      Period: 300
+
+      EvaluationPeriods: 1
+
+      Threshold: 0
+
       ComparisonOperator: GreaterThanThreshold
 
       AlarmActions:

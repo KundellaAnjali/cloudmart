@@ -97,6 +97,35 @@ Resources:
                 "Message": "<message>"
               }
 
+  OutOfStockEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "cloudmart-out-of-stock-events-${Environment}"
+
+      EventPattern:
+        source:
+          - cloudmart.inventory
+
+        detail-type:
+          - OutOfStock
+
+      State: ENABLED
+
+      Targets:
+        - Arn: !Ref OwnerNotificationsTopic
+          Id: OutOfStockTarget
+
+          InputTransformer:
+            InputPathsMap:
+              subject: "$.detail.subject"
+              message: "$.detail.message"
+
+            InputTemplate: |
+              {
+                "Subject": "<subject>",
+                "Message": "<message>"
+              }
+
   CustomerTopicPolicy:
     Type: AWS::SNS::TopicPolicy
     Properties:

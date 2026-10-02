@@ -1,660 +1,1060 @@
-    import json
-    import uuid
-    import pymysql
-    import boto3
-    import os
-    import secrets  # module for generating cryptographically secure random values.
-    import logging
+import json
+import uuid
+import pymysql
+import boto3
+import os
+import secrets  # module for generating cryptographically secure random values.
+import logging
 
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
-    ssm = boto3.client("ssm")
-    events = boto3.client("events")
-    cloudwatch = boto3.client("cloudwatch")
+ssm = boto3.client("ssm")
+events = boto3.client("events")
+cloudwatch = boto3.client("cloudwatch")
 
-    ENVIRONMENT = os.environ["ENVIRONMENT"]
+ENVIRONMENT = os.environ["ENVIRONMENT"]
 
-    def publish_metric(metric_name, value=1):
-        cloudwatch.put_metric_data(
-            Namespace="CloudMart",
-            MetricData=[
-                {
-                    "MetricName": metric_name,
-                    "Value": value,
-                    "Unit": "Count"
-                }
-            ]
+
+def publish_metric(metric_name, value=1):
+    cloudwatch.put_metric_data(
+        Namespace="CloudMart",
+        MetricData=[
+            {
+                "MetricName": metric_name,
+                "Value": value,
+                "Unit": "Count"
+            }
+        ]
+    )
+
+
+def log(level, operation, message, **kwargs):
+    log_data = {
+        "level": level,
+        "operation": operation,
+        "message": message
+    }
+
+    log_data.update(kwargs)
+
+    if level == "ERROR":
+        logger.error(json.dumps(log_data))
+    elif level == "WARNING":
+        logger.warning(json.dumps(log_data))
+    else:
+        logger.info(json.dumps(log_data))
+
+
+try:
+    DB_HOST = ssm.get_parameter(
+        Name=f"/cloudmart/{ENVIRONMENT}/db/host"
+    )["Parameter"]["Value"]
+
+    DB_NAME = ssm.get_parameter(
+        Name=f"/cloudmart/{ENVIRONMENT}/db/name"
+    )["Parameter"]["Value"]
+
+    DB_USER = ssm.get_parameter(
+        Name=f"/cloudmart/{ENVIRONMENT}/db/username"
+    )["Parameter"]["Value"]
+
+    DB_PASSWORD = ssm.get_parameter(
+        Name=f"/cloudmart/{ENVIRONMENT}/db/password",
+        WithDecryption=True
+    )["Parameter"]["Value"]
+
+    STOCK_THRESHOLD = int(
+        ssm.get_parameter(
+            Name=f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
+        )["Parameter"]["Value"]
+    )
+
+except Exception as e:
+    publish_metric("ParameterAccessFailures")
+    logger.error(f"Failed to load SSM parameters: {str(e)}")
+    raise e
+
+
+logger.info("DB Host loaded")
+logger.info("DB Name loaded")
+
+
+def get_connection():
+    return pymysql.connect(
+        host=DB_HOST,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        database=DB_NAME,
+        cursorclass=pymysql.cursors.DictCursor
+    )
+
+
+def response(status, body):
+    return {
+        "statusCode": status,
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "body": json.dumps(body, default=str)
+    }
+
+
+def publish_event(detail_type, detail, source="cloudmart.orders"):
+    events.put_events(
+        Entries=[
+            {
+                "Source": source,
+                "DetailType": detail_type,
+                "Detail": json.dumps(detail)
+            }
+        ]
+    )
+
+
+def create_customer(event):
+    headers = event.get("headers") or {}
+
+    if headers.get("Authorization") or headers.get("authorization"):
+        return response(
+            403,
+            {
+                "message": "Customer creation is allowed only without token"
+            }
         )
 
-    def log(level, operation, message, **kwargs):
-        log_data = {
-            "level": level,
-            "operation": operation,
-            "message": message
-        }
-        log_data.update(kwargs)
+    token = secrets.token_hex(16)
+    body = json.loads(event.get("body", "{}"))
 
-        if level == "ERROR":
-            logger.error(json.dumps(log_data))
-        elif level == "WARNING":
-            logger.warning(json.dumps(log_data))
-        else:
-            logger.info(json.dumps(log_data))
+    customer_name = body.get("customerName")
+    customer_email = body.get("customerEmail")
 
-    try: 
-        DB_HOST = ssm.get_parameter(
-            Name=f"/cloudmart/{ENVIRONMENT}/db/host"
-        )["Parameter"]["Value"]
-
-        DB_NAME = ssm.get_parameter(
-            Name=f"/cloudmart/{ENVIRONMENT}/db/name"
-        )["Parameter"]["Value"]
-
-        DB_USER = ssm.get_parameter(
-            Name=f"/cloudmart/{ENVIRONMENT}/db/username"
-        )["Parameter"]["Value"]
-
-        DB_PASSWORD = ssm.get_parameter(
-            Name=f"/cloudmart/{ENVIRONMENT}/db/password",
-            WithDecryption=True
-        )["Parameter"]["Value"]
-
-        STOCK_THRESHOLD = int(
-            ssm.get_parameter(
-                Name=f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
-            )["Parameter"]["Value"]
-        )
-    except Exception as e:
-        publish_metric("ParameterAccessFailures")
-        logger.error(f"Failed to load SSM parameters: {str(e)}")
-        raise e
-
-    logger.info("DB Host loaded")
-    logger.info("DB Name loaded")
-
-    def get_connection():
-        return pymysql.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_NAME,
-            cursorclass=pymysql.cursors.DictCursor
+    if not customer_name:
+        return response(
+            400,
+            {
+                "message": "customerName is required"
+            }
         )
 
-    def response(status, body):
-        return {
-            "statusCode": status,
-            "headers": {
-                "Content-Type": "application/json"
-            },
-            "body": json.dumps(body, default=str)
-        }
-
-    def publish_event(detail_type, detail, source="cloudmart.orders"):
-        events.put_events(
-            Entries=[
-                {
-                    "Source": source,
-                    "DetailType": detail_type,
-                    "Detail": json.dumps(detail)
-                }
-            ]
+    if not customer_email:
+        return response(
+            400,
+            {
+                "message": "customerEmail is required"
+            }
         )
 
-    def create_customer(event):
-        headers = event.get("headers") or {}
+    log(
+        "INFO",
+        "CreateCustomer",
+        "Customer creation request received",
+        customer_name=customer_name,
+        customer_email=customer_email
+    )
 
-        if headers.get("Authorization") or headers.get("authorization"):
-            return response(
-                403,
-                {"message": "Customer creation is allowed only without token"}
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO customers
+                (customer_name, customer_email, auth_token, role)
+                VALUES (%s, %s, %s, %s)
+                """,
+                (
+                    customer_name,
+                    customer_email,
+                    token,
+                    "CUSTOMER"
+                )
             )
 
-        token = secrets.token_hex(16)
-        body = json.loads(event.get("body", "{}"))
+            customer_id = cursor.lastrowid
+            conn.commit()
 
-        customer_name = body.get("customerName")
-        customer_email = body.get("customerEmail")
+            log(
+                "INFO",
+                "CreateCustomer",
+                "Customer created successfully",
+                customer_id=customer_id
+            )
 
-        if not customer_name:
-            return response(400, {"message": "customerName is required"})
+            return response(
+                201,
+                {
+                    "message": "Customer created successfully",
+                    "customerId": customer_id,
+                    "authToken": token
+                }
+            )
 
-        if not customer_email:
-            return response(400, {"message": "customerEmail is required"})
+    except Exception as e:
+        conn.rollback()
 
         log(
-            "INFO",
+            "ERROR",
             "CreateCustomer",
-            "Customer creation request received",
-            customer_name=customer_name,
-            customer_email=customer_email
+            "Customer creation failed",
+            error=repr(e)
         )
 
-        conn = get_connection()
+        return response(
+            500,
+            {
+                "message": repr(e)
+            }
+        )
 
-        try:
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    """
-                    INSERT INTO customers
-                    (customer_name, customer_email, auth_token, role)
-                    VALUES (%s, %s, %s, %s)
-                    """,
-                    (customer_name, customer_email, token, "CUSTOMER")
-                )
-                customer_id = cursor.lastrowid
-                conn.commit()
+    finally:
+        conn.close()
 
+
+def get_customers():
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT * FROM customers ORDER BY customer_id"
+            )
+
+            customers = cursor.fetchall()
+
+            return response(
+                200,
+                customers
+            )
+
+    except Exception as e:
+        return response(
+            500,
+            {
+                "message": str(e)
+            }
+        )
+
+    finally:
+        conn.close()
+
+
+def get_customer_by_id(customer_id, role, logged_in_customer):
+    if role != "ADMIN" and str(customer_id) != str(logged_in_customer):
+        return response(
+            403,
+            {
+                "message": "Access denied"
+            }
+        )
+
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT * FROM customers WHERE customer_id = %s",
+                (customer_id,)
+            )
+
+            customer = cursor.fetchone()
+
+            if not customer:
                 log(
-                    "INFO",
-                    "CreateCustomer",
-                    "Customer created successfully",
+                    "WARNING",
+                    "GetCustomerById",
+                    "Customer not found",
                     customer_id=customer_id
                 )
 
                 return response(
-                    201,
+                    404,
                     {
-                        "message": "Customer created successfully",
-                        "customerId": customer_id,
-                        "authToken": token
+                        "message": "Customer not found"
                     }
                 )
 
-        except Exception as e:
-            conn.rollback()
-            log("ERROR", "CreateCustomer", "Customer creation failed", error=repr(e))
-            return response(500, {"message": repr(e)})
-        finally:
-            conn.close()
+            return response(
+                200,
+                customer
+            )
 
-    def get_customers():
+    except Exception as e:
+        return response(
+            500,
+            {
+                "message": str(e)
+            }
+        )
+
+    finally:
+        conn.close()
+
+
+def create_order(event):
+    body = json.loads(event.get("body", "{}"))
+
+    customer_id = body.get("customerId")
+    items = body.get("items", [])
+
+    logged_in_customer = event["requestContext"]["authorizer"]["customer_id"]
+    role = event["requestContext"]["authorizer"]["role"]
+
+    if role != "ADMIN" and str(customer_id) != str(logged_in_customer):
+        return response(
+            403,
+            {
+                "message": "Access denied"
+            }
+        )
+
+    log(
+        "INFO",
+        "CreateOrder",
+        "Order creation started",
+        customer_id=customer_id
+    )
+
+    if not customer_id:
+        return response(
+            400,
+            {
+                "message": "customerId is required"
+            }
+        )
+
+    if not items:
+        return response(
+            400,
+            {
+                "message": "items are required"
+            }
+        )
+
+    try:
         conn = get_connection()
-        try:
-            with conn.cursor() as cursor:
-                cursor.execute("SELECT * FROM customers ORDER BY customer_id")
-                customers = cursor.fetchall()
-                return response(200, customers)
-        except Exception as e:
-            return response(500, {"message": str(e)})
-        finally:
-            conn.close()
 
-    def get_customer_by_id(customer_id, role, logged_in_customer):
-        if role != "ADMIN" and str(customer_id) != str(logged_in_customer):
-            return response(403, {"message": "Access denied"})
+    except Exception as e:
+        publish_metric("RDSConnectionFailures")
 
-        conn = get_connection()
-        try:
-            with conn.cursor() as cursor:
-                cursor.execute("SELECT * FROM customers WHERE customer_id = %s", (customer_id,))
-                customer = cursor.fetchone()
+        log(
+            "ERROR",
+            "DatabaseConnection",
+            "Failed to connect to database",
+            error=str(e)
+        )
 
-                if not customer:
-                    log("WARNING", "GetCustomerById", "Customer not found", customer_id=customer_id)
-                    return response(404, {"message": "Customer not found"})
+        raise
 
-                return response(200, customer)
-        except Exception as e:
-            return response(500, {"message": str(e)})
-        finally:
-            conn.close()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT * FROM customers WHERE customer_id = %s",
+                (customer_id,)
+            )
 
-    def create_order(event):
-        body = json.loads(event.get("body", "{}"))
-        customer_id = body.get("customerId")
-        items = body.get("items", [])
+            customer = cursor.fetchone()
 
-        logged_in_customer = event["requestContext"]["authorizer"]["customer_id"]
+            if not customer:
+                return response(
+                    404,
+                    {
+                        "message": "Customer not found"
+                    }
+                )
+
+            total_amount = 0
+            product_details = []
+
+            for item in items:
+                product_id = item["productId"]
+                quantity = item["quantity"]
+
+                log(
+                    "INFO",
+                    "CreateOrder",
+                    "Product validated",
+                    product_id=product_id,
+                    quantity=quantity
+                )
+
+                cursor.execute(
+                    """
+                    SELECT product_id, product_name, price, stock_count
+                    FROM product
+                    WHERE product_id = %s AND is_active = TRUE
+                    """,
+                    (product_id,)
+                )
+
+                product = cursor.fetchone()
+
+                if not product:
+                    publish_event(
+                        "OrderFailed",
+                        {
+                            "subject": "CloudMart Order Failed",
+                            "customerId": customer_id,
+                            "productId": product_id,
+                            "reason": "Product not found",
+                            "message": (
+                                f"Dear Customer, your order could not be processed because Product ID "
+                                f"{product_id} was not found. Please verify the product information and try again. "
+                                f"Regards, CloudMart Team."
+                            )
+                        }
+                    )
+
+                    return response(
+                        404,
+                        {
+                            "message": f"Product {product_id} not found"
+                        }
+                    )
+
+                if quantity > product["stock_count"]:
+                    publish_metric("FailedOrders")
+
+                    publish_event(
+                        "OrderFailed",
+                        {
+                            "subject": "CloudMart Order Failed",
+                            "customerId": customer_id,
+                            "productId": product_id,
+                            "availableStock": product["stock_count"],
+                            "requestedQuantity": quantity,
+                            "reason": "Insufficient stock",
+                            "message": (
+                                f"Dear Customer, your order could not be placed due to insufficient stock. "
+                                f"Product Name: {product['product_name']}. "
+                                f"Available Stock: {product['stock_count']}. "
+                                f"Requested Quantity: {quantity}. "
+                                f"Please reduce the quantity and try again. "
+                                f"Regards, CloudMart Team."
+                            )
+                        }
+                    )
+
+                    return response(
+                        400,
+                        {
+                            "message": f"Insufficient stock for product {product_id}"
+                        }
+                    )
+
+                total_amount += float(product["price"]) * quantity
+
+                product_details.append(
+                    {
+                        "product": product,
+                        "quantity": quantity
+                    }
+                )
+
+                log(
+                    "INFO",
+                    "CreateOrder",
+                    "Creating order record",
+                    total_amount=total_amount
+                )
+
+            order_id = f"ORD-{uuid.uuid4().hex[:8]}"
+
+            cursor.execute(
+                """
+                INSERT INTO orders
+                (order_id, customer_id, order_status, total_amount)
+                VALUES (%s, %s, %s, %s)
+                """,
+                (
+                    order_id,
+                    customer_id,
+                    "PENDING",
+                    total_amount
+                )
+            )
+
+            for item in product_details:
+                product = item["product"]
+                quantity = item["quantity"]
+
+                cursor.execute(
+                    """
+                    UPDATE product
+                    SET stock_count = stock_count - %s
+                    WHERE product_id = %s
+                    """,
+                    (
+                        quantity,
+                        product["product_id"]
+                    )
+                )
+
+                cursor.execute(
+                    """
+                    INSERT INTO order_items
+                    (order_id, product_id, product_name, quantity, unit_price)
+                    VALUES (%s, %s, %s, %s, %s)
+                    """,
+                    (
+                        order_id,
+                        product["product_id"],
+                        product["product_name"],
+                        quantity,
+                        product["price"]
+                    )
+                )
+
+                cursor.execute(
+                    """
+                    SELECT product_name, stock_count
+                    FROM product
+                    WHERE product_id = %s
+                    AND is_active = TRUE
+                    """,
+                    (product["product_id"],)
+                )
+
+                updated_product = cursor.fetchone()
+
+                if updated_product["stock_count"] < STOCK_THRESHOLD:
+                    log(
+                        "WARNING",
+                        "LowStock",
+                        "Product stock below threshold",
+                        product_id=product["product_id"],
+                        current_stock=updated_product["stock_count"],
+                        threshold=STOCK_THRESHOLD
+                    )
+
+                    publish_metric("LowStockProducts")
+
+                    publish_event(
+                        "LowStock",
+                        {
+                            "subject": "CloudMart Low Stock Alert",
+                            "message": (
+                                f"Dear Product Owner, a product has fallen below the configured inventory threshold. "
+                                f"Product ID: {product['product_id']}. "
+                                f"Product Name: {product['product_name']}. "
+                                f"Current Stock: {updated_product['stock_count']}. "
+                                f"Threshold Value: {STOCK_THRESHOLD}. "
+                                f"Please replenish inventory at the earliest to avoid stock shortages. "
+                                f"Regards, CloudMart Inventory Monitoring."
+                            )
+                        },
+                        "cloudmart.inventory"
+                    )
+
+            cursor.execute(
+                """
+                INSERT INTO order_status_history
+                (order_id, order_status, remarks)
+                VALUES (%s, %s, %s)
+                """,
+                (
+                    order_id,
+                    "PENDING",
+                    "Order created"
+                )
+            )
+
+            cursor.execute(
+                """
+                UPDATE orders
+                SET order_status = %s
+                WHERE order_id = %s
+                """,
+                (
+                    "CONFIRMED",
+                    order_id
+                )
+            )
+
+            cursor.execute(
+                """
+                INSERT INTO order_status_history
+                (order_id, order_status, remarks)
+                VALUES (%s, %s, %s)
+                """,
+                (
+                    order_id,
+                    "CONFIRMED",
+                    "Inventory deducted"
+                )
+            )
+
+            conn.commit()
+
+            publish_metric("OrdersCreated")
+
+            # Formatted list of product names and quantities
+            # for the confirmation email
+            items_summary = "\n".join(
+                [
+                    f"- {item['product']['product_name']} "
+                    f"(Qty: {item['quantity']}, "
+                    f"Unit Price: ${item['product']['price']:.2f})"
+                    for item in product_details
+                ]
+            )
+
+            publish_event(
+                "OrderConfirmed",
+                {
+                    "subject": "CloudMart Order Confirmation",
+                    "customerId": customer_id,
+                    "customerName": customer["customer_name"],
+                    "orderId": order_id,
+                    "orderStatus": "CONFIRMED",
+                    "totalAmount": total_amount,
+                    "message": (
+                        f"Dear {customer['customer_name']}, "
+                        f"your order has been successfully confirmed. "
+                        f"Order ID: {order_id}. "
+                        f"The total amount for your order is ${total_amount:.2f}. "
+                        f"The current status of the order is CONFIRMED. "
+                        f"Items ordered: {items_summary}. "
+                        f"Thank you for shopping with CloudMart. "
+                        f"Regards, CloudMart Team."
+                    )
+                }
+            )
+
+            log(
+                "INFO",
+                "CreateOrder",
+                "Order created successfully",
+                order_id=order_id,
+                total_amount=total_amount
+            )
+
+            return response(
+                201,
+                {
+                    "orderId": order_id,
+                    "productIds": [
+                        item["product"]["product_id"]
+                        for item in product_details
+                    ],
+                    "status": "CONFIRMED",
+                    "totalAmount": total_amount
+                }
+            )
+
+    except Exception as e:
+        conn.rollback()
+
+        publish_metric("DatabaseQueryFailures")
+        publish_metric("FailedOrders")
+
+        log(
+            "ERROR",
+            "CreateOrder",
+            "Order creation failed",
+            error=str(e)
+        )
+
+        return response(
+            500,
+            {
+                "message": str(e)
+            }
+        )
+
+    finally:
+        conn.close()
+
+
+def get_order(order_id, role, logged_in_customer):
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT * FROM orders WHERE order_id = %s",
+                (order_id,)
+            )
+
+            order = cursor.fetchone()
+
+            if not order:
+                log(
+                    "WARNING",
+                    "GetOrder",
+                    "Order not found",
+                    order_id=order_id
+                )
+
+                return response(
+                    404,
+                    {
+                        "message": "Order not found"
+                    }
+                )
+
+            if role != "ADMIN" and str(order["customer_id"]) != str(logged_in_customer):
+                return response(
+                    403,
+                    {
+                        "message": "Access denied"
+                    }
+                )
+
+            cursor.execute(
+                """
+                SELECT product_id, product_name, quantity, unit_price
+                FROM order_items
+                WHERE order_id = %s
+                """,
+                (order_id,)
+            )
+
+            items = cursor.fetchall()
+
+            order["items"] = items
+
+            return response(
+                200,
+                order
+            )
+
+    except Exception as e:
+        return response(
+            500,
+            {
+                "message": str(e)
+            }
+        )
+
+    finally:
+        conn.close()
+
+
+def get_customer_orders(customer_id):
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT *
+                FROM orders
+                WHERE customer_id = %s
+                ORDER BY order_date DESC
+                """,
+                (customer_id,)
+            )
+
+            orders = cursor.fetchall()
+
+            return response(
+                200,
+                orders
+            )
+
+    except Exception as e:
+        return response(
+            500,
+            {
+                "message": str(e)
+            }
+        )
+
+    finally:
+        conn.close()
+
+
+def get_all_orders():
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT *
+                FROM orders
+                ORDER BY order_date DESC
+                """
+            )
+
+            orders = cursor.fetchall()
+
+            return response(
+                200,
+                orders
+            )
+
+    except Exception as e:
+        return response(
+            500,
+            {
+                "message": str(e)
+            }
+        )
+
+    finally:
+        conn.close()
+
+
+def cancel_order(order_id, role, logged_in_customer):
+    conn = get_connection()
+
+    log(
+        "INFO",
+        "CancelOrder",
+        "Order cancellation requested",
+        order_id=order_id
+    )
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT customer_id, order_status
+                FROM orders
+                WHERE order_id = %s
+                """,
+                (order_id,)
+            )
+
+            order = cursor.fetchone()
+
+            if not order:
+                return response(
+                    404,
+                    {
+                        "message": "Order not found"
+                    }
+                )
+
+            if role != "ADMIN" and str(order["customer_id"]) != str(logged_in_customer):
+                return response(
+                    403,
+                    {
+                        "message": "Access denied"
+                    }
+                )
+
+            if order["order_status"] == "CANCELLED":
+                log(
+                    "INFO",
+                    "CancelOrder",
+                    "Order is already cancelled successfully",
+                    order_id=order_id
+                )
+
+                return response(
+                    400,
+                    {
+                        "message": "Order is already cancelled"
+                    }
+                )
+
+            cursor.execute(
+                """
+                SELECT product_id, product_name, quantity
+                FROM order_items
+                WHERE order_id = %s
+                """,
+                (order_id,)
+            )
+
+            items = cursor.fetchall()
+
+            for item in items:
+                cursor.execute(
+                    """
+                    UPDATE product
+                    SET stock_count = stock_count + %s
+                    WHERE product_id = %s
+                    """,
+                    (
+                        item["quantity"],
+                        item["product_id"]
+                    )
+                )
+
+            cursor.execute(
+                """
+                UPDATE orders
+                SET order_status = %s
+                WHERE order_id = %s
+                """,
+                (
+                    "CANCELLED",
+                    order_id
+                )
+            )
+
+            cursor.execute(
+                """
+                INSERT INTO order_status_history
+                (order_id, order_status, remarks)
+                VALUES (%s, %s, %s)
+                """,
+                (
+                    order_id,
+                    "CANCELLED",
+                    "Order cancelled"
+                )
+            )
+
+            conn.commit()
+
+            publish_metric("OrdersCancelled")
+
+            cancelled_items_summary = "\n".join(
+                [
+                    f"- {item['product_name']} "
+                    f"(Qty: {item['quantity']})"
+                    for item in items
+                ]
+            )
+
+            publish_event(
+                "OrderCancelled",
+                {
+                    "subject": "CloudMart Order Cancelled",
+                    "message": (
+                        f"Dear Customer, your order has been cancelled successfully. "
+                        f"Order ID: {order_id}. "
+                        f"Status: CANCELLED. "
+                        f"Cancelled Items: {cancelled_items_summary}. "
+                        f"If this was not expected, please contact support. "
+                        f"Regards, CloudMart Team."
+                    )
+                }
+            )
+
+            log(
+                "INFO",
+                "CancelOrder",
+                "Order cancelled successfully",
+                order_id=order_id
+            )
+
+            return response(
+                200,
+                {
+                    "message": "Order cancelled successfully",
+                    "orderId": order_id,
+                    "status": "CANCELLED"
+                }
+            )
+
+    except Exception as e:
+        conn.rollback()
+
+        return response(
+            500,
+            {
+                "message": str(e)
+            }
+        )
+
+    finally:
+        conn.close()
+
+
+def handler(event, context):
+    try:
+        log(
+            "INFO",
+            "Handler",
+            "Lambda handler started"
+        )
+
+        method = event["httpMethod"]
+        path = event["path"]
+
+        if method == "POST" and path.endswith("/customers"):
+            return create_customer(event)
+
         role = event["requestContext"]["authorizer"]["role"]
 
-        if role != "ADMIN" and str(customer_id) != str(logged_in_customer):
-            return response(403, {"message": "Access denied"})
-
-        log("INFO", "CreateOrder", "Order creation started", customer_id=customer_id)
-
-        if not customer_id:
-            return response(400, {"message": "customerId is required"})
-
-        if not items:
-            return response(400, {"message": "items are required"})
-
-        try:
-            conn = get_connection()
-        except Exception as e:
-            publish_metric("RDSConnectionFailures")
-            log("ERROR", "DatabaseConnection", "Failed to connect to database", error=str(e))
-            raise
-
-        try:
-            with conn.cursor() as cursor:
-                cursor.execute("SELECT * FROM customers WHERE customer_id = %s", (customer_id,))
-                customer = cursor.fetchone()
-
-                if not customer:
-                    return response(404, {"message": "Customer not found"})
-
-                total_amount = 0
-                product_details = []
-
-                for item in items:
-                    product_id = item["productId"]
-                    quantity = item["quantity"]
-
-                    log("INFO", "CreateOrder", "Product validated", product_id=product_id, quantity=quantity)
-
-                    cursor.execute(
-                        """
-                        SELECT product_id, product_name, price, stock_count
-                        FROM product
-                        WHERE product_id = %s AND is_active = TRUE
-                        """,
-                        (product_id,)
-                    )
-                    product = cursor.fetchone()
-
-                    if not product:
-                        publish_event(
-                            "OrderFailed",
-                            {
-                                "subject": "CloudMart Order Failed",
-                                "customerId": customer_id,
-                                "productId": product_id,
-                                "reason": "Product not found",
-                                "message": f"""
-                        Dear Customer,
-
-                        Your order could not be processed because Product ID {product_id} was not found.
-
-                        Regards,
-                        CloudMart Team
-                        """
-                            }
-                        )
-                        return response(404, {"message": f"Product {product_id} not found"})
-
-                    if quantity > product["stock_count"]:
-                        publish_metric("FailedOrders")
-                        publish_event(
-                            "OrderFailed",
-                            {
-                                "subject": "CloudMart Order Failed",
-                                "customerId": customer_id,
-                                "productId": product_id,
-                                "availableStock": product["stock_count"],
-                                "requestedQuantity": quantity,
-                                "reason": "Insufficient stock",
-                                "message": f"""
-                        Dear Customer,
-
-                        Your order could not be placed due to insufficient stock.
-
-                        Product Name    : {product['product_name']}
-                        Available Stock : {product['stock_count']}
-                        Requested Qty   : {quantity}
-
-                        Regards,
-                        CloudMart Team
-                        """
-                            }
-                        )
-                        return response(400, {"message": f"Insufficient stock for product {product_id}"})
-
-                    total_amount += float(product["price"]) * quantity
-                    product_details.append({"product": product, "quantity": quantity})
-
-                    log("INFO", "CreateOrder", "Creating order record", total_amount=total_amount)
-
-                order_id = f"ORD-{uuid.uuid4().hex[:8]}"
-
-                cursor.execute(
-                    """
-                    INSERT INTO orders (order_id, customer_id, order_status, total_amount)
-                    VALUES (%s, %s, %s, %s)
-                    """,
-                    (order_id, customer_id, "PENDING", total_amount)
-                )
-
-                for item in product_details:
-                    product = item["product"]
-                    quantity = item["quantity"]
-
-                    cursor.execute(
-                        "UPDATE product SET stock_count = stock_count - %s WHERE product_id = %s",
-                        (quantity, product["product_id"])
-                    )
-
-                    cursor.execute(
-                        """
-                        INSERT INTO order_items (order_id, product_id, product_name, quantity, unit_price)
-                        VALUES (%s, %s, %s, %s, %s)
-                        """,
-                        (order_id, product["product_id"], product["product_name"], quantity, product["price"])
-                    )
-
-                    cursor.execute(
-                        "SELECT product_name, stock_count FROM product WHERE product_id = %s AND is_active = TRUE",
-                        (product["product_id"],)
-                    )
-                    updated_product = cursor.fetchone()
-
-                    if updated_product["stock_count"] < STOCK_THRESHOLD:
-                        log(
-                            "WARNING",
-                            "LowStock",
-                            "Product stock below threshold",
-                            product_id=product["product_id"],
-                            current_stock=updated_product["stock_count"],
-                            threshold=STOCK_THRESHOLD
-                        )
-                        publish_metric("LowStockProducts")
-                        publish_event(
-                            "LowStock",
-                            {
-                                "subject": "CloudMart Low Stock Alert",
-                                "message": f"""
-                        Dear Product Owner,
-
-                        A product has fallen below the configured inventory threshold.
-
-                        Product ID      : {product['product_id']}
-                        Product Name    : {product['product_name']}
-                        Current Stock   : {updated_product['stock_count']}
-                        Threshold Value : {STOCK_THRESHOLD}
-
-                        Please replenish inventory at the earliest.
-
-                        Regards,
-                        CloudMart Inventory Monitoring
-                        """
-                            },
-                            "cloudmart.inventory"
-                        )
-
-                cursor.execute(
-                    "INSERT INTO order_status_history (order_id, order_status, remarks) VALUES (%s, %s, %s)",
-                    (order_id, "PENDING", "Order created")
-                )
-
-                cursor.execute("UPDATE orders SET order_status = %s WHERE order_id = %s", ("CONFIRMED", order_id))
-
-                cursor.execute(
-                    "INSERT INTO order_status_history (order_id, order_status, remarks) VALUES (%s, %s, %s)",
-                    (order_id, "CONFIRMED", "Inventory deducted")
-                )
-
-                conn.commit()
-                publish_metric("OrdersCreated")
-
-                # Formatted list of product names and quantities for the confirmation email
-                items_summary = "\n".join([
-                    f"- {item['product']['product_name']} (Qty: {item['quantity']}, Unit Price: ${item['product']['price']:.2f})"
-                    for item in product_details
-                ])
-
-                publish_event(
-                    "OrderConfirmed",
-                    {
-                        "subject": "CloudMart Order Confirmation",
-                        "customerId": customer_id,
-                        "customerName": customer["customer_name"],
-                        "orderId": order_id,
-                        "orderStatus": "CONFIRMED",
-                        "totalAmount": total_amount,
-                        "message": f"""
-                Dear {customer['customer_name']},
-
-                Your order has been successfully confirmed.
-
-                Order Details
-                ----------------------------------------
-                Order ID     : {order_id}
-                Total Amount : ${total_amount:.2f}
-                Status       : CONFIRMED
-
-                Items Ordered:
-                {items_summary}
-
-                Thank you for shopping with CloudMart!
-
-                Regards,
-                CloudMart Team
-                """
-                    }
-                )
-
-                log("INFO", "CreateOrder", "Order created successfully", order_id=order_id, total_amount=total_amount)
-
-                return response(
-                    201,
-                    {
-                        "orderId": order_id,
-                        "productIds": [item["product"]["product_id"] for item in product_details],
-                        "status": "CONFIRMED",
-                        "totalAmount": total_amount
-                    }
-                )
-
-        except Exception as e:
-            conn.rollback()
-            publish_metric("DatabaseQueryFailures")
-            publish_metric("FailedOrders")
-            log("ERROR", "CreateOrder", "Order creation failed", error=str(e))
-            return response(500, {"message": str(e)})
-
-        finally:
-            conn.close()
-
-    def get_order(order_id, role, logged_in_customer):
-        conn = get_connection()
-        try:
-            with conn.cursor() as cursor:
-                cursor.execute("SELECT * FROM orders WHERE order_id = %s", (order_id,))
-                order = cursor.fetchone()
-
-                if not order:
-                    log("WARNING", "GetOrder", "Order not found", order_id=order_id)
-                    return response(404, {"message": "Order not found"})
-
-                if role != "ADMIN" and str(order["customer_id"]) != str(logged_in_customer):
-                    return response(403, {"message": "Access denied"})
-
-                cursor.execute(
-                    """
-                    SELECT product_id, product_name, quantity, unit_price
-                    FROM order_items
-                    WHERE order_id = %s
-                    """,
-                    (order_id,)
-                )
-                items = cursor.fetchall()
-                order["items"] = items
-
-                return response(200, order)
-
-        except Exception as e:
-            return response(500, {"message": str(e)})
-        finally:
-            conn.close()
-
-    def get_customer_orders(customer_id):
-        conn = get_connection()
-        try:
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    "SELECT * FROM orders WHERE customer_id = %s ORDER BY order_date DESC",
-                    (customer_id,)
-                )
-                orders = cursor.fetchall()
-                return response(200, orders)
-        except Exception as e:
-            return response(500, {"message": str(e)})
-        finally:
-            conn.close()
-
-    def get_all_orders():
-        conn = get_connection()
-        try:
-            with conn.cursor() as cursor:
-                cursor.execute("SELECT * FROM orders ORDER BY order_date DESC")
-                orders = cursor.fetchall()
-                return response(200, orders)
-        except Exception as e:
-            return response(500, {"message": str(e)})
-        finally:
-            conn.close()
-
-    def cancel_order(order_id, role, logged_in_customer):
-        conn = get_connection()
-        log("INFO", "CancelOrder", "Order cancellation requested", order_id=order_id)
-
-        try:
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    "SELECT customer_id, order_status FROM orders WHERE order_id = %s",
-                    (order_id,)
-                )
-                order = cursor.fetchone()
-
-                if not order:
-                    return response(404, {"message": "Order not found"})
-
-                if role != "ADMIN" and str(order["customer_id"]) != str(logged_in_customer):
-                    return response(403, {"message": "Access denied"})
-
-                if order["order_status"] == "CANCELLED":
-                    log("INFO", "CancelOrder", "Order is already cancelled successfully", order_id=order_id)
-                    return response(400, {"message": "Order is already cancelled"})
-
-                cursor.execute(
-                    "SELECT product_id, product_name, quantity FROM order_items WHERE order_id = %s",
-                    (order_id,)
-                )
-                items = cursor.fetchall()
-
-                for item in items:
-                    cursor.execute(
-                        "UPDATE product SET stock_count = stock_count + %s WHERE product_id = %s",
-                        (item["quantity"], item["product_id"])
-                    )
-
-                cursor.execute("UPDATE orders SET order_status = %s WHERE order_id = %s", ("CANCELLED", order_id))
-
-                cursor.execute(
-                    "INSERT INTO order_status_history (order_id, order_status, remarks) VALUES (%s, %s, %s)",
-                    (order_id, "CANCELLED", "Order cancelled")
-                )
-
-                conn.commit()
-                publish_metric("OrdersCancelled")
-
-                cancelled_items_summary = "\n".join([
-                    f"- {item['product_name']} (Qty: {item['quantity']})"
-                    for item in items
-                ])
-
-                publish_event(
-                    "OrderCancelled",
-                    {
-                        "subject": "CloudMart Order Cancelled",
-                        "message": f"""
-                Dear Customer,
-
-                Your order has been cancelled successfully.
-
-                Order ID : {order_id}
-                Status   : CANCELLED
-
-                Cancelled Items:
-                {cancelled_items_summary}
-
-                If this was not expected, please contact support.
-
-                Regards,
-                CloudMart Team
-                """
-                    }
-                )
-
-                log("INFO", "CancelOrder", "Order cancelled successfully", order_id=order_id)
-                return response(
-                    200,
-                    {
-                        "message": "Order cancelled successfully",
-                        "orderId": order_id,
-                        "status": "CANCELLED"
-                    }
-                )
-
-        except Exception as e:
-            conn.rollback()
-            return response(500, {"message": str(e)})
-
-        finally:
-            conn.close()
-
-    def handler(event, context):
-        try:
-            log("INFO", "Handler", "Lambda handler started")
-
-            method = event["httpMethod"]
-            path = event["path"]
-
-            if method == "POST" and path.endswith("/customers"):
-                return create_customer(event)
-
-            role = event["requestContext"]["authorizer"]["role"]
-
-            if method == "GET":
-                if "/customers/" in path:
-                    customer_id = path.split("/")[-1]
-                    return get_customer_by_id(
-                        customer_id,
-                        role,
-                        event["requestContext"]["authorizer"]["customer_id"]
-                    )
-
-                if path.endswith("/customers"):
-                    return get_customers()
-
-            if method == "POST" and path.endswith("/orders"):
-                return create_order(event)
-
-            if method == "GET":
-                query = event.get("queryStringParameters") or {}
-
-                if "customerId" in query:
-                    requested_customer = query["customerId"]
-                    logged_in_customer = event["requestContext"]["authorizer"]["customer_id"]
-
-                    if role != "ADMIN" and str(requested_customer) != str(logged_in_customer):
-                        return response(403, {"message": "Access denied"})
-
-                    return get_customer_orders(requested_customer)
-
-                if path.endswith("/orders"):
-                    return get_all_orders()
-
-                parts = path.split("/")
-                if len(parts) > 2:
-                    return get_order(
-                        parts[-1],
-                        role,
-                        event["requestContext"]["authorizer"]["customer_id"]
-                    )
-
-            if method == "PATCH" and "/orders/" in path:
-                order_id = path.split("/")[-1]
-                return cancel_order(
-                    order_id,
+        if method == "GET":
+            if "/customers/" in path:
+                customer_id = path.split("/")[-1]
+
+                return get_customer_by_id(
+                    customer_id,
                     role,
                     event["requestContext"]["authorizer"]["customer_id"]
                 )
 
-            return response(404, {"message": "Route not found"})
+            if path.endswith("/customers"):
+                return get_customers()
 
-        except Exception as e:
-            publish_metric("OrderLambdaFailures")
-            log("ERROR", "OrderLambda", "Unhandled exception", error=str(e))
-            return response(500, {"message": str(e)})
+        if method == "POST" and path.endswith("/orders"):
+            return create_order(event)
+
+        if method == "GET":
+            query = event.get("queryStringParameters") or {}
+
+            if "customerId" in query:
+                requested_customer = query["customerId"]
+
+                logged_in_customer = event[
+                    "requestContext"
+                ]["authorizer"]["customer_id"]
+
+                if (
+                    role != "ADMIN"
+                    and str(requested_customer) != str(logged_in_customer)
+                ):
+                    return response(
+                        403,
+                        {
+                            "message": "Access denied"
+                        }
+                    )
+
+                return get_customer_orders(
+                    requested_customer
+                )
+
+            if path.endswith("/orders"):
+                return get_all_orders()
+
+            parts = path.split("/")
+
+            if len(parts) > 2:
+                return get_order(
+                    parts[-1],
+                    role,
+                    event["requestContext"]["authorizer"]["customer_id"]
+                )
+
+        if method == "PATCH" and "/orders/" in path:
+            order_id = path.split("/")[-1]
+
+            return cancel_order(
+                order_id,
+                role,
+                event["requestContext"]["authorizer"]["customer_id"]
+            )
+
+        return response(
+            404,
+            {
+                "message": "Route not found"
+            }
+        )
+
+    except Exception as e:
+        publish_metric("OrderLambdaFailures")
+
+        log(
+            "ERROR",
+            "OrderLambda",
+            "Unhandled exception",
+            error=str(e)
+        )
+
+        return response(
+            500,
+            {
+                "message": str(e)
+            }
+        )

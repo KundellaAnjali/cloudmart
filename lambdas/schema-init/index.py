@@ -377,6 +377,164 @@ def handler(event, context):
 
             logger.info("Sample products inserted successfully")
 
+            -- Order 1
+
+            INSERT INTO orders (
+                order_id,
+                customer_id,
+                order_status,
+                total_amount
+            )
+            VALUES (
+                'ORD-100001',
+                3,
+                'CONFIRMED',
+                55799.00
+            );
+
+            INSERT INTO order_items (
+                order_id,
+                product_id,
+                product_name,
+                quantity,
+                unit_price
+            )
+            VALUES
+            (
+                'ORD-100001',
+                1,
+                'Laptop',
+                1,
+                55000.00
+            ),
+            (
+                'ORD-100001',
+                2,
+                'Wireless Mouse',
+                1,
+                799.00
+            );
+
+            INSERT INTO order_status_history (
+                order_id,
+                order_status,
+                remarks
+            )
+            VALUES
+            ('ORD-100001', 'PENDING', 'Order created'),
+            ('ORD-100001', 'CONFIRMED', 'Inventory deducted');
+
+
+            -- Order 2
+
+            INSERT INTO orders (
+                order_id,
+                customer_id,
+                order_status,
+                total_amount
+            )
+            VALUES (
+                'ORD-100002',
+                4,
+                'CONFIRMED',
+                11498.00
+            );
+
+            INSERT INTO order_items (
+                order_id,
+                product_id,
+                product_name,
+                quantity,
+                unit_price
+            )
+            VALUES
+            (
+                'ORD-100002',
+                4,
+                'Monitor',
+                1,
+                8999.00
+            ),
+            (
+                'ORD-100002',
+                5,
+                'USB-C Charger',
+                1,
+                1499.00
+            ),
+            (
+                'ORD-100002',
+                3,
+                'Mechanical Keyboard',
+                1,
+                1000.00
+            );
+
+            INSERT INTO order_status_history (
+                order_id,
+                order_status,
+                remarks
+            )
+            VALUES
+            ('ORD-100002', 'PENDING', 'Order created'),
+            ('ORD-100002', 'CONFIRMED', 'Inventory deducted');
+
+
+            -- Order 3
+
+            INSERT INTO orders (
+                order_id,
+                customer_id,
+                order_status,
+                total_amount
+            )
+            VALUES (
+                'ORD-100003',
+                5,
+                'CANCELLED',
+                3997.00
+            );
+
+            INSERT INTO order_items (
+                order_id,
+                product_id,
+                product_name,
+                quantity,
+                unit_price
+            )
+            VALUES
+            (
+                'ORD-100003',
+                2,
+                'Wireless Mouse',
+                2,
+                799.00
+            ),
+            (
+                'ORD-100003',
+                5,
+                'USB-C Charger',
+                1,
+                1499.00
+            ),
+            (
+                'ORD-100003',
+                3,
+                'Mechanical Keyboard',
+                1,
+                900.00
+            );
+
+            INSERT INTO order_status_history (
+                order_id,
+                order_status,
+                remarks
+            )
+            VALUES
+            ('ORD-100003', 'PENDING', 'Order created'),
+            ('ORD-100003', 'CONFIRMED', 'Inventory deducted'),
+            ('ORD-100003', 'CANCELLED', 'Order cancelled');
+
         conn.commit()
 
         logger.info(

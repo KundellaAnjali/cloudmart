@@ -1,4 +1,3 @@
-from flask import Flask, render_template, redirect, Response
 from flask import (
     Flask,
     render_template,
@@ -8,23 +7,35 @@ from flask import (
     session,
     url_for
 )
+
 import os
 import boto3
 import pymysql
+
 from datetime import datetime, timedelta
 from botocore.config import Config
 
+
+# ============================================================
+# Flask Application
+# ============================================================
+
 app = Flask(__name__)
+
 app.secret_key = "cloudmart-dashboard-secret"
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
 
+
+# ============================================================
 # AWS Clients
+# ============================================================
 
 ssm = boto3.client(
     "ssm",
     region_name="ap-south-1"
 )
+
 s3 = boto3.client(
     "s3",
     region_name="ap-south-1",
@@ -35,15 +46,21 @@ s3 = boto3.client(
         }
     )
 )
+
 cloudwatch = boto3.client(
     "cloudwatch",
     region_name="ap-south-1"
 )
+
 ec2 = boto3.client(
     "ec2",
     region_name="ap-south-1"
 )
+
+
+# ============================================================
 # Database Parameters
+# ============================================================
 
 DB_HOST = ssm.get_parameter(
     Name=f"/cloudmart/{ENVIRONMENT}/db/host"
@@ -65,11 +82,17 @@ DB_PASSWORD = ssm.get_parameter(
 REPORTS_BUCKET = ssm.get_parameter(
     Name=f"/cloudmart/{ENVIRONMENT}/s3/reports-bucket"
 )["Parameter"]["Value"]
+
 STOCK_THRESHOLD = int(
     ssm.get_parameter(
         Name=f"/cloudmart/{ENVIRONMENT}/inventory/stock-threshold"
     )["Parameter"]["Value"]
 )
+
+
+# ============================================================
+# Database Connection
+# ============================================================
 
 def get_connection():
 
@@ -81,13 +104,20 @@ def get_connection():
         cursorclass=pymysql.cursors.DictCursor
     )
 
+
+# ============================================================
+# Get Dashboard EC2 Instance ID
+# ============================================================
+
 def get_dashboard_instance_id():
 
     response = ec2.describe_instances(
         Filters=[
             {
                 "Name": "tag:Name",
-                "Values": [f"{ENVIRONMENT}-Ec2DashboardV1"]
+                "Values": [
+                    f"{ENVIRONMENT}-Ec2DashboardV1"
+                ]
             },
             {
                 "Name": "instance-state-name",
@@ -96,12 +126,21 @@ def get_dashboard_instance_id():
         ]
     )
 
-    reservations = response.get("Reservations", [])
+    reservations = response.get(
+        "Reservations",
+        []
+    )
 
     if not reservations:
         return None
 
     return reservations[0]["Instances"][0]["InstanceId"]
+
+
+# ============================================================
+# CloudMart Custom Metric
+# ============================================================
+
 def get_metric_value(metric_name):
 
     response = cloudwatch.get_metric_statistics(
@@ -125,7 +164,17 @@ def get_metric_value(metric_name):
 
     return int(latest["Sum"])
 
-def get_lambda_metric(function_name, metric_name, stat="Sum"):
+
+# ============================================================
+# Lambda Metrics
+# ============================================================
+
+def get_lambda_metric(
+    function_name,
+    metric_name,
+    stat="Sum"
+):
+
     response = cloudwatch.get_metric_statistics(
         Namespace="AWS/Lambda",
         MetricName=metric_name,
@@ -151,9 +200,18 @@ def get_lambda_metric(function_name, metric_name, stat="Sum"):
         key=lambda x: x["Timestamp"]
     )[-1]
 
-    return round(latest[stat], 2)
+    return round(
+        latest[stat],
+        2
+    )
+
+
+# ============================================================
+# RDS Metrics
+# ============================================================
 
 def get_rds_metric(metric_name):
+
     response = cloudwatch.get_metric_statistics(
         Namespace="AWS/RDS",
         MetricName=metric_name,
@@ -181,7 +239,17 @@ def get_rds_metric(metric_name):
         )[-1]["Average"],
         2
     )
-def get_ec2_metric(metric_name, instance_id):
+
+
+# ============================================================
+# EC2 Metrics
+# ============================================================
+
+def get_ec2_metric(
+    metric_name,
+    instance_id
+):
+
     response = cloudwatch.get_metric_statistics(
         Namespace="AWS/EC2",
         MetricName=metric_name,
@@ -209,6 +277,12 @@ def get_ec2_metric(metric_name, instance_id):
         )[-1]["Average"],
         2
     )
+
+
+# ============================================================
+# API Gateway Metrics
+# ============================================================
+
 def get_api_metric(metric_name):
 
     response = cloudwatch.get_metric_statistics(
@@ -233,6 +307,10 @@ def get_api_metric(metric_name):
     )
 
 
+# ============================================================
+# CloudWatch Alarm State
+# ============================================================
+
 def get_alarm_state(alarm_name):
 
     response = cloudwatch.describe_alarms(
@@ -251,7 +329,15 @@ def get_alarm_state(alarm_name):
 
     return 0
 
-@app.route("/login", methods=["GET", "POST"])
+
+# ============================================================
+# Login
+# ============================================================
+
+@app.route(
+    "/login",
+    methods=["GET", "POST"]
+)
 def login():
 
     if request.method == "POST":
@@ -265,7 +351,8 @@ def login():
 
             with conn.cursor() as cursor:
 
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT
                         customer_id,
                         customer_name,
@@ -275,18 +362,29 @@ def login():
                     AND auth_token = %s
                     AND is_active = TRUE
                     AND role = 'ADMIN'
-                """, (username, token))
+                    """,
+                    (
+                        username,
+                        token
+                    )
+                )
 
                 admin = cursor.fetchone()
 
             if admin:
 
                 session["logged_in"] = True
-                session["admin_name"] = admin["customer_name"]
 
-                return redirect(url_for("dashboard"))
+                session["admin_name"] = (
+                    admin["customer_name"]
+                )
+
+                return redirect(
+                    url_for("dashboard")
+                )
 
         finally:
+
             conn.close()
 
         return render_template(
@@ -294,12 +392,23 @@ def login():
             error="Invalid admin credentials"
         )
 
-    return render_template("login.html")
+    return render_template(
+        "login.html"
+    )
+
+
+# ============================================================
+# Dashboard
+# ============================================================
+
 @app.route("/")
 def dashboard():
 
     if not session.get("logged_in"):
-        return redirect(url_for("login"))
+
+        return redirect(
+            url_for("login")
+        )
 
     conn = get_connection()
 
@@ -307,57 +416,107 @@ def dashboard():
 
         with conn.cursor() as cursor:
 
+            # ====================================================
             # KPI Cards
+            # ====================================================
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT COUNT(*) total_products
                 FROM product
                 WHERE is_active = TRUE
-            """)
-            total_products = cursor.fetchone()["total_products"]
+                """
+            )
 
-            cursor.execute("""
+            total_products = (
+                cursor.fetchone()["total_products"]
+            )
+
+            cursor.execute(
+                """
                 SELECT COUNT(*) total_orders
                 FROM orders
-            """)
-            total_orders = cursor.fetchone()["total_orders"]
+                """
+            )
 
-            cursor.execute("""
+            total_orders = (
+                cursor.fetchone()["total_orders"]
+            )
+
+            cursor.execute(
+                """
                 SELECT COUNT(*) total_customers
                 FROM customers
                 WHERE is_active = TRUE
-            """)
-            total_customers = cursor.fetchone()["total_customers"]
+                """
+            )
 
-            cursor.execute("""
+            total_customers = (
+                cursor.fetchone()["total_customers"]
+            )
+
+            cursor.execute(
+                """
                 SELECT
                     COALESCE(
                         SUM(total_amount),
                         0
                     ) revenue
                 FROM orders
-                WHERE order_status='CONFIRMED'
-            """)
-            revenue = cursor.fetchone()["revenue"]
+                WHERE order_status = 'CONFIRMED'
+                """
+            )
 
-            cursor.execute("""
+            revenue = (
+                cursor.fetchone()["revenue"]
+            )
+
+            cursor.execute(
+                """
                 SELECT COUNT(*) low_stock
                 FROM product
                 WHERE stock_count < %s
                 AND is_active = TRUE
-            """, (STOCK_THRESHOLD,))
-            low_stock = cursor.fetchone()["low_stock"]
+                """,
+                (STOCK_THRESHOLD,)
+            )
 
-            cursor.execute("""
+            low_stock = (
+                cursor.fetchone()["low_stock"]
+            )
+
+            cursor.execute(
+                """
+                SELECT COUNT(*) out_of_stock
+                FROM product
+                WHERE stock_count = 0
+                AND is_active = TRUE
+                """
+            )
+
+            out_of_stock = (
+                cursor.fetchone()["out_of_stock"]
+            )
+
+            cursor.execute(
+                """
                 SELECT COUNT(*) failed_orders
                 FROM orders
-                WHERE order_status='CANCELLED'
-            """)
-            failed_orders = cursor.fetchone()["failed_orders"]
+                WHERE order_status = 'CANCELLED'
+                """
+            )
 
+            failed_orders = (
+                cursor.fetchone()["failed_orders"]
+            )
+
+
+            # ====================================================
             # Products
+            # ====================================================
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT
                     product_id,
                     product_name,
@@ -367,22 +526,47 @@ def dashboard():
                     is_active
                 FROM product
                 ORDER BY product_name
-            """)
+                """
+            )
+
             products = cursor.fetchall()
+
             for product in products:
 
                 if not product["is_active"]:
-                    product["status"] = "Not Available"
 
-                elif product["stock_count"] < STOCK_THRESHOLD:
-                    product["status"] = "Low Stock"
+                    product["status"] = (
+                        "Not Available"
+                    )
+
+                elif product["stock_count"] == 0:
+
+                    product["status"] = (
+                        "Out Of Stock"
+                    )
+
+                elif (
+                    product["stock_count"]
+                    < STOCK_THRESHOLD
+                ):
+
+                    product["status"] = (
+                        "Low Stock"
+                    )
 
                 else:
-                    product["status"] = "Available"
 
+                    product["status"] = (
+                        "Available"
+                    )
+
+
+            # ====================================================
             # Orders
+            # ====================================================
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT
                     order_id,
                     customer_id,
@@ -391,12 +575,18 @@ def dashboard():
                     order_date
                 FROM orders
                 ORDER BY order_date DESC
-            """)
+                """
+            )
+
             orders = cursor.fetchall()
 
-            # Customers
 
-            cursor.execute("""
+            # ====================================================
+            # Customers
+            # ====================================================
+
+            cursor.execute(
+                """
                 SELECT
                     customer_id,
                     customer_name,
@@ -404,12 +594,18 @@ def dashboard():
                     role
                 FROM customers
                 ORDER BY customer_name
-            """)
+                """
+            )
+
             customers = cursor.fetchall()
 
-            # Best Selling Product
 
-            cursor.execute("""
+            # ====================================================
+            # Best Selling Product
+            # ====================================================
+
+            cursor.execute(
+                """
                 SELECT
                     p.product_name,
                     SUM(oi.quantity) total_sold
@@ -419,13 +615,18 @@ def dashboard():
                 GROUP BY p.product_name
                 ORDER BY total_sold DESC
                 LIMIT 1
-            """)
+                """
+            )
 
             best_product = cursor.fetchone()
 
-            # Lowest Selling Product
 
-            cursor.execute("""
+            # ====================================================
+            # Lowest Selling Product
+            # ====================================================
+
+            cursor.execute(
+                """
                 SELECT
                     p.product_name,
                     SUM(oi.quantity) total_sold
@@ -435,13 +636,18 @@ def dashboard():
                 GROUP BY p.product_name
                 ORDER BY total_sold ASC
                 LIMIT 1
-            """)
+                """
+            )
 
             lowest_product = cursor.fetchone()
 
-            # Highest Spending Customer
 
-            cursor.execute("""
+            # ====================================================
+            # Highest Spending Customer
+            # ====================================================
+
+            cursor.execute(
+                """
                 SELECT
                     c.customer_id,
                     c.customer_name,
@@ -455,15 +661,18 @@ def dashboard():
                     c.customer_name
                 ORDER BY total_spent DESC
                 LIMIT 1
-            """)
-
-
+                """
+            )
 
             top_spender = cursor.fetchone()
 
-            # Customer With Most Orders
 
-            cursor.execute("""
+            # ====================================================
+            # Customer With Most Orders
+            # ====================================================
+
+            cursor.execute(
+                """
                 SELECT
                     c.customer_id,
                     c.customer_name,
@@ -476,13 +685,15 @@ def dashboard():
                     c.customer_name
                 ORDER BY total_orders DESC
                 LIMIT 1
-            """)
+                """
+            )
 
             top_customer = cursor.fetchone()
 
-            
 
+        # ========================================================
         # Reports
+        # ========================================================
 
         response = s3.list_objects_v2(
             Bucket=REPORTS_BUCKET,
@@ -499,12 +710,18 @@ def dashboard():
                 reverse=True
             ):
 
-                reports.append({
-                    "name": report["Key"].split("/")[-1],
-                    "date": report["LastModified"],
-                    "key": report["Key"]
-                })
-        # Metrics
+                reports.append(
+                    {
+                        "name": report["Key"].split("/")[-1],
+                        "date": report["LastModified"],
+                        "key": report["Key"]
+                    }
+                )
+
+
+        # ========================================================
+        # CloudMart Metrics
+        # ========================================================
 
         products_created = get_metric_value(
             "ProductsCreated"
@@ -517,8 +734,13 @@ def dashboard():
         failed_orders_metric = get_metric_value(
             "FailedOrders"
         )
+
         low_stock_products = get_metric_value(
             "LowStockProducts"
+        )
+
+        out_of_stock_products = get_metric_value(
+            "OutOfStockProducts"
         )
 
         rds_connection_failures = get_metric_value(
@@ -549,7 +771,6 @@ def dashboard():
             "UnauthorizedRequests"
         )
 
-
         reports_generated = get_metric_value(
             "ReportsGenerated"
         )
@@ -561,10 +782,15 @@ def dashboard():
         report_generation_failures = get_metric_value(
             "ReportGenerationFailures"
         )
-        authorizer_errors =get_lambda_metric(
+
+
+        # ========================================================
+        # Lambda Error Metrics
+        # ========================================================
+
+        authorizer_errors = get_lambda_metric(
             f"cloudmart-authorizer-{ENVIRONMENT}",
             "Errors"
-
         )
 
         product_errors = get_lambda_metric(
@@ -582,10 +808,16 @@ def dashboard():
             "Errors"
         )
 
+
+        # ========================================================
+        # Lambda Invocation Metrics
+        # ========================================================
+
         authorizer_invocations = get_lambda_metric(
             f"cloudmart-authorizer-{ENVIRONMENT}",
             "Invocations"
         )
+
         product_invocations = get_lambda_metric(
             f"cloudmart-product-function-{ENVIRONMENT}",
             "Invocations"
@@ -600,7 +832,12 @@ def dashboard():
             f"cloudmart-report-function-{ENVIRONMENT}",
             "Invocations"
         )
-                
+
+
+        # ========================================================
+        # RDS Metrics
+        # ========================================================
+
         rds_cpu = get_rds_metric(
             "CPUUtilization"
         )
@@ -608,6 +845,12 @@ def dashboard():
         rds_connections = get_rds_metric(
             "DatabaseConnections"
         )
+
+
+        # ========================================================
+        # Lambda Throttles
+        # ========================================================
+
         authorizer_throttles = get_lambda_metric(
             f"cloudmart-authorizer-{ENVIRONMENT}",
             "Throttles"
@@ -622,93 +865,178 @@ def dashboard():
             f"cloudmart-order-function-{ENVIRONMENT}",
             "Throttles"
         )
+
         report_throttles = get_lambda_metric(
             f"cloudmart-report-function-{ENVIRONMENT}",
             "Throttles"
         )
-        api_4xx = get_api_metric("4XXError")
-        api_5xx = get_api_metric("5XXError")
-        
+
+
+        # ========================================================
+        # API Gateway Metrics
+        # ========================================================
+
+        api_4xx = get_api_metric(
+            "4XXError"
+        )
+
+        api_5xx = get_api_metric(
+            "5XXError"
+        )
+
+
+        # ========================================================
+        # EC2 Metrics
+        # ========================================================
+
         instance_id = get_dashboard_instance_id()
 
         ec2_cpu = 0
 
         if instance_id:
+
             ec2_cpu = get_ec2_metric(
                 "CPUUtilization",
                 instance_id
             )
 
-        # Alarms
-        s3_alarm = get_alarm_state(
-            "CloudMart-S3AccessFailures"
-        )
 
-        parameter_alarm = get_alarm_state(
-            "CloudMart-ParameterAccessFailures"
-        )
+        # ========================================================
+        # Alarms
+        # ========================================================
+
+        # --------------------------------------------------------
+        # CloudMart Custom Metric Alarms
+        # --------------------------------------------------------
 
         failed_orders_alarm = get_alarm_state(
-            "CloudMart-FailedOrders"
+            f"CloudMart-FailedOrders-{ENVIRONMENT}"
         )
 
-        low_stock_alarm = get_alarm_state(
-            "CloudMart-LowStockProducts"
+        database_query_failures_alarm = get_alarm_state(
+            f"CloudMart-DatabaseQueryFailures-{ENVIRONMENT}"
         )
 
         unauthorized_alarm = get_alarm_state(
-            "CloudMart-UnauthorizedRequests"
+            f"CloudMart-UnauthorizedRequests-{ENVIRONMENT}"
         )
 
-        report_alarm = get_alarm_state(
-            "CloudMart-ReportGenerationFailures"
+        report_generation_failures_alarm = get_alarm_state(
+            f"CloudMart-ReportGenerationFailures-{ENVIRONMENT}"
         )
+
+        low_stock_alarm = get_alarm_state(
+            f"CloudMart-LowStockProducts-{ENVIRONMENT}"
+        )
+
+        out_of_stock_alarm = get_alarm_state(
+            f"CloudMart-OutOfStockProducts-{ENVIRONMENT}"
+        )
+
+        rds_connection_failure_alarm = get_alarm_state(
+            f"CloudMart-RDSConnectionFailures-{ENVIRONMENT}"
+        )
+
+        s3_alarm = get_alarm_state(
+            f"CloudMart-S3AccessFailures-{ENVIRONMENT}"
+        )
+
+        report_upload_failures_alarm = get_alarm_state(
+            f"CloudMart-ReportUploadFailures-{ENVIRONMENT}"
+        )
+
+        parameter_alarm = get_alarm_state(
+            f"CloudMart-ParameterAccessFailures-{ENVIRONMENT}"
+        )
+
+
+        # --------------------------------------------------------
+        # Lambda Error Alarms
+        # --------------------------------------------------------
+
         authorizer_errors_alarm = get_alarm_state(
-            "CloudMart-AuthorizerErrors"
+            f"CloudMart-AuthorizerErrors-{ENVIRONMENT}"
         )
 
         product_errors_alarm = get_alarm_state(
-            "CloudMart-ProductErrors"
+            f"CloudMart-ProductErrors-{ENVIRONMENT}"
         )
 
         order_errors_alarm = get_alarm_state(
-            "CloudMart-OrderErrors"
+            f"CloudMart-OrderErrors-{ENVIRONMENT}"
         )
 
         report_errors_alarm = get_alarm_state(
-            "CloudMart-ReportErrors"
+            f"CloudMart-ReportErrors-{ENVIRONMENT}"
         )
 
-        ec2_cpu_alarm = get_alarm_state(
-            "CloudMart-EC2HighCPU"
+        schema_init_alarm = get_alarm_state(
+            f"CloudMart-SchemaInitErrors-{ENVIRONMENT}"
         )
 
-        rds_cpu_alarm = get_alarm_state(
-            "CloudMart-RDSHighCPU"
+
+        # --------------------------------------------------------
+        # Lambda Throttling Alarms
+        # --------------------------------------------------------
+
+        authorizer_throttles_alarm = get_alarm_state(
+            f"CloudMart-AuthorizerThrottles-{ENVIRONMENT}"
         )
 
-        rds_connections_alarm = get_alarm_state(
-            "CloudMart-RDSConnections"
+        product_throttles_alarm = get_alarm_state(
+            f"CloudMart-ProductThrottles-{ENVIRONMENT}"
         )
+
+        order_throttles_alarm = get_alarm_state(
+            f"CloudMart-OrderThrottles-{ENVIRONMENT}"
+        )
+
+        report_throttles_alarm = get_alarm_state(
+            f"CloudMart-ReportThrottles-{ENVIRONMENT}"
+        )
+
+
+        # --------------------------------------------------------
+        # API Gateway Alarms
+        # --------------------------------------------------------
 
         api_4xx_alarm = get_alarm_state(
-            "CloudMart-ApiGateway4XX"
+            f"CloudMart-ApiGateway4XX-{ENVIRONMENT}"
         )
 
         api_5xx_alarm = get_alarm_state(
-            "CloudMart-ApiGateway5XX"
-        )
-        schema_init_alarm = get_alarm_state(
-            "CloudMart-SchemaInitErrors"
+            f"CloudMart-ApiGateway5XX-{ENVIRONMENT}"
         )
 
-         
-         
-        
 
+        # --------------------------------------------------------
+        # EC2 Alarm
+        # --------------------------------------------------------
+
+        ec2_cpu_alarm = get_alarm_state(
+            f"CloudMart-EC2HighCPU-{ENVIRONMENT}"
+        )
+
+
+        # --------------------------------------------------------
+        # RDS Alarms
+        # --------------------------------------------------------
+
+        rds_cpu_alarm = get_alarm_state(
+            f"CloudMart-RDSHighCPU-{ENVIRONMENT}"
+        )
+
+        rds_connections_alarm = get_alarm_state(
+            f"CloudMart-RDSConnections-{ENVIRONMENT}"
+        )
+
+
+        # ========================================================
         # Health
+        # ========================================================
 
         health_status = {}
+
 
         health_status["S3"] = (
             "Critical"
@@ -723,9 +1051,10 @@ def dashboard():
             else "Healthy"
         )
 
-        rds_connection_failure_alarm = get_alarm_state(
-            "CloudMart-RDSConnectionFailures"
-        )
+
+        # IMPORTANT:
+        # Environment-specific RDS alarm is used here.
+        # No duplicate/wrong alarm name.
 
         health_status["RDS"] = (
             "Critical"
@@ -737,11 +1066,13 @@ def dashboard():
             else "Healthy"
         )
 
+
         health_status["EC2"] = (
             "Critical"
             if ec2_cpu_alarm
             else "Healthy"
         )
+
 
         health_status["API Gateway"] = (
             "Critical"
@@ -751,46 +1082,57 @@ def dashboard():
             else "Healthy"
         )
 
+
         health_status["Schema Init Lambda"] = (
             "Critical"
             if schema_init_alarm
             else "Healthy"
         )
+
+
         health_status["Authorizer Lambda"] = (
             "Critical"
             if authorizer_errors_alarm
             else "Warning"
-            if authorizer_throttles > 0
+            if authorizer_throttles_alarm > 0
             else "Healthy"
         )
+
 
         health_status["Product Lambda"] = (
             "Critical"
             if product_errors_alarm
             else "Warning"
-            if product_throttles > 0
+            if product_throttles_alarm > 0
             else "Healthy"
         )
+
 
         health_status["Order Lambda"] = (
             "Critical"
             if order_errors_alarm
             else "Warning"
-            if order_throttles > 0
+            if order_throttles_alarm > 0
             else "Healthy"
         )
+
 
         health_status["Report Lambda"] = (
             "Critical"
             if report_errors_alarm
             else "Warning"
-            if report_throttles > 0
+            if report_throttles_alarm > 0
             else "Healthy"
         )
-        
-        # Calculate overall health percentage
 
-        total_services = len(health_status)
+
+        # ========================================================
+        # Overall Health Percentage
+        # ========================================================
+
+        total_services = len(
+            health_status
+        )
 
         healthy_services = sum(
             1
@@ -799,43 +1141,74 @@ def dashboard():
         )
 
         health_percentage = round(
-            (healthy_services / total_services) * 100
+            (
+                healthy_services
+                / total_services
+            ) * 100
         )
 
 
+        # ========================================================
+        # Render Dashboard
+        # ========================================================
 
         return render_template(
 
             "dashboard.html",
+
+            # ----------------------------------------------------
+            # KPI
+            # ----------------------------------------------------
 
             total_products=total_products,
             total_orders=total_orders,
             total_customers=total_customers,
             revenue=revenue,
             low_stock=low_stock,
+            out_of_stock=out_of_stock,
             failed_orders=failed_orders,
+
+
+            # ----------------------------------------------------
+            # Database Data
+            # ----------------------------------------------------
 
             products=products,
             orders=orders,
             customers=customers,
             reports=reports,
 
+
+            # ----------------------------------------------------
+            # CloudMart Metrics
+            # ----------------------------------------------------
+
             products_created=products_created,
             orders_created=orders_created,
             failed_orders_metric=failed_orders_metric,
+
             authorized_requests=authorized_requests,
             unauthorized_requests=unauthorized_requests,
 
             low_stock_products=low_stock_products,
+            out_of_stock_products=out_of_stock_products,
+
             rds_connection_failures=rds_connection_failures,
             database_query_failures=database_query_failures,
+
             s3_access_failures=s3_access_failures,
             parameter_access_failures=parameter_access_failures,
+
             report_upload_failures=report_upload_failures,
 
             reports_generated=reports_generated,
             report_upload_success=report_upload_success,
             report_generation_failures=report_generation_failures,
+
+
+            # ----------------------------------------------------
+            # Lambda Metrics
+            # ----------------------------------------------------
 
             authorizer_errors=authorizer_errors,
             product_errors=product_errors,
@@ -852,66 +1225,192 @@ def dashboard():
             order_throttles=order_throttles,
             report_throttles=report_throttles,
 
+
+            # ----------------------------------------------------
+            # API Gateway
+            # ----------------------------------------------------
+
             api_4xx_errors=api_4xx,
             api_5xx_errors=api_5xx,
 
+
+            # ----------------------------------------------------
+            # EC2
+            # ----------------------------------------------------
+
             ec2_cpu=ec2_cpu,
+
+
+            # ----------------------------------------------------
+            # RDS
+            # ----------------------------------------------------
 
             rds_cpu=rds_cpu,
             rds_connections=rds_connections,
 
+
+            # ====================================================
+            # Alarm States
+            # ====================================================
+
             failed_orders_alarm=failed_orders_alarm,
-            low_stock_alarm=low_stock_alarm,
+
+            database_query_failures_alarm=(
+                database_query_failures_alarm
+            ),
+
             unauthorized_alarm=unauthorized_alarm,
-            report_alarm=report_alarm,
 
-            authorizer_errors_alarm=authorizer_errors_alarm,
-            product_errors_alarm=product_errors_alarm,
-            order_errors_alarm=order_errors_alarm,
-            report_errors_alarm=report_errors_alarm,
+            report_generation_failures_alarm=(
+                report_generation_failures_alarm
+            ),
 
-            ec2_cpu_alarm=ec2_cpu_alarm,
-            rds_cpu_alarm=rds_cpu_alarm,
-            rds_connections_alarm=rds_connections_alarm,
+            low_stock_alarm=low_stock_alarm,
+
+            out_of_stock_alarm=out_of_stock_alarm,
+
+            rds_connection_failure_alarm=(
+                rds_connection_failure_alarm
+            ),
+
+            s3_alarm=s3_alarm,
+
+            report_upload_failures_alarm=(
+                report_upload_failures_alarm
+            ),
+
+            parameter_alarm=parameter_alarm,
+
+
+            # ----------------------------------------------------
+            # Lambda Error Alarms
+            # ----------------------------------------------------
+
+            authorizer_errors_alarm=(
+                authorizer_errors_alarm
+            ),
+
+            product_errors_alarm=(
+                product_errors_alarm
+            ),
+
+            order_errors_alarm=(
+                order_errors_alarm
+            ),
+
+            report_errors_alarm=(
+                report_errors_alarm
+            ),
+
+            schema_init_alarm=(
+                schema_init_alarm
+            ),
+
+
+            # ----------------------------------------------------
+            # Lambda Throttle Alarms
+            # ----------------------------------------------------
+
+            authorizer_throttles_alarm=(
+                authorizer_throttles_alarm
+            ),
+
+            product_throttles_alarm=(
+                product_throttles_alarm
+            ),
+
+            order_throttles_alarm=(
+                order_throttles_alarm
+            ),
+
+            report_throttles_alarm=(
+                report_throttles_alarm
+            ),
+
+
+            # ----------------------------------------------------
+            # API Gateway Alarms
+            # ----------------------------------------------------
 
             api_4xx_alarm=api_4xx_alarm,
             api_5xx_alarm=api_5xx_alarm,
 
-            s3_alarm=s3_alarm,
-            parameter_alarm=parameter_alarm,
 
-            schema_init_alarm=schema_init_alarm,
-            rds_connection_failure_alarm=rds_connection_failure_alarm,
+            # ----------------------------------------------------
+            # EC2 Alarm
+            # ----------------------------------------------------
+
+            ec2_cpu_alarm=ec2_cpu_alarm,
+
+
+            # ----------------------------------------------------
+            # RDS Alarms
+            # ----------------------------------------------------
+
+            rds_cpu_alarm=rds_cpu_alarm,
+            rds_connections_alarm=rds_connections_alarm,
+
+
+            # ----------------------------------------------------
+            # Other
+            # ----------------------------------------------------
+
             best_product=best_product,
             lowest_product=lowest_product,
             top_spender=top_spender,
             top_customer=top_customer,
 
+
+            # ----------------------------------------------------
+            # System Health
+            # ----------------------------------------------------
+
             health_status=health_status,
             health_percentage=health_percentage
         )
+
+
     finally:
 
         conn.close()
 
 
-@app.route("/view-report/<path:key>")
+# ============================================================
+# View Report
+# ============================================================
+
+@app.route(
+    "/view-report/<path:key>"
+)
 def view_report(key):
+
     try:
+
         obj = s3.get_object(
             Bucket=REPORTS_BUCKET,
             Key=key
         )
 
-        # Pass raw bytes directly to Flask's Response to avoid manual decoding overhead
         return Response(
             obj["Body"].read(),
             mimetype="text/plain"
         )
-    except Exception as e:
-        return f"Error loading report: {str(e)}", 404
 
-@app.route("/download-report/<path:key>")
+    except Exception as e:
+
+        return (
+            f"Error loading report: {str(e)}",
+            404
+        )
+
+
+# ============================================================
+# Download Report
+# ============================================================
+
+@app.route(
+    "/download-report/<path:key>"
+)
 def download_report(key):
 
     url = s3.generate_presigned_url(
@@ -926,12 +1425,30 @@ def download_report(key):
     )
 
     return redirect(url)
+
+
+# ============================================================
+# Logout
+# ============================================================
+
 @app.route("/logout")
 def logout():
 
     session.clear()
 
-    return redirect(url_for("login"))
+    return redirect(
+        url_for("login")
+    )
+
+
+# ============================================================
+# Run Flask
+# ============================================================
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False) 
+
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        debug=False
+    )
