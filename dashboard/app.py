@@ -562,7 +562,7 @@ def dashboard():
 
             for product in products:
 
-                if not product["is_active"\]:
+                if not product["is_active"]:
 
                     product["status"] = (
                         "Inactive"
