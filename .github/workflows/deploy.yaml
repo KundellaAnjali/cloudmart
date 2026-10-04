@@ -67,12 +67,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.ARN_ROLE }}
-          aws-region: ${{ env.AWS_REGION }}
-
       - name: Load Parameters
         run: |
           echo "ENVIRONMENT=$(jq -r '.[] | select(.ParameterKey=="Environment") | .ParameterValue' ${{ env.PARAM_FILE }})" >> $GITHUB_ENV
