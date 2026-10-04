@@ -372,6 +372,7 @@ jobs:
             --template-file .aws-sam/build/template.yaml \
             --stack-name cloudmart-monitor-stack \
             --parameter-overrides Environment=${{ env.ENVIRONMENT }} \
+            AwsRegion=${{ env.AWS_REGION }} \
             --capabilities CAPABILITY_NAMED_IAM \
             --resolve-s3 \
             --no-fail-on-empty-changeset \
