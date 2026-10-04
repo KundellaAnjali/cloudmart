@@ -6,7 +6,7 @@ Parameters:
     Type: String
     AllowedValues:
       - dev
-      - test
+      
       - prod
 
 Resources:

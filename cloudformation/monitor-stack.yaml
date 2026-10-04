@@ -8,8 +8,10 @@ Parameters:
     Type: String
     AllowedValues:
       - dev
-      - test
       - prod
+  AwsRegion:
+    Type: String
+    Description: AWS Region where metrics and dashboard resources are deployed
 
 Resources:
 
@@ -80,7 +82,7 @@ Resources:
                   ["CloudMart", "ProductsCreated"]
                 ],
                 "stat": "Sum",
-                "region": "ap-south-1"
+                "region": "${AwsRegion}"
               }
             },
 
@@ -96,7 +98,7 @@ Resources:
                   ["CloudMart", "OrdersCreated"]
                 ],
                 "stat": "Sum",
-                "region": "ap-south-1"
+                "region": "${AwsRegion}"
               }
             },
 
@@ -112,7 +114,7 @@ Resources:
                   ["CloudMart", "FailedOrders"]
                 ],
                 "stat": "Sum",
-                "region": "ap-south-1"
+                "region": "${AwsRegion}"
               }
             },
 
@@ -128,7 +130,7 @@ Resources:
                   ["CloudMart", "LowStockProducts"]
                 ],
                 "stat": "Sum",
-                "region": "ap-south-1"
+                "region": "${AwsRegion}"
               }
             },
             {
@@ -143,7 +145,7 @@ Resources:
                   ["CloudMart", "OutOfStockProducts"]
                 ],
                 "stat": "Sum",
-                "region": "ap-south-1"
+                "region": "${AwsRegion}"
               }
             },
 
@@ -159,7 +161,7 @@ Resources:
                   ["CloudMart", "AuthorizedRequests"]
                 ],
                 "stat": "Sum",
-                "region": "ap-south-1"
+                "region": "${AwsRegion}"
               }
             },
 
@@ -175,7 +177,7 @@ Resources:
                   ["CloudMart", "UnauthorizedRequests"]
                 ],
                 "stat": "Sum",
-                "region": "ap-south-1"
+                "region": "${AwsRegion}"
               }
             },
 
@@ -203,7 +205,7 @@ Resources:
                 ],
                 "stat": "Sum",
                 "period": 300,
-                "region": "ap-south-1",
+                "region": "${AwsRegion}",
                 "view": "timeSeries"
               }
             },
@@ -220,7 +222,7 @@ Resources:
                   ["CloudMart", "RDSConnectionFailures"]
                 ],
                 "stat": "Sum",
-                "region": "ap-south-1"
+                "region": "${AwsRegion}"
               }
             },
 
@@ -236,7 +238,7 @@ Resources:
                   ["CloudMart", "S3AccessFailures"]
                 ],
                 "stat": "Sum",
-                "region": "ap-south-1"
+                "region": "${AwsRegion}"
               }
             },
 
@@ -252,7 +254,7 @@ Resources:
                   ["CloudMart", "ParameterAccessFailures"]
                 ],
                 "stat": "Sum",
-                "region": "ap-south-1"
+                "region": "${AwsRegion}"
               }
             },
 
@@ -274,7 +276,7 @@ Resources:
                 ],
                 "stat": "Average",
                 "period": 300,
-                "region": "ap-south-1"
+                "region": "${AwsRegion}"
               }
             },
 
@@ -291,7 +293,7 @@ Resources:
                   [".", "5XXError","ApiName","cloudmart-product-api-${Environment}"]
                 ],
                 "stat": "Sum",
-                "region": "ap-south-1"
+                "region": "${AwsRegion}"
               }
             },
 
@@ -307,7 +309,7 @@ Resources:
                   ["AWS/RDS","CPUUtilization","DBInstanceIdentifier","${Environment}-cloudmart-db"]
                 ],
                 "stat": "Average",
-                "region": "ap-south-1"
+                "region": "${AwsRegion}"
               }
             },
             {
@@ -328,7 +330,7 @@ Resources:
                 ],
                 "stat": "Average",
                 "period": 300,
-                "region": "ap-south-1"
+                "region": "${AwsRegion}"
               }
             },
 
@@ -344,7 +346,7 @@ Resources:
                   ["AWS/RDS","DatabaseConnections","DBInstanceIdentifier","${Environment}-cloudmart-db"]
                 ],
                 "stat": "Average",
-                "region": "ap-south-1"
+                "region": "${AwsRegion}"
               }
             },
           
@@ -385,7 +387,7 @@ Resources:
                 "view": "timeSeries",
                 "stat": "Average",
                 "period": 300,
-                "region": "ap-south-1"
+                "region": "${AwsRegion}"
               }
             },
             {
@@ -425,7 +427,7 @@ Resources:
                 "view": "timeSeries",
                 "stat": "Average",
                 "period": 300,
-                "region": "ap-south-1"
+                "region": "${AwsRegion}"
               }
             },
             {
@@ -465,7 +467,7 @@ Resources:
                 "view": "timeSeries",
                 "stat": "Average",
                 "period": 300,
-                "region": "ap-south-1"
+                "region": "${AwsRegion}"
               }
             },
             {
@@ -505,7 +507,7 @@ Resources:
                 "view": "timeSeries",
                 "stat": "Average",
                 "period": 300,
-                "region": "ap-south-1"
+                "region": "${AwsRegion}"
               }
             }
           ]
@@ -976,6 +978,7 @@ Resources:
           User=ubuntu
           WorkingDirectory=/home/ubuntu/cloudmart/dashboard
           Environment=ENVIRONMENT=${Environment}
+          Environment=AWS_REGION=${AwsRegion}
           ExecStart=/usr/bin/python3 /home/ubuntu/cloudmart/dashboard/app.py
           Restart=always
 

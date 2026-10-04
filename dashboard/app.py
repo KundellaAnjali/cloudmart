@@ -25,37 +25,27 @@ app = Flask(__name__)
 app.secret_key = "cloudmart-dashboard-secret"
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
+AWS_REGION = os.environ.get("AWS_REGION")
 
 
 # ============================================================
 # AWS Clients
 # ============================================================
 
-ssm = boto3.client(
-    "ssm",
-    region_name="ap-south-1"
-)
+ssm = boto3.client("ssm", region_name=AWS_REGION)
 
 s3 = boto3.client(
     "s3",
-    region_name="ap-south-1",
+    region_name=AWS_REGION,
     config=Config(
         signature_version="s3v4",
-        s3={
-            "addressing_style": "path"
-        }
+        s3={"addressing_style": "path"}
     )
 )
 
-cloudwatch = boto3.client(
-    "cloudwatch",
-    region_name="ap-south-1"
-)
+cloudwatch = boto3.client("cloudwatch", region_name=AWS_REGION)
 
-ec2 = boto3.client(
-    "ec2",
-    region_name="ap-south-1"
-)
+ec2 = boto3.client("ec2", region_name=AWS_REGION)
 
 
 # ============================================================
