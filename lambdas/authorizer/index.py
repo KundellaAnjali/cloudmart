@@ -179,13 +179,22 @@ def handler(event, context):
 
     if not user:
         publish_metric("UnauthorizedRequests")
-        logger.error(json.dumps({
-            "level": "ERROR",
+
+        logger.warning(json.dumps({
+            "level": "WARNING",
             "operation": "Authorizer",
             "message": "Invalid token",
             "token": token
         }))
-        raise Exception("Unauthorized")
+
+        return generate_policy(
+            "anonymous",
+            "NONE",
+            "0",
+            "Unknown",
+            "Deny",
+            "*"
+        )
 
     role = user["role"]
     publish_metric("AuthorizedRequests")
