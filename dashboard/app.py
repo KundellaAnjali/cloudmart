@@ -519,14 +519,14 @@ def dashboard():
 
             cursor.execute(
                 """
-                SELECT COUNT(*) failed_orders
+                SELECT COUNT(*) cancel_orders
                 FROM orders
                 WHERE order_status = 'CANCELLED'
                 """
             )
 
-            failed_orders = (
-                cursor.fetchone()["failed_orders"]
+            cancel_orders = (
+                cursor.fetchone()["cancel_orders"]
             )
 
 
@@ -1182,7 +1182,7 @@ def dashboard():
             revenue=revenue,
             low_stock=low_stock,
             out_of_stock=out_of_stock,
-            failed_orders=failed_orders,
+            cancel_orders=cancel_orders,
 
 
             # ----------------------------------------------------

@@ -130,7 +130,7 @@ def handler(event, context):
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS product (
                     product_id INT AUTO_INCREMENT PRIMARY KEY,
-                    product_name VARCHAR(255) NOT NULL,
+                    product_name VARCHAR(255) NOT NULL UNIQUE,
                     description TEXT,
                     category VARCHAR(100),
                     price DECIMAL(10,2) NOT NULL,
@@ -517,7 +517,7 @@ def handler(event, context):
                     'ORD-100002',
                     4,
                     'CONFIRMED',
-                    11498.00
+                    12997.00
                 )
             """)
 
@@ -550,7 +550,7 @@ def handler(event, context):
                         3,
                         'Mechanical Keyboard',
                         1,
-                        1000.00
+                        2499.00
                     )
             """)
 
@@ -592,7 +592,7 @@ def handler(event, context):
                     'ORD-100003',
                     5,
                     'CANCELLED',
-                    3997.00
+                    4797.00
                 )
             """)
 
@@ -625,7 +625,7 @@ def handler(event, context):
                         3,
                         'Mechanical Keyboard',
                         1,
-                        900.00
+                        2,499
                     )
             """)
 
