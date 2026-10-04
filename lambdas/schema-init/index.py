@@ -625,7 +625,7 @@ def handler(event, context):
                         3,
                         'Mechanical Keyboard',
                         1,
-                        2.499.00
+                        2499.00
                     )
             """)
 
