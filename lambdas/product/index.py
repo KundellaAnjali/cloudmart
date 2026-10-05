@@ -343,12 +343,22 @@ def update_product(connection, product_id, event):
     if "stock_count" in body:
 
         stock_count = body["stock_count"]
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT product_name
+                FROM product
+                WHERE product_id = %s
+            """, (product_id,))
+            
+            product = cursor.fetchone()
+
+        product_name = product["product_name"]
 
         if stock_count == 0:
 
             send_stock_alert(
                 product_id,
-                body.get("product_name", "Unknown Product"),
+                product_name,
                 stock_count
             )
 
@@ -358,7 +368,7 @@ def update_product(connection, product_id, event):
 
             send_stock_alert(
                 product_id,
-                body.get("product_name", "Unknown Product"),
+                product_name,
                 stock_count
             )
 
