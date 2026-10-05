@@ -27,7 +27,7 @@ CloudMart provides:
 
 ### 2.1 High-level architecture
 
-
+```mermaid
     DEV[Developer] --> GH[GitHub Repository]
     GH --> GA[GitHub Actions]
     GA --> OIDC[GitHub OIDC]
@@ -61,7 +61,7 @@ CloudMart provides:
     EC2 --> S3
     EC2 --> RDS
     EC2 --> SSM[SSM Parameter Store]
-
+```
 
 ### 2.2 Network architecture
 
@@ -106,7 +106,7 @@ The current network template creates:
 
 ## 4. Repository Structure
 
-
+```text
 cloudmart/
 ├── .github/
 │   └── workflows/
@@ -157,9 +157,11 @@ cloudmart/
 │
 ├── Documents/
 └── README.md
-
+```
 ### Stack responsibilities
 
+| Stack | Main responsibility |
+|---|---|
 | `cloudmart-network-stack` | VPC, subnets, route tables, security groups and VPC endpoints |
 | `cloudmart-data-stack` | RDS MySQL, S3 reports bucket, KMS key and SSM parameters |
 | `cloudmart-iam-stack` | Lambda and EC2 IAM roles |
@@ -173,7 +175,7 @@ cloudmart/
 
 The repository currently contains:
 
-json
+```json
 [
   {
     "ParameterKey": "Environment",
@@ -184,7 +186,7 @@ json
     "ParameterValue": "ap-south-1"
   }
 ]
-
+```
 
 The deployment workflow reads the environment from `parameters/parameters.json` and exports it as `ENVIRONMENT`.
 
@@ -212,7 +214,7 @@ The schema initialization Lambda creates the application tables.
 
 ### Main tables
 
-
+```text
 customers
     |
     | 1-to-many
@@ -223,7 +225,7 @@ orders --------< order_items >-------- product
   v
 order_status_history
 
-
+```
 The schema includes:
 
 - `customers`
@@ -239,14 +241,14 @@ The customer record contains authentication-related information including role. 
 
 The application reads configuration from SSM Parameter Store using paths such as:
 
-
+```text
 /cloudmart/<environment>/db/host
 /cloudmart/<environment>/db/name
 /cloudmart/<environment>/db/username
 /cloudmart/<environment>/db/password
 /cloudmart/<environment>/inventory/stock-threshold
 /cloudmart/<environment>/s3/reports-bucket
-
+```
 
 The database password is retrieved with decryption enabled.
 
@@ -258,7 +260,7 @@ The current data stack also creates a KMS key used by the IAM policies for decry
 
 CloudMart uses an API Gateway TOKEN Lambda Authorizer.
 
-
+```text
 Client
   |
   | Authorization: <token>
@@ -279,7 +281,7 @@ Validate token + active user + role
   +---- PRODUCT  -> product management access
   +---- CUSTOMER -> customer/order/product access
 
-
+```
 The authorizer:
 
 1. Reads the token from the `Authorization` header.
@@ -313,8 +315,9 @@ The product stack creates a REST API with stage name equal to the environment.
 
 Base URL format:
 
+```text
 https://<api-id>.execute-api.ap-south-1.amazonaws.com/<environment>
-
+```
 
 ### Products
 
@@ -404,9 +407,11 @@ Responsibilities:
 The deployment workflow explicitly invokes:
 
 
+```bash
 aws lambda invoke \
   --function-name cloudmart-schema-init-${ENVIRONMENT} \
   response.json
+```
 
 
 ### Report Lambda
@@ -423,9 +428,9 @@ Responsibilities:
 - Publish custom CloudWatch metrics.
 
 Report files are stored using a key similar to:
-
+```text
 reports/cloudmart-business-report-YYYY-MM-DD-HH-MM-SS.csv
-
+```
 The report contains business summary information, product details and order details.
 
 
@@ -437,10 +442,10 @@ CloudMart uses EventBridge for application events.
 
 The order/product application publishes events to the default EventBridge event bus using source values such as:
 
-
+```text
 cloudmart.orders
 cloudmart.inventory
-
+```
 
 The orders stack creates a customer notification rule for order events including:
 
@@ -453,10 +458,10 @@ The matching events are sent to the customer SNS topic.
 ### Low-stock notification
 
 The low-stock EventBridge rule listens for:
-
+```text
 source: cloudmart.inventory
 detail-type: LowStock
-
+```
 
 and publishes the notification to the owner SNS topic.
 
@@ -493,9 +498,9 @@ The report includes:
 ## 13. Monitoring and Alarms
 
 CloudMart uses the custom CloudWatch namespace:
-
+```text
 CloudMart
-
+```
 Examples of custom metrics in the application include:
 
 - `AuthorizedRequests`
@@ -546,7 +551,7 @@ The monitor stack provisions the instance in the **public subnet** and installs:
 
 The EC2 user-data script clones the CloudMart repository, installs dashboard dependencies, creates a systemd service and configures Nginx as a reverse proxy.
 
-
+```text
 Browser
    |
    | HTTP :80
@@ -562,14 +567,16 @@ Flask :5000
    +--> RDS
    +--> SSM
    +--> EC2 metadata
-
+```
 The dashboard provides login, operational metrics, system-health information, report listing/viewing/download functionality and alarm status.
 
 ### Report download
 
 The dashboard lists objects under:
 
+```text
 reports/
+```
 
 For downloads it generates a temporary S3 presigned URL rather than exposing the S3 bucket publicly.
 
@@ -578,7 +585,7 @@ For downloads it generates a temporary S3 presigned URL rather than exposing the
 ## 15. CI/CD Pipeline
 
 The primary workflow is:
-
+```text
 Push to main
      |
      v
@@ -615,22 +622,26 @@ Orders
      |
      v
 Monitor
-
+```
 
 The workflow uses:
 
-yaml
+```yaml
 permissions:
   id-token: write
   contents: read
-
+```
 and configures AWS credentials through `aws-actions/configure-aws-credentials@v4` with the GitHub secret:
 
+```text
 ARN_ROLE
+```
 
 The AWS region configured by the workflow is:
 
+```text
 ap-south-1
+```
 
 ### Main deployment sequence
 
@@ -663,11 +674,11 @@ Do not commit credentials or authentication tokens.
 ## 17. Deployment
 
 The recommended deployment path is GitHub Actions.
-
+```bash
 git add .
 git commit -m "Deploy CloudMart changes"
 git push origin main
-
+```
 The workflow then performs the stack deployments automatically.
 
 
